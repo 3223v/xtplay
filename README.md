@@ -4,12 +4,6 @@ First, run the development server:
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
 Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
@@ -21,3 +15,9 @@ Open [http://localhost:3000](http://localhost:3000) with your browser to see the
 好玩，简单，方便。
 可以用来模拟多个角色的游戏，比如狼人杀等。
 也可以让不同的AI去辩论。
+
+## 其他
+
+因为没有做鉴权，没有做加密，所以没法在生产环境中使用。
+只能自己在本地运行。
+ai的api key需要自己配置。
