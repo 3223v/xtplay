@@ -93,10 +93,10 @@ export default function Home() {
           </span>
         </div>
         <nav className="hidden md:flex items-center gap-8">
-          {["Features", "Docs", "Community", "About"].map((item) => (
+          {["Docs", "Blog"].map((item) => (
             <a
               key={item}
-              href="#"
+              href={`/${item.toLowerCase()}`}
               className="text-sm text-gray-400 hover:text-white transition-colors duration-300"
             >
               {item}
@@ -135,7 +135,7 @@ export default function Home() {
             <span className="absolute inset-0 bg-gradient-to-r from-purple-600 to-indigo-600 group-hover:from-purple-500 group-hover:to-indigo-500" />
             <span className="absolute inset-0 bg-gradient-to-r from-purple-600 to-indigo-600 blur-xl opacity-40 group-hover:opacity-60 transition-opacity" />
             <span className="relative flex items-center gap-2">
-              <Link href="/ground">Start Building</Link>
+              <Link href="/manage">Start Building</Link>
               <svg className="w-4 h-4 transition-transform group-hover:translate-x-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" />
               </svg>
@@ -195,10 +195,10 @@ export default function Home() {
         <div className="flex flex-col md:flex-row items-center justify-between gap-4">
           <p className="text-sm text-gray-500">© 2026 XTPlay.</p>
           <div className="flex items-center gap-6">
-            {["GitHub", "Gitee"].map((social) => (
+            {["GitHub"].map((social) => (
               <a
                 key={social}
-                href={`https://${social.toLowerCase()}.com/mttk/xtplay`}
+                href={`https://${social.toLowerCase()}.com/3223v/xtplay`}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="text-sm text-gray-500 hover:text-gray-300 transition-colors"

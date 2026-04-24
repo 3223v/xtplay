@@ -40,4 +40,4 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 # data
-/app/api/data/ground_*.json
+/app/api/data/*.json

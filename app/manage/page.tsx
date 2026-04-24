@@ -21,6 +21,11 @@ export default function Manage() {
   const [isEditing, setIsEditing] = useState(false);
   const [editForm, setEditForm] = useState<Partial<Ground>>({});
   const [isLoading, setIsLoading] = useState(true);
+  const [showImportModal, setShowImportModal] = useState(false);
+  const [importMethod, setImportMethod] = useState<'file' | 'text'>('file');
+  const [importContent, setImportContent] = useState('');
+  const [importFile, setImportFile] = useState<File | null>(null);
+  const [isImporting, setIsImporting] = useState(false);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -185,6 +190,57 @@ export default function Manage() {
     }
   };
 
+  const handleImport = async () => {
+    if (isImporting) return;
+    
+    try {
+      setIsImporting(true);
+      let data;
+      
+      if (importMethod === 'file' && importFile) {
+        const reader = new FileReader();
+        data = await new Promise((resolve, reject) => {
+          reader.onload = (e) => {
+            try {
+              resolve(JSON.parse(e.target?.result as string));
+            } catch (error) {
+              reject(new Error('Invalid JSON file'));
+            }
+          };
+          reader.onerror = () => reject(new Error('Failed to read file'));
+          reader.readAsText(importFile);
+        });
+      } else if (importMethod === 'text' && importContent) {
+        data = JSON.parse(importContent);
+      } else {
+        throw new Error('Please select a file or enter JSON content');
+      }
+
+      const response = await fetch("/api/ground/import", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data),
+      });
+      
+      const result = await response.json();
+      
+      if (result.success) {
+        setGrounds([...grounds, result.data]);
+        setShowImportModal(false);
+        setImportContent('');
+        setImportFile(null);
+        alert("Ground imported successfully!");
+      } else {
+        alert(`Failed to import ground: ${result.message}`);
+      }
+    } catch (error) {
+      console.error("Failed to import ground:", error);
+      alert(`Failed to import ground: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    } finally {
+      setIsImporting(false);
+    }
+  };
+
   const filteredGrounds = grounds.filter(
     (ground) =>
       ground.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -236,15 +292,26 @@ export default function Manage() {
             <h1 className="text-4xl font-bold text-white mb-2">Ground Management</h1>
             <p className="text-gray-400">管理所有工作空间配置</p>
           </div>
-          <button
-            onClick={handleCreate}
-            className="px-6 py-3 text-sm font-semibold text-white bg-gradient-to-r from-purple-600 to-indigo-600 rounded-full hover:from-purple-500 hover:to-indigo-500 transition-all duration-300 shadow-lg shadow-purple-900/30 flex items-center gap-2"
-          >
-            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-            </svg>
-            Create Ground
-          </button>
+          <div className="flex items-center gap-4">
+            <button
+              onClick={() => setShowImportModal(true)}
+              className="px-6 py-3 text-sm font-semibold text-gray-300 bg-white/10 border border-white/20 rounded-full hover:bg-white/15 hover:border-white/30 transition-all duration-300 flex items-center gap-2"
+            >
+              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+              </svg>
+              Import Ground
+            </button>
+            <button
+              onClick={handleCreate}
+              className="px-6 py-3 text-sm font-semibold text-white bg-gradient-to-r from-purple-600 to-indigo-600 rounded-full hover:from-purple-500 hover:to-indigo-500 transition-all duration-300 shadow-lg shadow-purple-900/30 flex items-center gap-2"
+            >
+              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+              </svg>
+              Create Ground
+            </button>
+          </div>
         </div>
 
         <div className="mb-6">
@@ -482,6 +549,124 @@ export default function Manage() {
           </div>
         )}
       </main>
+
+      {/* Import Modal */}
+      {showImportModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black/80 backdrop-blur-sm" onClick={() => setShowImportModal(false)} />
+          <div className="relative w-full max-w-2xl bg-gradient-to-br from-[#1a1a2e] to-[#16162a] border border-[#2a2a3e] rounded-2xl p-6 shadow-2xl">
+            <div className="flex items-center justify-between mb-6">
+              <h3 className="text-2xl font-bold text-white">Import Ground</h3>
+              <button
+                onClick={() => setShowImportModal(false)}
+                className="text-gray-400 hover:text-white transition-colors"
+              >
+                <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+
+            <div className="mb-6">
+              <div className="flex items-center gap-4 mb-4">
+                <button
+                  onClick={() => setImportMethod('file')}
+                  className={`flex-1 py-3 px-4 rounded-lg border transition-all ${importMethod === 'file' ? 'border-purple-500 bg-purple-500/10' : 'border-[#2a2a3e] bg-[#1a1a2e]'}`}
+                >
+                  <span className={`text-sm font-medium ${importMethod === 'file' ? 'text-purple-300' : 'text-gray-400'}`}>
+                    Upload JSON File
+                  </span>
+                </button>
+                <button
+                  onClick={() => setImportMethod('text')}
+                  className={`flex-1 py-3 px-4 rounded-lg border transition-all ${importMethod === 'text' ? 'border-purple-500 bg-purple-500/10' : 'border-[#2a2a3e] bg-[#1a1a2e]'}`}
+                >
+                  <span className={`text-sm font-medium ${importMethod === 'text' ? 'text-purple-300' : 'text-gray-400'}`}>
+                    Paste JSON Content
+                  </span>
+                </button>
+              </div>
+
+              {importMethod === 'file' ? (
+                <div className="border-2 border-dashed border-[#2a2a3e] rounded-xl p-8 text-center hover:border-purple-500/50 transition-colors">
+                  {importFile ? (
+                    <div className="flex items-center justify-center gap-3">
+                      <svg className="w-8 h-8 text-purple-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                      </svg>
+                      <div>
+                        <div className="text-sm font-medium text-white">{importFile.name}</div>
+                        <div className="text-xs text-gray-500">{Math.round(importFile.size / 1024)} KB</div>
+                      </div>
+                      <button
+                        onClick={() => setImportFile(null)}
+                        className="ml-4 text-gray-400 hover:text-red-400 transition-colors"
+                      >
+                        <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                        </svg>
+                      </button>
+                    </div>
+                  ) : (
+                    <label className="cursor-pointer">
+                      <input
+                        type="file"
+                        accept=".json"
+                        onChange={(e) => e.target.files && setImportFile(e.target.files[0])}
+                        className="hidden"
+                      />
+                      <div className="flex flex-col items-center gap-2">
+                        <svg className="w-12 h-12 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                        </svg>
+                        <span className="text-sm text-gray-400">Drag and drop your JSON file here</span>
+                        <span className="text-xs text-gray-500">or click to browse</span>
+                      </div>
+                    </label>
+                  )}
+                </div>
+              ) : (
+                <textarea
+                  value={importContent}
+                  onChange={(e) => setImportContent(e.target.value)}
+                  placeholder="Paste your JSON content here..."
+                  className="w-full h-64 px-4 py-3 bg-[#0d0d14] border border-[#2a2a3e] rounded-xl text-white placeholder-gray-500 focus:outline-none focus:border-purple-500/50 resize-none"
+                />
+              )}
+            </div>
+
+            <div className="flex items-center justify-end gap-4">
+              <button
+                onClick={() => {
+                  setShowImportModal(false);
+                  setImportContent('');
+                  setImportFile(null);
+                  setImportMethod('file');
+                }}
+                className="px-6 py-3 text-sm font-semibold text-gray-400 bg-[#1a1a2e] border border-[#2a2a3e] rounded-lg hover:bg-[#2a2a3e] transition-all"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleImport}
+                className="px-6 py-3 text-sm font-semibold text-white bg-gradient-to-r from-purple-600 to-indigo-600 rounded-lg hover:from-purple-500 hover:to-indigo-500 transition-all duration-300 flex items-center gap-2"
+                disabled={isImporting}
+              >
+                {isImporting ? (
+                  <svg className="w-5 h-5 animate-spin" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                  </svg>
+                ) : (
+                  <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                  </svg>
+                )}
+                {isImporting ? 'Importing...' : 'Import'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       <footer className="relative z-10 px-12 py-8 border-t border-white/5">
         <div className="flex flex-col md:flex-row items-center justify-between gap-4">
