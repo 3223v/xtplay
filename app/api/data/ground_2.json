@@ -1,0 +1,128 @@
+{
+  "id": "2",
+  "name": "XTPlay",
+  "description": "A tool for playing with XTPlay",
+  "default_url": "https://mttk.github.io/xtplay",
+  "default_key": "default_role",
+  "default_model": "",
+  "knowledge": [],
+  "rule": [],
+  "role": [
+    {
+      "id": "saint",
+      "kind": "saint",
+      "name": "saint",
+      "description": "Special adjudicator role with authority to interpret rules and apply world-state changes.",
+      "use_prompt": "You are saint, the world adjudicator. You can inspect every role, read all votes, and apply rule-based changes to the world.",
+      "system_prompt": "You are the final adjudicator of this simulation. You see all roles and all votes. Apply the ground rules, resolve events, and emit precise structured role updates when a role's status or attributes must change.",
+      "canvas_position": {
+        "x": 63,
+        "y": -40.5
+      },
+      "url": "https://mttk.github.io/xtplay",
+      "key": "default_role",
+      "model": "",
+      "temperature": 0.2,
+      "knowledge_private": [],
+      "knowledge_public": [],
+      "blocked_role_names": [],
+      "unknown_role_names": [],
+      "inbox": [],
+      "redundancy": 0,
+      "status": "active",
+      "enabled": true,
+      "last_think": "",
+      "last_error": ""
+    }
+  ],
+  "round": [
+    {
+      "round": 1,
+      "createdAt": "2026-04-24T06:32:40.560Z",
+      "batch": [],
+      "instructions": "",
+      "summary": "",
+      "event": null,
+      "before": {
+        "name": "XTPlay",
+        "description": "A tool for playing with XTPlay",
+        "default_url": "https://mttk.github.io/xtplay",
+        "default_key": "default_role",
+        "knowledge": [],
+        "rule": [],
+        "role": [
+          {
+            "id": "",
+            "name": "default",
+            "description": "The default role for the XTPlay tool",
+            "use_prompt": "You are a helpful assistant.",
+            "system_prompt": "",
+            "url": "https://mttk.github.io/xtplay",
+            "key": "default_role",
+            "knowledge": [],
+            "status": "default"
+          },
+          {
+            "id": "",
+            "name": "player",
+            "description": "The player role for the XTPlay tool",
+            "use_prompt": "You are a player in the game of XTPlay tool.",
+            "system_prompt": "",
+            "url": "https://mttk.github.io/xtplay",
+            "key": "player_role",
+            "knowledge": [],
+            "status": "default"
+          }
+        ]
+      },
+      "after": {},
+      "output": [
+        {
+          "role": "default",
+          "content": "Hello, I am a helpful assistant.",
+          "from": ""
+        },
+        {
+          "role": "player",
+          "content": "Hello, I am a player in the game of XTPlay tool.",
+          "from": ""
+        }
+      ],
+      "votes": [],
+      "roleActions": []
+    },
+    {
+      "round": 2,
+      "createdAt": "2026-04-24T06:32:40.560Z",
+      "batch": [],
+      "instructions": "",
+      "summary": "",
+      "event": null,
+      "before": {},
+      "after": {},
+      "output": [
+        {
+          "role": "default",
+          "content": "Hello, I am a helpful assistant.",
+          "from": ""
+        },
+        {
+          "role": "player",
+          "content": "Hello, I am a player in the game of XTPlay tool.",
+          "from": ""
+        }
+      ],
+      "votes": [],
+      "roleActions": []
+    }
+  ],
+  "simulation": {
+    "batch_size": 2,
+    "current_batch_index": 0,
+    "max_round_history": 50,
+    "mode": "auto",
+    "round_goal": ""
+  },
+  "createdAt": "2026-04-24",
+  "updatedAt": "2026-04-24"
+}
