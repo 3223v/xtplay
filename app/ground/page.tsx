@@ -793,6 +793,7 @@ function GroundPageContent() {
   const [isAdvancing, setIsAdvancing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [dirty, setDirty] = useState(false);
+  const [showVoteResults, setShowVoteResults] = useState(false);
 
   const openRoleEditor = useCallback((roleId: string) => {
     setSelectedRoleId(roleId);
@@ -933,6 +934,85 @@ function GroundPageContent() {
 
     return participants;
   }, [excludedRoleIds, ground, saintRole, upcomingBatch]);
+
+  async function toggleSaintRole() {
+    if (!ground) return;
+
+    try {
+      const response = await fetch(`/api/saint/toggle?groundId=${ground.id}`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+      });
+      
+      const result = await response.json();
+      
+      if (result.success) {
+        const updatedGround = result.data as GroundFile;
+        groundRef.current = updatedGround;
+        applyGround(updatedGround, { dirty: false });
+      } else {
+        setError(result.message || "Failed to toggle saint role");
+      }
+    } catch (error) {
+      setError(error instanceof Error ? error.message : "Failed to toggle saint role");
+    }
+  }
+
+  function renderRecentVoteResults() {
+    if (!ground || rounds.length === 0) {
+      return (
+        <div className="vote-results-card">
+          <div className="vote-results-title">Recent Vote Results</div>
+          <div className="vote-results-empty">No vote history found.</div>
+        </div>
+      );
+    }
+
+    // Find the most recent round with votes
+    const recentRoundWithVotes = [...rounds].reverse().find(round => round.votes && round.votes.length > 0);
+    
+    if (!recentRoundWithVotes) {
+      return (
+        <div className="vote-results-card">
+          <div className="vote-results-title">Recent Vote Results</div>
+          <div className="vote-results-empty">No votes found in any round.</div>
+        </div>
+      );
+    }
+
+    // Count votes
+    const voteCount = new Map<string, number>();
+    recentRoundWithVotes.votes.forEach(vote => {
+      voteCount.set(vote.role, (voteCount.get(vote.role) || 0) + vote.vote);
+    });
+
+    // Sort by vote count (descending)
+    const sortedVotes = Array.from(voteCount.entries())
+      .sort((a, b) => b[1] - a[1]);
+
+    return (
+      <div className="vote-results-card">
+        <div className="vote-results-title">
+          Vote Results - Round {recentRoundWithVotes.round}
+        </div>
+        <div className="vote-results-content">
+          {sortedVotes.map(([role, count]) => (
+            <div key={role} className="vote-result-item">
+              <span className="vote-result-role">{role}</span>
+              <span className="vote-result-count">{count} votes</span>
+            </div>
+          ))}
+        </div>
+        {recentRoundWithVotes.event && (
+          <div className="vote-results-event">
+            Event: {recentRoundWithVotes.event.type} - {recentRoundWithVotes.event.title}
+          </div>
+        )}
+      </div>
+    );
+  }
 
   async function persistGround(nextGround?: GroundFile) {
     const targetGround = nextGround ?? groundRef.current;
@@ -1205,6 +1285,13 @@ function GroundPageContent() {
             {dirty ? "Unsaved Changes" : "Synced"}
           </span>
           <button
+            onClick={() => toggleSaintRole()}
+            className={`btn ${saintRole ? "btn-warning" : "btn-success"}`}
+            disabled={isSaving || isAdvancing}
+          >
+            {saintRole ? "Remove Saint" : "Add Saint"}
+          </button>
+          <button
             onClick={() => setShowGroundSettings(true)}
             className="btn btn-secondary"
             disabled={isSaving || isAdvancing}
@@ -1384,10 +1471,20 @@ function GroundPageContent() {
             </div>
 
             <div className="event-card">
-              <div className="advance-title">Event Injection</div>
+              <div className="advance-title">
+                Event Injection
+                <button
+                  onClick={() => setShowVoteResults(!showVoteResults)}
+                  className="vote-results-toggle"
+                >
+                  {showVoteResults ? "Hide Votes" : "Show Votes"}
+                </button>
+              </div>
               <div className="advance-subtitle">
                 Inject a structured event into the next advance. saint will adjudicate it if saint participates.
               </div>
+
+              {showVoteResults && renderRecentVoteResults()}
 
               <select
                 className="advance-input select-input"
@@ -1847,6 +1944,83 @@ function GroundPageContent() {
           color: #fff;
           font-size: 13px;
           font-weight: 600;
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+        }
+
+        .vote-results-toggle {
+          background: #6366f1;
+          color: white;
+          border: none;
+          border-radius: 6px;
+          padding: 4px 10px;
+          font-size: 11px;
+          font-weight: 600;
+          cursor: pointer;
+          transition: all 0.2s;
+        }
+
+        .vote-results-toggle:hover {
+          background: #4f46e5;
+          transform: translateY(-1px);
+        }
+
+        .vote-results-card {
+          background: linear-gradient(135deg, #1a1a2e 0%, #16162a 100%);
+          border: 1px solid #2a2a3e;
+          border-radius: 8px;
+          padding: 14px;
+          margin: 12px 0;
+        }
+
+        .vote-results-title {
+          color: #6366f1;
+          font-size: 12px;
+          font-weight: 600;
+          margin-bottom: 12px;
+        }
+
+        .vote-results-empty {
+          color: #666;
+          font-size: 12px;
+          text-align: center;
+          padding: 10px;
+        }
+
+        .vote-results-content {
+          margin-bottom: 10px;
+        }
+
+        .vote-result-item {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          padding: 6px 0;
+          border-bottom: 1px solid #2a2a3e;
+        }
+
+        .vote-result-item:last-child {
+          border-bottom: none;
+        }
+
+        .vote-result-role {
+          color: #fff;
+          font-size: 12px;
+        }
+
+        .vote-result-count {
+          color: #10b981;
+          font-size: 12px;
+          font-weight: 600;
+        }
+
+        .vote-results-event {
+          margin-top: 10px;
+          padding-top: 10px;
+          border-top: 1px solid #2a2a3e;
+          color: #9ca3af;
+          font-size: 11px;
         }
 
         .advance-subtitle,
@@ -2006,14 +2180,34 @@ function GroundPageContent() {
           color: #fff;
         }
 
-        .btn-primary:hover:not(:disabled) {
+        .btn-primary:hover {
           transform: translateY(-1px);
           box-shadow: 0 4px 12px rgba(99, 102, 241, 0.4);
         }
 
+        .btn-success {
+          background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+          color: #fff;
+        }
+
+        .btn-success:hover {
+          transform: translateY(-1px);
+          box-shadow: 0 4px 12px rgba(16, 185, 129, 0.4);
+        }
+
+        .btn-warning {
+          background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+          color: #fff;
+        }
+
+        .btn-warning:hover {
+          transform: translateY(-1px);
+          box-shadow: 0 4px 12px rgba(245, 158, 11, 0.4);
+        }
+
         .btn-secondary {
           background: #1f1f2e;
-          color: #d1d5db;
+          color: #9ca3af;
           border: 1px solid #2a2a3e;
         }
 

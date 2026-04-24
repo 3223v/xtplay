@@ -266,11 +266,9 @@ export function normalizeGroundData(groundId: string, input: unknown): GroundFil
     simulation: normalizeSimulationConfig(baseGround.simulation, normalizedRole.length),
   });
 
-  const withSaint = ensureSaintRole(parsedGround);
-
   return groundSchema.parse({
-    ...withSaint,
-    simulation: normalizeSimulationConfig(withSaint.simulation, withSaint.role.length),
+    ...parsedGround,
+    simulation: normalizeSimulationConfig(parsedGround.simulation, parsedGround.role.length),
   });
 }
 
@@ -368,7 +366,7 @@ export function listGroundSummaries(): GroundSummary[] {
         round?: unknown[];
       };
 
-      return {
+      const summary = {
         id: groundId,
         name: typeof raw.name === "string" && raw.name.trim() ? raw.name : `Ground ${groundId}`,
         description: typeof raw.description === "string" ? raw.description : "",
