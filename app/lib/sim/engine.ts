@@ -1,6 +1,7 @@
 import OpenAI from "openai";
 
 import {
+  buildRoundEventDraft,
   createGroundSnapshot,
   createInboxEntry,
   getBatchRoles,
@@ -14,6 +15,10 @@ import {
   RoleOutboundMessage,
   RoleVote,
   RoundEvent,
+  SaintJudgement,
+  saintJudgementSchema,
+  SaintPlan,
+  saintPlanSchema,
   roundEventSchema,
   roundSchema,
   roleActionRecordSchema,
@@ -23,12 +28,18 @@ import {
   SaintRolePatch,
   uniqueTextList,
 } from "./types";
+import {
+  roleExecutionSystemLines,
+  saintJudgementSystemLines,
+  saintPlanSystemLines,
+} from "./prompts";
 
 interface AdvanceRoundOptions {
   instructions?: string;
   event?: RoundEvent | null;
   batchRoleIds?: string[];
   excludedRoleIds?: string[];
+  messageScope?: "public" | "batch_only";
   dryRun?: boolean;
 }
 
@@ -50,18 +61,7 @@ function normalizeEvent(event?: RoundEvent | null) {
   }
 
   const parsed = roundEventSchema.parse(event);
-
-  if (parsed.type === "death_vote") {
-    return {
-      ...parsed,
-      title: parsed.title || "Death Vote",
-      prompt:
-        parsed.prompt ||
-        "A death vote is active. Each participating non-saint role should vote for one visible, living, non-saint role that they believe should die. Explain your reasoning in think, and put the vote target in vote[].",
-    };
-  }
-
-  return parsed;
+  return buildRoundEventDraft(parsed.type, parsed.prompt, parsed.title);
 }
 
 function getExcludedSet(excludedRoleIds?: string[]) {
@@ -109,14 +109,23 @@ function resolveRecipients(
   sender: RoleConfig,
   targetName: string,
   bypassRestrictions = false,
+  allowedTargetNames?: Set<string>,
 ) {
   if (targetName === "all") {
-    return ground.role.filter((candidate) =>
-      canDeliverMessage(sender, candidate, bypassRestrictions),
-    );
+    return ground.role.filter((candidate) => {
+      if (allowedTargetNames && !allowedTargetNames.has(candidate.name)) {
+        return false;
+      }
+
+      return canDeliverMessage(sender, candidate, bypassRestrictions);
+    });
   }
 
   const candidate = ground.role.find((role) => role.name === targetName);
+
+  if (allowedTargetNames && (!candidate || !allowedTargetNames.has(candidate.name))) {
+    return [];
+  }
 
   if (!candidate || !canDeliverMessage(sender, candidate, bypassRestrictions)) {
     return [];
@@ -161,6 +170,7 @@ function deliverMessages(
   messages: RoleOutboundMessage[],
   roundNumber: number,
   bypassRestrictions = false,
+  allowedTargetNames?: Set<string>,
 ) {
   const delivered: RoleMessage[] = [];
 
@@ -170,6 +180,7 @@ function deliverMessages(
       sender,
       message.role || "all",
       bypassRestrictions,
+      allowedTargetNames,
     );
 
     for (const recipient of recipients) {
@@ -225,7 +236,7 @@ function mergeRoleAction(ground: GroundFile, action: RoleActionRecord) {
   ]);
 }
 
-function applySaintPatch(ground: GroundFile, patch: SaintRolePatch) {
+export function applySaintPatch(ground: GroundFile, patch: SaintRolePatch) {
   const roleIndex = ground.role.findIndex((role) => role.name === patch.role || role.id === patch.role);
 
   if (roleIndex === -1) {
@@ -262,6 +273,25 @@ function applySaintPatch(ground: GroundFile, patch: SaintRolePatch) {
   ]);
 }
 
+export function applySaintJudgementToGround(
+  ground: GroundFile,
+  judgement: SaintJudgement,
+) {
+  const nextGround = structuredClone(ground) as GroundFile;
+
+  for (const patch of judgement.role_updates) {
+    applySaintPatch(nextGround, patch);
+  }
+
+  nextGround.workflow = {
+    ...nextGround.workflow,
+    pending_judgement: null,
+  };
+  nextGround.updatedAt = new Date().toISOString().slice(0, 10);
+
+  return nextGround;
+}
+
 function buildEventInstructions(event: RoundEvent | null) {
   if (!event) {
     return "";
@@ -273,7 +303,6 @@ function buildEventInstructions(event: RoundEvent | null) {
 function buildRoleMessages(
   ground: GroundFile,
   role: RoleConfig,
-  batchNames: string[],
   options: AdvanceRoundOptions,
 ) {
   const recentRounds = ground.round.slice(-3).map((round) => ({
@@ -287,10 +316,10 @@ function buildRoleMessages(
   const visiblePeers = getVisibleRolesForRole(ground, role).map((candidate) => ({
     id: candidate.id,
     name: candidate.name,
-    kind: candidate.kind,
-    description: candidate.description,
     status: candidate.status,
     enabled: candidate.enabled,
+    public_knowledge_count: candidate.knowledge_public.length,
+    inbox_seen_by_them: candidate.inbox.length,
   }));
   const schemaHint = {
     think: "string",
@@ -299,17 +328,26 @@ function buildRoleMessages(
     knowledge_public: ["string"],
     status: "active | silent | dead",
     redundancy: 0,
-    output: [{ role: "target role name or all", content: "message content" }],
+    output: [
+      {
+        role: "exact target role name or all",
+        content: "message content for that specific target",
+      },
+    ],
     vote: [{ thing: "what is being voted on", role: "who gets the vote", vote: 1 }],
   };
+  const allowedMessageTargets =
+    options.messageScope === "batch_only"
+      ? getBatchRoles(ground, options.batchRoleIds, options.excludedRoleIds).map(
+          (candidate) => candidate.name,
+        )
+      : visiblePeers.map((candidate) => candidate.name);
 
   return [
     {
       role: "system" as const,
       content: [
-        "You are participating in a turn-based world simulation.",
-        "Stay in character and decide your next action for this batch.",
-        "Return JSON only. Do not include markdown fences or prose outside the JSON object.",
+        ...roleExecutionSystemLines,
         role.system_prompt.trim(),
       ]
         .filter(Boolean)
@@ -323,7 +361,9 @@ function buildRoleMessages(
           instructions: options.instructions ?? "",
           event_instructions: buildEventInstructions(event),
           round_goal: ground.simulation.round_goal,
-          batch: batchNames,
+          selected_for_current_batch: true,
+          current_step_message_scope: options.messageScope ?? "public",
+          allowed_message_targets: allowedMessageTargets,
           ground: {
             name: ground.name,
             description: ground.description,
@@ -345,6 +385,17 @@ function buildRoleMessages(
             public_knowledge: role.knowledge_public,
           },
           visible_peers: visiblePeers,
+          information_scope: [
+            "You only know what is in your private knowledge, public knowledge, inbox, ground public state, and visible_peers.",
+            "You do not know another role's hidden identity unless it is explicitly revealed by your own knowledge sources.",
+          ],
+          messaging_rules: [
+            'output[] may contain zero or more messages.',
+            'Use one array item per distinct target message.',
+            'If Alice and Bob should receive different content, emit two separate output items.',
+            'The role field must be one visible role name or "all".',
+            'For this current step, only names in allowed_message_targets are valid message targets.',
+          ],
           recent_rounds: recentRounds,
           output_schema: schemaHint,
         },
@@ -355,19 +406,85 @@ function buildRoleMessages(
   ];
 }
 
-function buildSaintMessages(
+function buildSaintPlanMessages(ground: GroundFile, saint: RoleConfig) {
+  const availableRoles = ground.role.filter(
+    (role) => role.enabled && role.status !== "dead" && !isSaintRole(role),
+  );
+  const recentRounds = ground.round.slice(-3).map((round) => ({
+    round: round.round,
+    event: round.event,
+    summary: round.summary,
+    batch: round.batch,
+    output: round.output,
+    votes: round.votes,
+  }));
+  const schemaHint = {
+    summary: "short summary for the host proposal",
+    reasoning: "why this plan is appropriate",
+    instructions: "the moderator instruction for the next step",
+    event: {
+      type: "custom | death_vote",
+      title: "event title",
+      prompt: "event prompt",
+    },
+    batch_role_names: ["exact role name"],
+    message_scope: "public | batch_only",
+  };
+
+  return [
+    {
+      role: "system" as const,
+      content: [
+        ...saintPlanSystemLines,
+        saint.system_prompt.trim(),
+      ]
+        .filter(Boolean)
+        .join("\n\n"),
+    },
+    {
+      role: "user" as const,
+      content: JSON.stringify(
+        {
+          task: "Propose the next host plan for the simulation.",
+          ground: {
+            name: ground.name,
+            description: ground.description,
+            knowledge: ground.knowledge,
+            rule: ground.rule,
+          },
+          simulation: ground.simulation,
+          planning_guardrails: [
+            "One approved plan should represent one coherent execution step.",
+            "Use message_scope=batch_only only when the current step should stay private or internally scoped.",
+            "Use message_scope=public only when the current step is openly visible communication.",
+            "Scene-specific scheduling rules should come from stored rules and saint prompt, not from unstated assumptions.",
+          ],
+          available_roles: availableRoles.map((role) => ({
+            id: role.id,
+            name: role.name,
+            description: role.description,
+            status: role.status,
+            redundancy: role.redundancy,
+            inbox_size: role.inbox.length,
+          })),
+          recent_rounds: recentRounds,
+          output_schema: schemaHint,
+        },
+        null,
+        2,
+      ),
+    },
+  ];
+}
+
+function buildSaintJudgementMessages(
   ground: GroundFile,
   saint: RoleConfig,
-  options: AdvanceRoundOptions,
-  currentVotes: RoleVote[],
-  currentMessages: RoleMessage[],
+  round: ReturnType<typeof roundSchema.parse>,
 ) {
-  const event = normalizeEvent(options.event);
   const schemaHint = {
-    think: "string",
-    summary: "string",
-    knowledge_public: ["string"],
-    output: [{ role: "target role name or all", content: "message content" }],
+    summary: "short summary of the host judgement",
+    reasoning: "why patches should be applied",
     role_updates: [
       {
         role: "target role name",
@@ -388,10 +505,7 @@ function buildSaintMessages(
     {
       role: "system" as const,
       content: [
-        "You are saint, the adjudicator of this simulation.",
-        "You can inspect all roles, all votes, all visible messages, and all rules.",
-        "You may update role status or gameplay attributes when the rules or event outcome require it.",
-        "Return JSON only. Do not include markdown fences or prose outside the JSON object.",
+        ...saintJudgementSystemLines,
         saint.system_prompt.trim(),
       ]
         .filter(Boolean)
@@ -401,9 +515,7 @@ function buildSaintMessages(
       role: "user" as const,
       content: JSON.stringify(
         {
-          task: "Review the current round, interpret the event and rules, then decide whether role attributes must change.",
-          instructions: options.instructions ?? "",
-          event,
+          task: "Review the executed round and propose any role patches that should be approved by the user.",
           rules: ground.rule,
           public_knowledge: ground.knowledge,
           role_state: ground.role.map((role) => ({
@@ -420,8 +532,7 @@ function buildSaintMessages(
             knowledge_private: role.knowledge_private,
             knowledge_public: role.knowledge_public,
           })),
-          current_round_votes: currentVotes,
-          current_round_messages: currentMessages,
+          executed_round: round,
           output_schema: schemaHint,
         },
         null,
@@ -490,17 +601,30 @@ function createMockAction(
   };
 }
 
-function createMockSaintAction(
-  ground: GroundFile,
-  options: AdvanceRoundOptions,
-  currentVotes: RoleVote[],
-): SaintAction {
-  const event = normalizeEvent(options.event);
+function createMockSaintPlan(ground: GroundFile): SaintPlan {
+  const batchRoleNames = getBatchRoles(ground).map((role) => role.name);
 
-  if (event?.type === "death_vote" && currentVotes.length > 0) {
+  return saintPlanSchema.parse({
+    summary: "saint proposes the next simulation step.",
+    reasoning:
+      "The mock host continues the current scene by selecting the default next batch and leaving scene-specific sequencing to stored rules and prompts.",
+    instructions:
+      ground.simulation.round_goal ||
+      "Continue the simulation based on the latest world state and each role's inbox.",
+    event: null,
+    batch_role_names: batchRoleNames,
+    message_scope: "public",
+  });
+}
+
+function createMockSaintJudgement(
+  ground: GroundFile,
+  round: ReturnType<typeof roundSchema.parse>,
+): SaintJudgement {
+  if (round.event?.type === "death_vote" && round.votes.length > 0) {
     const tally = new Map<string, number>();
 
-    for (const vote of currentVotes) {
+    for (const vote of round.votes) {
       tally.set(vote.role, (tally.get(vote.role) ?? 0) + vote.vote);
     }
 
@@ -508,16 +632,10 @@ function createMockSaintAction(
       [...tally.entries()].sort((left, right) => right[1] - left[1])[0] ?? [];
 
     if (winnerName) {
-      return {
-        think: `saint reviewed the death vote event and counted the ballots.`,
-        summary: `saint resolved the death vote and marked ${winnerName} as dead.`,
-        knowledge_public: [`saint resolved the event ${event.title}.`],
-        output: [
-          {
-            role: "all",
-            content: `saint: after reviewing the votes, ${winnerName} is now dead.`,
-          },
-        ],
+      return saintJudgementSchema.parse({
+        round: round.round,
+        summary: `saint proposes to mark ${winnerName} as dead after the vote.`,
+        reasoning: "Highest vote count in death vote event.",
         role_updates: [
           {
             role: winnerName,
@@ -528,17 +646,16 @@ function createMockSaintAction(
             inbox_add: [],
           },
         ],
-      };
+      });
     }
   }
 
-  return {
-    think: "saint observed the round and found no forced state changes.",
-    summary: "saint kept the world state unchanged.",
-    knowledge_public: [],
-    output: [],
+  return saintJudgementSchema.parse({
+    round: round.round,
+    summary: "saint proposes no post-round state changes.",
+    reasoning: "The round result does not require any mandatory patches.",
     role_updates: [],
-  };
+  });
 }
 
 async function runLiveRole(
@@ -564,9 +681,6 @@ async function runLiveRole(
     messages: buildRoleMessages(
       ground,
       role,
-      getBatchRoles(ground, options.batchRoleIds, options.excludedRoleIds).map(
-        (batchRole) => batchRole.name,
-      ),
       options,
     ),
   });
@@ -580,13 +694,10 @@ async function runLiveRole(
   return roleActionSchema.parse(JSON.parse(extractJsonPayload(content)));
 }
 
-async function runLiveSaint(
+async function runLiveSaintPlan(
   ground: GroundFile,
   saint: RoleConfig,
-  options: AdvanceRoundOptions,
-  currentVotes: RoleVote[],
-  currentMessages: RoleMessage[],
-) {
+): Promise<SaintPlan> {
   const model = saint.model || ground.default_model;
 
   if (!model) {
@@ -602,7 +713,7 @@ async function runLiveSaint(
     model,
     temperature: saint.temperature,
     response_format: { type: "json_object" },
-    messages: buildSaintMessages(ground, saint, options, currentVotes, currentMessages),
+    messages: buildSaintPlanMessages(ground, saint),
   });
 
   const content = completion.choices[0]?.message?.content;
@@ -611,7 +722,39 @@ async function runLiveSaint(
     throw new Error("saint returned empty content");
   }
 
-  return saintActionSchema.parse(JSON.parse(extractJsonPayload(content)));
+  return saintPlanSchema.parse(JSON.parse(extractJsonPayload(content)));
+}
+
+async function runLiveSaintJudgement(
+  ground: GroundFile,
+  saint: RoleConfig,
+  round: ReturnType<typeof roundSchema.parse>,
+): Promise<SaintJudgement> {
+  const model = saint.model || ground.default_model;
+
+  if (!model) {
+    throw new Error("saint missing model configuration");
+  }
+
+  const client = new OpenAI({
+    apiKey: saint.key || ground.default_key || process.env.OPENAI_API_KEY || "not-needed",
+    baseURL: saint.url || ground.default_url || undefined,
+  });
+
+  const completion = await client.chat.completions.create({
+    model,
+    temperature: saint.temperature,
+    response_format: { type: "json_object" },
+    messages: buildSaintJudgementMessages(ground, saint, round),
+  });
+
+  const content = completion.choices[0]?.message?.content;
+
+  if (!content) {
+    throw new Error("saint returned empty content");
+  }
+
+  return saintJudgementSchema.parse(JSON.parse(extractJsonPayload(content)));
 }
 
 async function executeRole(
@@ -670,62 +813,63 @@ async function executeRole(
   }
 }
 
-async function executeSaint(
+export async function proposeSaintPlan(
   ground: GroundFile,
-  saint: RoleConfig,
-  options: AdvanceRoundOptions,
-  currentVotes: RoleVote[],
-  currentMessages: RoleMessage[],
+  options: { dryRun?: boolean } = {},
 ) {
+  const saint = getSaintRole(ground);
+
+  if (!saint || !saint.enabled || saint.status === "dead") {
+    throw new Error("Active saint host is required");
+  }
+
   if (options.dryRun || ground.simulation.mode === "mock") {
-    return roleActionRecordSchema.parse({
-      ...createMockSaintAction(ground, options, currentVotes),
-      roleId: saint.id,
-      roleName: saint.name,
-      roleKind: saint.kind,
-      mode: "mock",
-    });
+    return createMockSaintPlan(ground);
   }
 
   const canAttemptLive = Boolean(saint.model || ground.default_model);
 
   if (!canAttemptLive && ground.simulation.mode === "auto") {
-    return roleActionRecordSchema.parse({
-      ...createMockSaintAction(ground, options, currentVotes),
-      roleId: saint.id,
-      roleName: saint.name,
-      roleKind: saint.kind,
-      mode: "mock",
-    });
+    return createMockSaintPlan(ground);
   }
 
   try {
-    const saintAction = await runLiveSaint(
-      ground,
-      saint,
-      options,
-      currentVotes,
-      currentMessages,
-    );
+    return await runLiveSaintPlan(ground, saint);
+  } catch {
+    return createMockSaintPlan(ground);
+  }
+}
 
-    return roleActionRecordSchema.parse({
-      ...saintAction,
-      roleId: saint.id,
-      roleName: saint.name,
-      roleKind: saint.kind,
-      mode: "live",
-    });
-  } catch (error) {
-    const message = error instanceof Error ? error.message : "Unknown saint execution failure";
+export async function proposeSaintJudgement(
+  ground: GroundFile,
+  round: ReturnType<typeof roundSchema.parse>,
+  options: { dryRun?: boolean } = {},
+) {
+  const saint = getSaintRole(ground);
 
-    return roleActionRecordSchema.parse({
-      ...createMockSaintAction(ground, options, currentVotes),
-      roleId: saint.id,
-      roleName: saint.name,
-      roleKind: saint.kind,
-      mode: "fallback",
-      error: message,
+  if (!saint || !saint.enabled || saint.status === "dead") {
+    return saintJudgementSchema.parse({
+      round: round.round,
+      summary: "No saint host was available to propose post-round changes.",
+      reasoning: "saint is absent, disabled, or dead.",
+      role_updates: [],
     });
+  }
+
+  if (options.dryRun || ground.simulation.mode === "mock") {
+    return createMockSaintJudgement(ground, round);
+  }
+
+  const canAttemptLive = Boolean(saint.model || ground.default_model);
+
+  if (!canAttemptLive && ground.simulation.mode === "auto") {
+    return createMockSaintJudgement(ground, round);
+  }
+
+  try {
+    return await runLiveSaintJudgement(ground, saint, round);
+  } catch {
+    return createMockSaintJudgement(ground, round);
   }
 }
 
@@ -734,17 +878,12 @@ function summarizeRound(
   output: RoleMessage[],
   votes: RoleVote[],
   event: RoundEvent | null,
-  roleUpdatesCount: number,
 ) {
   const parts = [
     `${participantNames.join(", ")} completed one batch progression`,
     `produced ${output.length} delivered messages`,
     `${votes.length} votes`,
   ];
-
-  if (roleUpdatesCount > 0) {
-    parts.push(`${roleUpdatesCount} saint patches`);
-  }
 
   if (event) {
     parts.push(`event: ${event.title}`);
@@ -759,16 +898,9 @@ export async function advanceGroundRound(
 ) {
   const event = normalizeEvent(options.event);
   const excludedRoleIds = options.excludedRoleIds ?? [];
-  const excludedSet = getExcludedSet(excludedRoleIds);
   const batchRoles = getBatchRoles(currentGround, options.batchRoleIds, excludedRoleIds);
-  const saintRole = getSaintRole(currentGround);
-  const saintParticipates =
-    saintRole &&
-    saintRole.enabled &&
-    saintRole.status !== "dead" &&
-    !excludedSet.has(saintRole.id);
 
-  if (batchRoles.length === 0 && !saintParticipates) {
+  if (batchRoles.length === 0) {
     throw new Error("No participating roles available for the next advance");
   }
 
@@ -778,6 +910,10 @@ export async function advanceGroundRound(
   const roleActions: RoleActionRecord[] = [];
   const deliveredMessages: RoleMessage[] = [];
   const collectedVotes: RoleVote[] = [];
+  const allowedTargetNames =
+    options.messageScope === "batch_only"
+      ? new Set(batchRoles.map((candidate) => candidate.name))
+      : undefined;
 
   for (const role of batchRoles) {
     const freshRole = nextGround.role.find((candidate) => candidate.id === role.id);
@@ -797,6 +933,8 @@ export async function advanceGroundRound(
       freshRole,
       actionRecord.output,
       roundNumber,
+      false,
+      allowedTargetNames,
     );
     const sanitizedVotes = sanitizeVotes(nextGround, freshRole, actionRecord.vote);
     const normalizedRecord = roleActionRecordSchema.parse({
@@ -811,49 +949,7 @@ export async function advanceGroundRound(
     collectedVotes.push(...sanitizedVotes);
   }
 
-  if (saintParticipates && saintRole) {
-    const freshSaint = nextGround.role.find((candidate) => candidate.id === saintRole.id);
-
-    if (freshSaint) {
-      const saintRecord = await executeSaint(
-        nextGround,
-        freshSaint,
-        {
-          ...options,
-          event,
-          excludedRoleIds,
-        },
-        collectedVotes,
-        deliveredMessages,
-      );
-
-      for (const patch of saintRecord.role_updates) {
-        applySaintPatch(nextGround, patch);
-      }
-
-      const saintMessages = deliverMessages(
-        nextGround,
-        freshSaint,
-        saintRecord.output,
-        roundNumber,
-        true,
-      );
-      const normalizedSaintRecord = roleActionRecordSchema.parse({
-        ...saintRecord,
-        output: saintMessages,
-      });
-
-      mergeRoleAction(nextGround, normalizedSaintRecord);
-      roleActions.push(normalizedSaintRecord);
-      deliveredMessages.push(...saintMessages);
-    }
-  }
-
   const participantNames = roleActions.map((action) => action.roleName);
-  const roleUpdatesCount = roleActions.reduce(
-    (total, action) => total + action.role_updates.length,
-    0,
-  );
 
   const newRound = roundSchema.parse({
     round: roundNumber,
@@ -865,7 +961,6 @@ export async function advanceGroundRound(
       deliveredMessages,
       collectedVotes,
       event,
-      roleUpdatesCount,
     ),
     event,
     before,

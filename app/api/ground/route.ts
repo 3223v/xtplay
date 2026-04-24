@@ -75,6 +75,7 @@ export async function POST(request: Request) {
       knowledge: body.knowledge,
       rule: body.rule,
       role: body.role,
+      workflow: body.workflow,
       simulation: body.simulation,
     });
 
@@ -130,6 +131,7 @@ export async function PUT(request: Request) {
       rule: body.rule,
       role: body.role,
       simulation: body.simulation,
+      workflow: body.workflow,
       round: body.round,
     });
 

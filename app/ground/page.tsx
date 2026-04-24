@@ -24,11 +24,9 @@ import {
   GroundFile,
   isSaintRole,
   RoleConfig,
-  RoundEventType,
+  roundEventTemplates,
   RoundRecord,
 } from "@/app/lib/sim/types";
-
-type EventTypeOption = "none" | RoundEventType;
 
 type RoleNodeData = RoleConfig & {
   onEdit: (roleId: string) => void;
@@ -106,6 +104,7 @@ function buildGroundPatch(ground: GroundFile) {
     rule: ground.rule,
     role: ground.role,
     simulation: ground.simulation,
+    workflow: ground.workflow,
     round: ground.round,
   };
 }
@@ -127,7 +126,24 @@ function RoleNode({
   data,
   selected,
 }: NodeProps<Node<RoleNodeData>>) {
+  const [expanded, setExpanded] = useState(false);
   const badge = data.kind === "saint" ? "SAINT" : data.enabled ? "ROLE" : "PAUSED";
+  const runtimeFacts = [
+    { label: "status", value: data.status },
+    { label: "kind", value: data.kind },
+    { label: "enabled", value: data.enabled ? "yes" : "no" },
+    { label: "model", value: data.model || "unset" },
+    { label: "temp", value: String(data.temperature) },
+    { label: "red", value: String(data.redundancy) },
+  ];
+
+  const relationFacts = [
+    { label: "blocked", value: String(data.blocked_role_names.length) },
+    { label: "unknown", value: String(data.unknown_role_names.length) },
+    { label: "inbox", value: String(data.inbox.length) },
+    { label: "private", value: String(data.knowledge_private.length) },
+    { label: "public", value: String(data.knowledge_public.length) },
+  ];
 
   return (
     <div
@@ -154,15 +170,147 @@ function RoleNode({
         <div className="role-desc">{data.description || "No description yet."}</div>
       </div>
 
-      <div className="role-meta">
+      <div className="role-meta role-meta-primary">
         <span className={`status-pill ${getStatusClass(data.status)}`}>{data.status}</span>
+        <span>{data.kind}</span>
         <span>red {data.redundancy}</span>
         <span>inbox {data.inbox.length}</span>
+        <span>{data.enabled ? "enabled" : "disabled"}</span>
+      </div>
+
+      <div className="role-fact-grid">
+        {runtimeFacts.slice(0, 4).map((fact) => (
+          <div key={fact.label} className="role-fact">
+            <span className="role-fact-label">{fact.label}</span>
+            <span className="role-fact-value">{fact.value}</span>
+          </div>
+        ))}
+      </div>
+
+      <div className="role-meta role-meta-secondary">
+        {relationFacts.map((fact) => (
+          <span key={fact.label}>
+            {fact.label} {fact.value}
+          </span>
+        ))}
       </div>
 
       <div className="role-footer">
+        <button
+          className="role-expand-toggle nodrag"
+          onClick={(event) => {
+            event.stopPropagation();
+            setExpanded((previous) => !previous);
+          }}
+        >
+          {expanded ? "Hide Details" : "Show Details"}
+        </button>
         <span className="edit-hint">Double-click to edit</span>
       </div>
+
+      {expanded ? (
+        <div className="role-details nodrag">
+          <details className="detail-group" open>
+            <summary>Runtime</summary>
+            <div className="detail-body">
+              <div className="detail-grid">
+                {runtimeFacts.map((fact) => (
+                  <div key={fact.label} className="detail-grid-item">
+                    <span className="detail-grid-label">{fact.label}</span>
+                    <span className="detail-grid-value">{fact.value}</span>
+                  </div>
+                ))}
+                <div className="detail-grid-item">
+                  <span className="detail-grid-label">url</span>
+                  <span className="detail-grid-value">{data.url || "unset"}</span>
+                </div>
+                <div className="detail-grid-item">
+                  <span className="detail-grid-label">api key</span>
+                  <span className="detail-grid-value">{data.key ? "configured" : "empty"}</span>
+                </div>
+              </div>
+            </div>
+          </details>
+
+          <details className="detail-group">
+            <summary>Prompts</summary>
+            <div className="detail-body">
+              <div className="detail-block">
+                <div className="detail-label">Use Prompt</div>
+                <pre className="detail-pre">{data.use_prompt || "empty"}</pre>
+              </div>
+              <div className="detail-block">
+                <div className="detail-label">System Prompt</div>
+                <pre className="detail-pre">{data.system_prompt || "empty"}</pre>
+              </div>
+            </div>
+          </details>
+
+          <details className="detail-group">
+            <summary>Knowledge</summary>
+            <div className="detail-body">
+              <div className="detail-block">
+                <div className="detail-label">Private Knowledge</div>
+                <pre className="detail-pre">
+                  {data.knowledge_private.length > 0
+                    ? data.knowledge_private.join("\n")
+                    : "empty"}
+                </pre>
+              </div>
+              <div className="detail-block">
+                <div className="detail-label">Public Knowledge</div>
+                <pre className="detail-pre">
+                  {data.knowledge_public.length > 0
+                    ? data.knowledge_public.join("\n")
+                    : "empty"}
+                </pre>
+              </div>
+            </div>
+          </details>
+
+          <details className="detail-group">
+            <summary>Relations</summary>
+            <div className="detail-body">
+              <div className="detail-block">
+                <div className="detail-label">Blocked Role Names</div>
+                <pre className="detail-pre">
+                  {data.blocked_role_names.length > 0
+                    ? data.blocked_role_names.join("\n")
+                    : "empty"}
+                </pre>
+              </div>
+              <div className="detail-block">
+                <div className="detail-label">Unknown Role Names</div>
+                <pre className="detail-pre">
+                  {data.unknown_role_names.length > 0
+                    ? data.unknown_role_names.join("\n")
+                    : "empty"}
+                </pre>
+              </div>
+            </div>
+          </details>
+
+          <details className="detail-group">
+            <summary>Inbox and Trace</summary>
+            <div className="detail-body">
+              <div className="detail-block">
+                <div className="detail-label">Inbox</div>
+                <pre className="detail-pre">
+                  {data.inbox.length > 0 ? data.inbox.join("\n") : "empty"}
+                </pre>
+              </div>
+              <div className="detail-block">
+                <div className="detail-label">Last Think</div>
+                <pre className="detail-pre">{data.last_think || "empty"}</pre>
+              </div>
+              <div className="detail-block">
+                <div className="detail-label">Last Error</div>
+                <pre className="detail-pre">{data.last_error || "empty"}</pre>
+              </div>
+            </div>
+          </details>
+        </div>
+      ) : null}
       <Handle type="source" position={Position.Bottom} className="handle" />
     </div>
   );
@@ -516,15 +664,9 @@ function RoleEditModal({ role, onClose, onSave, onDelete }: RoleEditModalProps) 
         </div>
 
         <div className="modal-footer">
-          {isSaint ? (
-            <button className="btn btn-disabled" disabled>
-              saint is required
-            </button>
-          ) : (
-            <button className="btn btn-danger" onClick={onDelete}>
-              Delete
-            </button>
-          )}
+          <button className="btn btn-danger" onClick={onDelete}>
+            Delete
+          </button>
           <div className="footer-spacer" />
           <button className="btn btn-secondary" onClick={onClose}>
             Cancel
@@ -784,10 +926,6 @@ function GroundPageContent() {
   const [selectedRoleId, setSelectedRoleId] = useState<string | null>(null);
   const [editingRoleId, setEditingRoleId] = useState<string | null>(null);
   const [showGroundSettings, setShowGroundSettings] = useState(false);
-  const [roundInstruction, setRoundInstruction] = useState("");
-  const [eventType, setEventType] = useState<EventTypeOption>("none");
-  const [eventPrompt, setEventPrompt] = useState("");
-  const [excludedRoleIds, setExcludedRoleIds] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [isAdvancing, setIsAdvancing] = useState(false);
@@ -851,11 +989,20 @@ function GroundPageContent() {
       }
 
       const nextGround = updater(currentGround);
-      applyGround(nextGround, { dirty: true, localMutation: true });
+      const sanitizedGround = {
+        ...nextGround,
+        workflow: {
+          ...nextGround.workflow,
+          pending_plan: null,
+          pending_judgement: null,
+        },
+      };
+
+      applyGround(sanitizedGround, { dirty: true, localMutation: true });
 
       if (options?.persist === "immediate") {
         clearAutoSaveTimer();
-        void persistGround(nextGround);
+        void persistGround(sanitizedGround);
       } else {
         schedulePersistGround();
       }
@@ -882,7 +1029,6 @@ function GroundPageContent() {
         saveVersionRef.current = 0;
         applyGround(nextGround, { dirty: false });
         setSelectedRoleId(nextGround.role[0]?.id ?? null);
-        setExcludedRoleIds([]);
       } catch (loadError) {
         setError(loadError instanceof Error ? loadError.message : "Failed to load ground");
       } finally {
@@ -907,33 +1053,27 @@ function GroundPageContent() {
   const rounds = useMemo<RoundRecord[]>(() => ground?.round ?? [], [ground]);
 
   const saintRole = useMemo(() => (ground ? getSaintRole(ground) : null), [ground]);
-
-  const upcomingBatch = useMemo(() => {
+  const pendingPlan = ground?.workflow.pending_plan ?? null;
+  const pendingJudgement = ground?.workflow.pending_judgement ?? null;
+  const defaultUpcomingBatch = useMemo(() => {
     if (!ground) {
       return [];
     }
 
-    return getBatchRoles(ground, undefined, excludedRoleIds);
-  }, [excludedRoleIds, ground]);
-
-  const upcomingParticipants = useMemo(() => {
-    if (!ground) {
+    return getBatchRoles(ground);
+  }, [ground]);
+  const plannedBatchRoles = useMemo(() => {
+    if (!ground || !pendingPlan) {
       return [];
     }
 
-    const participants = [...upcomingBatch];
+    return ground.role.filter((role) => pendingPlan.batch_role_names.includes(role.name));
+  }, [ground, pendingPlan]);
 
-    if (
-      saintRole &&
-      saintRole.enabled &&
-      saintRole.status !== "dead" &&
-      !excludedRoleIds.includes(saintRole.id)
-    ) {
-      participants.push(saintRole);
-    }
-
-    return participants;
-  }, [excludedRoleIds, ground, saintRole, upcomingBatch]);
+  const latestRoundWithEvent = useMemo(
+    () => [...rounds].reverse().find((round) => round.event) ?? null,
+    [rounds],
+  );
 
   async function toggleSaintRole() {
     if (!ground) return;
@@ -957,6 +1097,61 @@ function GroundPageContent() {
       }
     } catch (error) {
       setError(error instanceof Error ? error.message : "Failed to toggle saint role");
+    }
+  }
+
+  async function runSaintWorkflowAction(
+    action:
+      | "propose_plan"
+      | "approve_plan"
+      | "reject_plan"
+      | "approve_judgement"
+      | "reject_judgement",
+  ) {
+    const currentGround = groundRef.current;
+
+    if (!currentGround) {
+      return;
+    }
+
+    setIsAdvancing(true);
+    setError(null);
+
+    try {
+      if (dirty) {
+        const persisted = await persistGround(currentGround);
+
+        if (!persisted) {
+          return;
+        }
+      }
+
+      const response = await fetch(`/api/saint?groundId=${currentGround.id}`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          action,
+        }),
+      });
+      const result = await response.json();
+
+      if (!response.ok || !result.success) {
+        throw new Error(result.message || "Failed to process saint action");
+      }
+
+      const updatedGround = result.ground as GroundFile;
+      groundRef.current = updatedGround;
+      localVersionRef.current += 1;
+      saveVersionRef.current = localVersionRef.current;
+      applyGround(updatedGround, { dirty: false });
+    } catch (saintError) {
+      setError(
+        saintError instanceof Error ? saintError.message : "Failed to process saint action",
+      );
+    } finally {
+      setIsAdvancing(false);
     }
   }
 
@@ -992,26 +1187,26 @@ function GroundPageContent() {
     const sortedVotes = Array.from(voteCount.entries())
       .sort((a, b) => b[1] - a[1]);
 
-    return (
-      <div className="vote-results-card">
-        <div className="vote-results-title">
-          Vote Results - Round {recentRoundWithVotes.round}
-        </div>
-        <div className="vote-results-content">
-          {sortedVotes.map(([role, count]) => (
-            <div key={role} className="vote-result-item">
-              <span className="vote-result-role">{role}</span>
-              <span className="vote-result-count">{count} votes</span>
-            </div>
-          ))}
-        </div>
-        {recentRoundWithVotes.event && (
-          <div className="vote-results-event">
-            Event: {recentRoundWithVotes.event.type} - {recentRoundWithVotes.event.title}
+      return (
+        <div className="vote-results-card">
+          <div className="vote-results-title">
+            Vote Results - Round {recentRoundWithVotes.round}
           </div>
-        )}
-      </div>
-    );
+          <div className="vote-results-content">
+            {sortedVotes.map(([role, count], index) => (
+              <div key={role} className={`vote-result-item ${index === 0 ? "winner" : ""}`}>
+                <span className="vote-result-role">{role}</span>
+                <span className="vote-result-count">{count} votes</span>
+              </div>
+            ))}
+          </div>
+          {recentRoundWithVotes.event && (
+            <div className="vote-results-event">
+              Event: {recentRoundWithVotes.event.type} - {recentRoundWithVotes.event.title}
+            </div>
+          )}
+        </div>
+      );
   }
 
   async function persistGround(nextGround?: GroundFile) {
@@ -1068,69 +1263,6 @@ function GroundPageContent() {
     }
   }
 
-  async function advanceRound() {
-    const currentGround = groundRef.current;
-
-    if (!currentGround) {
-      return;
-    }
-
-    setIsAdvancing(true);
-    setError(null);
-
-    try {
-      let readyGround = currentGround;
-
-      if (dirty) {
-        const persisted = await persistGround(currentGround);
-
-        if (!persisted) {
-          return;
-        }
-
-        readyGround = persisted;
-      }
-
-      const event =
-        eventType === "none"
-          ? null
-          : {
-              type: eventType,
-              title: eventType === "death_vote" ? "Death Vote" : "Custom Event",
-              prompt: eventPrompt.trim(),
-            };
-
-      const response = await fetch(`/api/round?groundId=${readyGround.id}`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          instructions: roundInstruction.trim(),
-          event,
-          excludedRoleIds,
-        }),
-      });
-      const result = await response.json();
-
-      if (!response.ok || !result.success) {
-        throw new Error(result.message || "Failed to advance round");
-      }
-
-      const nextGround = result.ground as GroundFile;
-      groundRef.current = nextGround;
-      localVersionRef.current += 1;
-      saveVersionRef.current = localVersionRef.current;
-      applyGround(nextGround, { dirty: false });
-      setRoundInstruction("");
-      setEventPrompt("");
-    } catch (advanceError) {
-      setError(advanceError instanceof Error ? advanceError.message : "Failed to advance round");
-    } finally {
-      setIsAdvancing(false);
-    }
-  }
-
   function addRole(position?: { x: number; y: number }) {
     const currentGround = groundRef.current;
 
@@ -1156,12 +1288,6 @@ function GroundPageContent() {
       return;
     }
 
-    const target = currentGround.role.find((role) => role.id === roleId);
-
-    if (target && isSaintRole(target)) {
-      return;
-    }
-
     const nextRoles = currentGround.role.filter((role) => role.id !== roleId);
     mutateGround((current) => ({
       ...current,
@@ -1169,7 +1295,6 @@ function GroundPageContent() {
     }), { persist: "immediate" });
     setEditingRoleId(null);
     setSelectedRoleId(nextRoles[0]?.id ?? null);
-    setExcludedRoleIds((previous) => previous.filter((id) => id !== roleId));
   }
 
   function updateRole(updatedRole: RoleConfig) {
@@ -1204,14 +1329,6 @@ function GroundPageContent() {
       ...current,
       role: nextRoles,
     }), { persist: "immediate" });
-  }
-
-  function toggleExcludedRole(roleId: string) {
-    setExcludedRoleIds((previous) =>
-      previous.includes(roleId)
-        ? previous.filter((id) => id !== roleId)
-        : [...previous, roleId],
-    );
   }
 
   function handleDragStart(event: React.DragEvent<HTMLDivElement>, type: string) {
@@ -1285,12 +1402,21 @@ function GroundPageContent() {
             {dirty ? "Unsaved Changes" : "Synced"}
           </span>
           <button
-            onClick={() => toggleSaintRole()}
+            onClick={() => void toggleSaintRole()}
             className={`btn ${saintRole ? "btn-warning" : "btn-success"}`}
             disabled={isSaving || isAdvancing}
           >
-            {saintRole ? "Remove Saint" : "Add Saint"}
+            {saintRole ? "Remove Saint Host" : "Add Saint Host"}
           </button>
+          {saintRole ? (
+            <button
+              onClick={() => openRoleEditor(saintRole.id)}
+              className="btn btn-secondary"
+              disabled={isSaving || isAdvancing}
+            >
+              Inspect Saint
+            </button>
+          ) : null}
           <button
             onClick={() => setShowGroundSettings(true)}
             className="btn btn-secondary"
@@ -1440,39 +1566,8 @@ function GroundPageContent() {
 
           <div className="history-content">
             <div className="advance-card">
-              <div className="advance-title">Advance</div>
-              <div className="advance-subtitle">
-                Upcoming participants:{" "}
-                {upcomingParticipants.length > 0
-                  ? upcomingParticipants.map((role) => role.name).join(", ")
-                  : "none"}
-              </div>
-
-              <textarea
-                className="advance-input"
-                rows={4}
-                value={roundInstruction}
-                onChange={(event) => setRoundInstruction(event.target.value)}
-                placeholder="Optional instruction for the next advance"
-              />
-
-              <div className="advance-meta">
-                <span>Mode: {ground.simulation.mode}</span>
-                <span>Batch Size: {ground.simulation.batch_size}</span>
-              </div>
-
-              <button
-                onClick={() => void advanceRound()}
-                className="advance-button"
-                disabled={isSaving || isAdvancing || upcomingParticipants.length === 0}
-              >
-                {isAdvancing ? "Advancing..." : "Advance"}
-              </button>
-            </div>
-
-            <div className="event-card">
               <div className="advance-title">
-                Event Injection
+                Saint Host
                 <button
                   onClick={() => setShowVoteResults(!showVoteResults)}
                   className="vote-results-toggle"
@@ -1481,54 +1576,164 @@ function GroundPageContent() {
                 </button>
               </div>
               <div className="advance-subtitle">
-                Inject a structured event into the next advance. saint will adjudicate it if saint participates.
+                {saintRole
+                  ? "saint proposes the next moderator step, and every proposal requires your approval before it executes."
+                  : "Add saint if you want a host role to replace manual operator input."}
               </div>
 
               {showVoteResults && renderRecentVoteResults()}
 
-              <select
-                className="advance-input select-input"
-                value={eventType}
-                onChange={(event) => setEventType(event.target.value as EventTypeOption)}
-              >
-                <option value="none">none</option>
-                <option value="custom">custom</option>
-                <option value="death_vote">death_vote</option>
-              </select>
+              {!saintRole ? (
+                <div className="host-empty-card">
+                  <div className="host-empty-title">No saint host present</div>
+                  <div className="host-empty-body">
+                    Add saint to let the LLM host choose instructions, events, acting roles, and post-round state changes.
+                  </div>
+                  <button
+                    onClick={() => void toggleSaintRole()}
+                    className="advance-button"
+                    disabled={isSaving || isAdvancing}
+                  >
+                    Add Saint Host
+                  </button>
+                </div>
+              ) : null}
 
-              <textarea
-                className="advance-input"
-                rows={4}
-                value={eventPrompt}
-                onChange={(event) => setEventPrompt(event.target.value)}
-                placeholder={
-                  eventType === "death_vote"
-                    ? "Optional extra guidance for the death vote event"
-                    : "Custom event prompt"
-                }
-              />
-            </div>
+              {saintRole && !pendingPlan ? (
+                <div className="host-empty-card">
+                  <div className="host-empty-title">No pending host plan</div>
+                  <div className="host-empty-body">
+                    saint will inspect the current scene and propose the next step for your approval.
+                  </div>
+                  <div className="event-option-grid">
+                    <div className="event-option-card active custom">
+                      <span className="event-option-title">Default Batch</span>
+                      <span className="event-option-desc">
+                        If saint needs a fallback, the default next batch is {defaultUpcomingBatch.map((role) => role.name).join(", ") || "none"}.
+                      </span>
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => void runSaintWorkflowAction("propose_plan")}
+                    className="advance-button"
+                    disabled={isSaving || isAdvancing}
+                  >
+                    {isAdvancing ? "Thinking..." : "Ask Saint For Next Step"}
+                  </button>
+                </div>
+              ) : null}
 
-            <div className="exclude-card">
-              <div className="advance-title">Exclude From Next Advance</div>
-              <div className="advance-subtitle">
-                Excluded roles will not participate. saint can also be excluded.
-              </div>
-
-              <div className="exclude-list">
-                {ground.role.map((role) => (
-                  <label key={role.id} className="exclude-row">
-                    <input
-                      type="checkbox"
-                      checked={excludedRoleIds.includes(role.id)}
-                      onChange={() => toggleExcludedRole(role.id)}
-                    />
-                    <span>
-                      {role.name} ({role.status})
+              {pendingPlan ? (
+                <div className="event-preview-card">
+                  <div className="event-preview-header">
+                    <span className={`event-preview-badge ${pendingPlan.event ? roundEventTemplates[pendingPlan.event.type].accentClass : "neutral"}`}>
+                      plan
                     </span>
-                  </label>
-                ))}
-              </div>
+                    <span className="event-preview-title">{pendingPlan.summary || "Saint proposed the next step."}</span>
+                  </div>
+
+                  <div className="event-preview-body">{pendingPlan.reasoning || "No reasoning provided."}</div>
+
+                  <div className="detail-block">
+                    <div className="detail-label">Moderator Instruction</div>
+                    <pre className="detail-pre">{pendingPlan.instructions || "empty"}</pre>
+                  </div>
+
+                  <div className="detail-grid">
+                    <div className="detail-grid-item">
+                      <span className="detail-grid-label">Selected Roles</span>
+                      <span className="detail-grid-value">
+                        {plannedBatchRoles.length > 0
+                          ? plannedBatchRoles.map((role) => role.name).join(", ")
+                          : pendingPlan.batch_role_names.join(", ") || "none"}
+                      </span>
+                    </div>
+                    <div className="detail-grid-item">
+                      <span className="detail-grid-label">Event</span>
+                      <span className="detail-grid-value">
+                        {pendingPlan.event
+                          ? `${pendingPlan.event.type} / ${pendingPlan.event.title}`
+                          : "none"}
+                      </span>
+                    </div>
+                  </div>
+
+                  {pendingPlan.event ? (
+                    <div className="detail-block">
+                      <div className="detail-label">Event Prompt</div>
+                      <pre className="detail-pre">{pendingPlan.event.prompt}</pre>
+                    </div>
+                  ) : null}
+
+                  <div className="approval-actions">
+                    <button
+                      onClick={() => void runSaintWorkflowAction("reject_plan")}
+                      className="btn btn-secondary"
+                      disabled={isSaving || isAdvancing}
+                    >
+                      Reject Plan
+                    </button>
+                    <button
+                      onClick={() => void runSaintWorkflowAction("approve_plan")}
+                      className="btn btn-primary"
+                      disabled={isSaving || isAdvancing}
+                    >
+                      Approve And Execute
+                    </button>
+                  </div>
+                </div>
+              ) : null}
+
+              {pendingJudgement ? (
+                <div className="latest-event-card">
+                  <div className="latest-event-title">Pending Saint Judgement</div>
+                  <div className="latest-event-line">
+                    Round {pendingJudgement.round} - {pendingJudgement.summary || "No summary"}
+                  </div>
+                  <div className="latest-event-line subtle">
+                    {pendingJudgement.reasoning || "No reasoning provided."}
+                  </div>
+
+                  <div className="judgement-list">
+                    {pendingJudgement.role_updates.length > 0 ? (
+                      pendingJudgement.role_updates.map((patch, index) => (
+                        <div key={`${patch.role}-${index}`} className="judgement-item">
+                          <div className="judgement-role">{patch.role}</div>
+                          <div className="judgement-reason">{patch.reason}</div>
+                          <div className="judgement-tags">
+                            {patch.status ? <span className="judgement-tag">status {patch.status}</span> : null}
+                            {typeof patch.redundancy === "number" ? (
+                              <span className="judgement-tag">red {patch.redundancy}</span>
+                            ) : null}
+                            {typeof patch.enabled === "boolean" ? (
+                              <span className="judgement-tag">{patch.enabled ? "enabled" : "disabled"}</span>
+                            ) : null}
+                          </div>
+                        </div>
+                      ))
+                    ) : (
+                      <div className="vote-results-empty">saint proposed no state changes.</div>
+                    )}
+                  </div>
+
+                  <div className="approval-actions">
+                    <button
+                      onClick={() => void runSaintWorkflowAction("reject_judgement")}
+                      className="btn btn-secondary"
+                      disabled={isSaving || isAdvancing}
+                    >
+                      Reject Judgement
+                    </button>
+                    <button
+                      onClick={() => void runSaintWorkflowAction("approve_judgement")}
+                      className="btn btn-primary"
+                      disabled={isSaving || isAdvancing}
+                    >
+                      Approve Changes
+                    </button>
+                  </div>
+                </div>
+              ) : null}
             </div>
 
             <div className="world-card">
@@ -2004,6 +2209,11 @@ function GroundPageContent() {
           border-bottom: none;
         }
 
+        .vote-result-item.winner .vote-result-role,
+        .vote-result-item.winner .vote-result-count {
+          color: #fde68a;
+        }
+
         .vote-result-role {
           color: #fff;
           font-size: 12px;
@@ -2021,6 +2231,205 @@ function GroundPageContent() {
           border-top: 1px solid #2a2a3e;
           color: #9ca3af;
           font-size: 11px;
+        }
+
+        .event-option-grid {
+          display: grid;
+          grid-template-columns: repeat(3, minmax(0, 1fr));
+          gap: 10px;
+          margin-top: 12px;
+        }
+
+        .event-option-card {
+          display: flex;
+          flex-direction: column;
+          gap: 6px;
+          padding: 12px;
+          border-radius: 10px;
+          border: 1px solid #2a2a3e;
+          background: rgba(255, 255, 255, 0.03);
+          color: #cbd5e1;
+          text-align: left;
+          cursor: pointer;
+          transition: all 0.2s ease;
+        }
+
+        .event-option-card:hover {
+          border-color: #6366f1;
+          transform: translateY(-1px);
+        }
+
+        .event-option-card.active.neutral {
+          border-color: #64748b;
+          background: rgba(100, 116, 139, 0.12);
+        }
+
+        .event-option-card.active.custom {
+          border-color: #6366f1;
+          background: rgba(99, 102, 241, 0.14);
+        }
+
+        .event-option-card.active.danger {
+          border-color: #f59e0b;
+          background: rgba(245, 158, 11, 0.14);
+        }
+
+        .event-option-title {
+          color: #fff;
+          font-size: 12px;
+          font-weight: 600;
+        }
+
+        .event-option-desc {
+          color: #9ca3af;
+          font-size: 11px;
+          line-height: 1.5;
+        }
+
+        .event-preview-card,
+        .latest-event-card {
+          margin-top: 12px;
+          padding: 12px;
+          border-radius: 10px;
+          background: rgba(255, 255, 255, 0.03);
+          border: 1px solid #2a2a3e;
+        }
+
+        .event-preview-header {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          flex-wrap: wrap;
+        }
+
+        .event-preview-badge {
+          padding: 3px 8px;
+          border-radius: 999px;
+          font-size: 10px;
+          font-weight: 700;
+          text-transform: uppercase;
+          letter-spacing: 0.08em;
+          background: rgba(100, 116, 139, 0.14);
+          color: #cbd5e1;
+        }
+
+        .event-preview-badge.custom {
+          background: rgba(99, 102, 241, 0.14);
+          color: #c7d2fe;
+        }
+
+        .event-preview-badge.danger {
+          background: rgba(245, 158, 11, 0.14);
+          color: #fde68a;
+        }
+
+        .event-preview-title,
+        .latest-event-title {
+          color: #fff;
+          font-size: 12px;
+          font-weight: 600;
+        }
+
+        .event-preview-body {
+          margin-top: 10px;
+          color: #cbd5e1;
+          font-size: 12px;
+          line-height: 1.6;
+          white-space: pre-wrap;
+        }
+
+        .event-preview-meta {
+          display: flex;
+          justify-content: space-between;
+          gap: 10px;
+          margin-top: 10px;
+          color: #94a3b8;
+          font-size: 11px;
+          flex-wrap: wrap;
+        }
+
+        .latest-event-line {
+          margin-top: 6px;
+          color: #cbd5e1;
+          font-size: 12px;
+          line-height: 1.5;
+        }
+
+        .latest-event-line.subtle {
+          color: #94a3b8;
+          font-size: 11px;
+        }
+
+        .host-empty-card {
+          margin-top: 12px;
+          padding: 12px;
+          border-radius: 10px;
+          border: 1px dashed #3b3f58;
+          background: rgba(255, 255, 255, 0.03);
+        }
+
+        .host-empty-title {
+          color: #fff;
+          font-size: 12px;
+          font-weight: 700;
+        }
+
+        .host-empty-body {
+          margin-top: 8px;
+          color: #9ca3af;
+          font-size: 12px;
+          line-height: 1.6;
+        }
+
+        .approval-actions {
+          display: flex;
+          gap: 10px;
+          margin-top: 12px;
+        }
+
+        .judgement-list {
+          display: flex;
+          flex-direction: column;
+          gap: 10px;
+          margin-top: 12px;
+        }
+
+        .judgement-item {
+          padding: 10px;
+          border-radius: 10px;
+          background: rgba(255, 255, 255, 0.03);
+          border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .judgement-role {
+          color: #fff;
+          font-size: 12px;
+          font-weight: 700;
+        }
+
+        .judgement-reason {
+          margin-top: 6px;
+          color: #cbd5e1;
+          font-size: 12px;
+          line-height: 1.5;
+        }
+
+        .judgement-tags {
+          display: flex;
+          gap: 8px;
+          flex-wrap: wrap;
+          margin-top: 8px;
+        }
+
+        .judgement-tag {
+          padding: 3px 8px;
+          border-radius: 999px;
+          background: rgba(99, 102, 241, 0.12);
+          color: #c7d2fe;
+          font-size: 10px;
+          font-weight: 600;
+          text-transform: uppercase;
+          letter-spacing: 0.06em;
         }
 
         .advance-subtitle,
@@ -2320,6 +2729,49 @@ function GroundPageContent() {
           flex-wrap: wrap;
         }
 
+        .role-meta-primary {
+          padding-top: 2px;
+        }
+
+        .role-meta-secondary {
+          padding-top: 0;
+          color: #8086a4;
+        }
+
+        .role-fact-grid {
+          display: grid;
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+          gap: 8px;
+          padding: 0 14px 10px;
+        }
+
+        .role-fact {
+          display: flex;
+          flex-direction: column;
+          gap: 3px;
+          padding: 8px 10px;
+          border-radius: 10px;
+          background: rgba(255, 255, 255, 0.04);
+          border: 1px solid rgba(255, 255, 255, 0.06);
+          min-width: 0;
+        }
+
+        .role-fact-label {
+          color: #7c81a3;
+          font-size: 9px;
+          text-transform: uppercase;
+          letter-spacing: 0.08em;
+        }
+
+        .role-fact-value {
+          color: #e5e7eb;
+          font-size: 11px;
+          font-weight: 600;
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
+        }
+
         .status-pill {
           border-radius: 999px;
           padding: 2px 8px;
@@ -2346,11 +2798,114 @@ function GroundPageContent() {
         .role-footer {
           padding: 8px 14px;
           border-top: 1px solid #2a2a4f;
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 10px;
         }
 
         .edit-hint {
           color: #6b7280;
           font-size: 10px;
+        }
+
+        .role-expand-toggle {
+          border: 1px solid #343456;
+          background: rgba(99, 102, 241, 0.08);
+          color: #c7d2fe;
+          border-radius: 999px;
+          padding: 4px 10px;
+          font-size: 10px;
+          font-weight: 600;
+          cursor: pointer;
+        }
+
+        .role-expand-toggle:hover {
+          background: rgba(99, 102, 241, 0.16);
+        }
+
+        .role-details {
+          padding: 0 14px 14px;
+          display: flex;
+          flex-direction: column;
+          gap: 10px;
+        }
+
+        .detail-group {
+          border: 1px solid rgba(255, 255, 255, 0.07);
+          border-radius: 12px;
+          background: rgba(10, 10, 15, 0.36);
+          overflow: hidden;
+        }
+
+        .detail-group summary {
+          list-style: none;
+          cursor: pointer;
+          padding: 10px 12px;
+          color: #f3f4f6;
+          font-size: 11px;
+          font-weight: 700;
+          letter-spacing: 0.08em;
+          text-transform: uppercase;
+          background: rgba(255, 255, 255, 0.03);
+        }
+
+        .detail-group summary::-webkit-details-marker {
+          display: none;
+        }
+
+        .detail-body {
+          padding: 12px;
+          display: flex;
+          flex-direction: column;
+          gap: 12px;
+        }
+
+        .detail-grid {
+          display: grid;
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+          gap: 10px;
+        }
+
+        .detail-grid-item {
+          min-width: 0;
+        }
+
+        .detail-grid-label,
+        .detail-label {
+          display: block;
+          color: #8b92b4;
+          font-size: 10px;
+          text-transform: uppercase;
+          letter-spacing: 0.08em;
+          margin-bottom: 5px;
+        }
+
+        .detail-grid-value {
+          display: block;
+          color: #f3f4f6;
+          font-size: 12px;
+          line-height: 1.5;
+          word-break: break-word;
+        }
+
+        .detail-block {
+          min-width: 0;
+        }
+
+        .detail-pre {
+          margin: 0;
+          padding: 10px;
+          border-radius: 10px;
+          background: rgba(255, 255, 255, 0.03);
+          border: 1px solid rgba(255, 255, 255, 0.05);
+          color: #dbe1f0;
+          font-size: 11px;
+          line-height: 1.6;
+          white-space: pre-wrap;
+          word-break: break-word;
+          max-height: 180px;
+          overflow: auto;
         }
 
         .handle {
@@ -2655,6 +3210,10 @@ function GroundPageContent() {
           }
 
           .grid-two {
+            grid-template-columns: 1fr;
+          }
+
+          .event-option-grid {
             grid-template-columns: 1fr;
           }
         }

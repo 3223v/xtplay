@@ -1,8 +1,33 @@
 import { z } from "zod";
 
+import { saintSystemPrompt, saintUsePrompt } from "./prompts";
+
 export const roleStatusSchema = z.enum(["active", "silent", "dead"]);
 export const roleKindSchema = z.enum(["role", "saint"]);
 export const roundEventTypeSchema = z.enum(["custom", "death_vote"]);
+export const saintMessageScopeSchema = z.enum(["public", "batch_only"]);
+
+export const roundEventTemplates = {
+  custom: {
+    type: "custom" as const,
+    title: "Custom Event",
+    shortLabel: "Custom",
+    description: "Inject a one-off world event or instruction bundle into the next advance.",
+    defaultPrompt:
+      "A custom event is active. Tell the roles what happened, why it matters, and how they should react this round.",
+    accentClass: "custom",
+  },
+  death_vote: {
+    type: "death_vote" as const,
+    title: "Death Vote",
+    shortLabel: "Death Vote",
+    description:
+      "All participating visible, living, non-saint roles should vote for one role they think must die.",
+    defaultPrompt:
+      "A death vote is active. Each participating non-saint role should vote for one visible, living, non-saint role that they believe should die. Explain your reasoning in think, and put the vote target in vote[].",
+    accentClass: "danger",
+  },
+};
 
 export const roleOutboundMessageSchema = z.object({
   role: z.string().default("all"),
@@ -55,6 +80,35 @@ export const saintActionSchema = z.object({
   role_updates: z.array(saintRolePatchSchema).default([]),
 });
 
+export const roundEventSchema = z.object({
+  type: roundEventTypeSchema,
+  title: z.string().default(""),
+  prompt: z.string().default(""),
+});
+
+export const saintPlanSchema = z.object({
+  createdAt: z.string().default(() => new Date().toISOString()),
+  summary: z.string().default(""),
+  reasoning: z.string().default(""),
+  instructions: z.string().default(""),
+  event: roundEventSchema.nullable().default(null),
+  batch_role_names: z.array(z.string()).default([]),
+  message_scope: saintMessageScopeSchema.default("batch_only"),
+});
+
+export const saintJudgementSchema = z.object({
+  createdAt: z.string().default(() => new Date().toISOString()),
+  round: z.coerce.number().int().min(1).default(1),
+  summary: z.string().default(""),
+  reasoning: z.string().default(""),
+  role_updates: z.array(saintRolePatchSchema).default([]),
+});
+
+export const workflowSchema = z.object({
+  pending_plan: saintPlanSchema.nullable().default(null),
+  pending_judgement: saintJudgementSchema.nullable().default(null),
+});
+
 export const roleSchema = z.object({
   id: z.string().default(""),
   kind: roleKindSchema.default("role"),
@@ -92,18 +146,17 @@ export const simulationConfigSchema = z.object({
   round_goal: z.string().default(""),
 });
 
-export const roundEventSchema = z.object({
-  type: roundEventTypeSchema,
-  title: z.string().default(""),
-  prompt: z.string().default(""),
-});
-
 export const defaultSimulationConfig = {
-  batch_size: 2,
+  batch_size: 10,
   current_batch_index: 0,
   max_round_history: 50,
   mode: "auto" as const,
   round_goal: "",
+};
+
+export const defaultWorkflowState = {
+  pending_plan: null,
+  pending_judgement: null,
 };
 
 export const roleActionRecordSchema = z.object({
@@ -149,6 +202,7 @@ export const groundSchema = z.object({
   role: z.array(roleSchema).default([]),
   round: z.array(roundSchema).default([]),
   simulation: simulationConfigSchema.default(defaultSimulationConfig),
+  workflow: workflowSchema.default(defaultWorkflowState),
   createdAt: z.string().default(() => new Date().toISOString().slice(0, 10)),
   updatedAt: z.string().default(() => new Date().toISOString().slice(0, 10)),
 });
@@ -156,6 +210,7 @@ export const groundSchema = z.object({
 export type RoleStatus = z.infer<typeof roleStatusSchema>;
 export type RoleKind = z.infer<typeof roleKindSchema>;
 export type RoundEventType = z.infer<typeof roundEventTypeSchema>;
+export type SaintMessageScope = z.infer<typeof saintMessageScopeSchema>;
 export type RoleOutboundMessage = z.infer<typeof roleOutboundMessageSchema>;
 export type RoleMessage = z.infer<typeof roleMessageSchema>;
 export type RoleVoteInput = z.infer<typeof roleVoteInputSchema>;
@@ -163,9 +218,12 @@ export type RoleVote = z.infer<typeof roleVoteSchema>;
 export type SaintRolePatch = z.infer<typeof saintRolePatchSchema>;
 export type RoleAction = z.infer<typeof roleActionSchema>;
 export type SaintAction = z.infer<typeof saintActionSchema>;
+export type SaintPlan = z.infer<typeof saintPlanSchema>;
+export type SaintJudgement = z.infer<typeof saintJudgementSchema>;
 export type RoleConfig = z.infer<typeof roleSchema>;
 export type SimulationConfig = z.infer<typeof simulationConfigSchema>;
 export type RoundEvent = z.infer<typeof roundEventSchema>;
+export type WorkflowState = z.infer<typeof workflowSchema>;
 export type RoleActionRecord = z.infer<typeof roleActionRecordSchema>;
 export type RoundRecord = z.infer<typeof roundSchema>;
 export type GroundFile = z.infer<typeof groundSchema>;
@@ -211,6 +269,35 @@ export interface GroundSummary {
 
 export function todayStamp() {
   return new Date().toISOString().slice(0, 10);
+}
+
+export function getRoundEventTemplate(type: RoundEventType) {
+  return roundEventTemplates[type];
+}
+
+export function buildRoundEventDraft(
+  type: RoundEventType,
+  prompt: string,
+  title?: string,
+) {
+  const template = getRoundEventTemplate(type);
+  const normalizedPrompt = prompt.trim();
+
+  if (type === "custom") {
+    return {
+      type,
+      title: title?.trim() || template.title,
+      prompt: normalizedPrompt || template.defaultPrompt,
+    };
+  }
+
+  return {
+    type,
+    title: template.title,
+    prompt: normalizedPrompt
+      ? `${template.defaultPrompt}\n\nAdditional context:\n${normalizedPrompt}`
+      : template.defaultPrompt,
+  };
 }
 
 export function uniqueTextList(values: string[]) {
@@ -269,11 +356,9 @@ export function createDefaultSaintRole(
     id: "saint",
     kind: "saint",
     name: "saint",
-    description: "Special adjudicator role with authority to interpret rules and apply world-state changes.",
-    use_prompt:
-      "You are saint, the world adjudicator. You can inspect every role, read all votes, and apply rule-based changes to the world.",
-    system_prompt:
-      "You are the final adjudicator of this simulation. You see all roles and all votes. Apply the ground rules, resolve events, and emit precise structured role updates when a role's status or attributes must change.",
+    description: "Optional host role that proposes the next moderator step and post-round state changes for human approval.",
+    use_prompt: saintUsePrompt,
+    system_prompt: saintSystemPrompt,
     canvas_position: {
       x: 80,
       y: 120,
@@ -382,6 +467,7 @@ export function createEmptyGround(id: string, input: Partial<GroundFile> = {}): 
     role: [],
     round: [],
     simulation: input.simulation ?? defaultSimulationConfig,
+    workflow: input.workflow ?? defaultWorkflowState,
     createdAt: input.createdAt ?? today,
     updatedAt: input.updatedAt ?? today,
   });

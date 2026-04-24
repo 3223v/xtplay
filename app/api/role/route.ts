@@ -7,7 +7,6 @@ import {
 } from "@/app/lib/sim/storage";
 import {
   createRoleId,
-  isSaintRole,
   normalizeRoleKind,
   normalizeRoleStatus,
   RoleConfig,
@@ -200,19 +199,6 @@ export async function DELETE(request: Request) {
     }
 
     const data = readGroundData(groundId);
-
-    const targetRole = data.role.find((role) => role.id === id || role.name === id);
-
-    if (targetRole && isSaintRole(targetRole)) {
-      return NextResponse.json(
-        {
-          success: false,
-          message: "saint cannot be deleted",
-        },
-        { status: 400 },
-      );
-    }
-
     const ground = writeGroundData(groundId, {
       ...data,
       role: data.role.filter((role) => role.id !== id && role.name !== id),

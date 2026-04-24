@@ -2,7 +2,6 @@ import fs from "fs";
 import path from "path";
 
 import {
-  createDefaultSaintRole,
   createEmptyGround,
   createRoleId,
   GroundFile,
@@ -160,38 +159,6 @@ function normalizeRole(
     blocked_role_names: uniqueTextList(parsed.blocked_role_names),
     unknown_role_names: uniqueTextList(parsed.unknown_role_names),
     inbox: parsed.inbox.map((entry) => entry.trim()).filter(Boolean),
-  };
-}
-
-function ensureSaintRole(ground: GroundFile) {
-  const existingSaint = ground.role.find((role) => role.kind === "saint" || role.name === "saint");
-
-  if (existingSaint) {
-    return {
-      ...ground,
-      role: ground.role.map((role) =>
-        role.id === existingSaint.id
-          ? roleSchema.parse({
-              ...role,
-              id: role.id || "saint",
-              kind: "saint",
-              name: "saint",
-              status: normalizeRoleStatus(role.status),
-            })
-          : role,
-      ),
-    };
-  }
-
-  const saint = createDefaultSaintRole({
-    default_url: ground.default_url,
-    default_key: ground.default_key,
-    default_model: ground.default_model,
-  });
-
-  return {
-    ...ground,
-    role: [...ground.role, saint],
   };
 }
 

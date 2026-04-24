@@ -93,13 +93,16 @@ export default function Home() {
           </span>
         </div>
         <nav className="hidden md:flex items-center gap-8">
-          {["Docs", "Blog"].map((item) => (
+          {[
+            { label: "文档", href: "/docs" },
+            { label: "Market", href: "/market" },
+          ].map((item) => (
             <a
-              key={item}
-              href={`/${item.toLowerCase()}`}
+              key={item.label}
+              href={item.href}
               className="text-sm text-gray-400 hover:text-white transition-colors duration-300"
             >
-              {item}
+              {item.label}
             </a>
           ))}
         </nav>
@@ -111,7 +114,7 @@ export default function Home() {
       <main className="relative z-10 flex flex-col items-center justify-center min-h-[calc(100vh-100px)] px-6 text-center">
         <div className="inline-flex items-center gap-2 px-4 py-2 mb-8 rounded-full bg-white/5 border border-white/10 backdrop-blur-sm">
           <span className="w-2 h-2 rounded-full bg-green-400 animate-pulse" />
-          <span className="text-xs text-gray-400 tracking-wide uppercase">Now in Public Beta</span>
+          <span className="text-xs text-gray-400 tracking-wide uppercase">Current Build</span>
         </div>
 
         <h1 className="text-5xl md:text-7xl lg:text-8xl font-bold tracking-tight mb-6">
@@ -125,9 +128,9 @@ export default function Home() {
         </h1>
 
         <p className="max-w-2xl text-lg md:text-xl text-gray-400 mb-12 leading-relaxed">
-          Create and manage dynamic virtual characters that interact in persistent worlds.
+          构建、管理并推进多角色世界模拟。
           <br className="hidden md:block" />
-          Built for developers, creators, and explorers.
+          面向开发者、设计者与实验者。
         </p>
 
         <div className="flex flex-col sm:flex-row items-center gap-4">
@@ -142,7 +145,7 @@ export default function Home() {
             </span>
           </button>
           <button className="px-8 py-4 text-base font-medium text-gray-300 rounded-full border border-white/10 hover:bg-white/5 hover:border-white/20 transition-all duration-300">
-            <Link href="/docs">View Documentation</Link>
+            <Link href="/market">打开 Market</Link>
           </button>
         </div>
 

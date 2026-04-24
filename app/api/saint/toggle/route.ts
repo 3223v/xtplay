@@ -41,6 +41,11 @@ export async function POST(request: Request) {
       updatedGround = {
         ...ground,
         role: ground.role.filter((role) => !isSaintRole(role)),
+        workflow: {
+          ...ground.workflow,
+          pending_plan: null,
+          pending_judgement: null,
+        },
       };
     } else {
       // Add saint role
@@ -52,6 +57,11 @@ export async function POST(request: Request) {
       updatedGround = {
         ...ground,
         role: [...ground.role, saint],
+        workflow: {
+          ...ground.workflow,
+          pending_plan: null,
+          pending_judgement: null,
+        },
       };
     }
 

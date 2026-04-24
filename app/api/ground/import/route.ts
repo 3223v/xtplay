@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import fs from "fs";
 
 import {
+  defaultWorkflowState,
   groundSchema,
   GroundFile,
 } from "@/app/lib/sim/types";
@@ -50,10 +51,12 @@ export async function POST(request: Request) {
       rule: body.rule || [],
       simulation: body.simulation || {
         mode: "auto",
-        round_goal: 1,
-        batch_size: 1,
-        max_rounds: 100,
+        round_goal: "",
+        batch_size: 10,
+        current_batch_index: 0,
+        max_round_history: 100,
       },
+      workflow: body.workflow || defaultWorkflowState,
       createdAt: body.createdAt || new Date().toISOString().split('T')[0],
       updatedAt: new Date().toISOString().split('T')[0],
     };
