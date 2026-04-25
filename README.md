@@ -21,3 +21,4 @@ Open [http://localhost:3000](http://localhost:3000) with your browser to see the
 因为没有做鉴权，没有做加密，所以没法在生产环境中使用。
 只能自己在本地运行。
 ai的api key需要自己配置。
+vercel平台不能用，因为后端数据是创建文件形式持久化，这个平台不允许
