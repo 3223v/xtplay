@@ -1,0 +1,90 @@
+{
+  "auth": {
+    "enabled": false,
+    "password": "1234"
+  },
+  "presets": {
+    "urls": [
+      {
+        "value": "https://api.openai.com/v1",
+        "label": "OpenAI Official"
+      },
+      {
+        "value": "https://api.deepseek.com/v1",
+        "label": "DeepSeek"
+      },
+      {
+        "value": "https://ark.cn-beijing.volcenpc.com/v1",
+        "label": "Volcengine ARK"
+      }
+    ],
+    "models": [
+      {
+        "value": "gpt-4o",
+        "label": "GPT-4o"
+      },
+      {
+        "value": "gpt-4o-mini",
+        "label": "GPT-4o Mini"
+      },
+      {
+        "value": "gpt-4-turbo",
+        "label": "GPT-4 Turbo"
+      },
+      {
+        "value": "deepseek-chat",
+        "label": "DeepSeek Chat"
+      },
+      {
+        "value": "deepseek-coder",
+        "label": "DeepSeek Coder"
+      },
+      {
+        "value": "doubao-pro-32k",
+        "label": "Doubao Pro 32K"
+      }
+    ]
+  },
+  "events": [
+    {
+      "type": "night_falls",
+      "title": "Night Falls",
+      "shortLabel": "Night",
+      "description": "Night has fallen. Something stirs in the darkness.",
+      "defaultPrompt": "Night falls on the village. Tell the roles what they observe and how they react.",
+      "accentClass": "dark"
+    },
+    {
+      "type": "strange_rumor",
+      "title": "Strange Rumor",
+      "shortLabel": "Rumor",
+      "description": "A rumor spreads through the crowd.",
+      "defaultPrompt": "A strange rumor is spreading. Each role should react based on what they heard and their character.",
+      "accentClass": "info"
+    },
+    {
+      "type": "public_accusation",
+      "title": "Public Accusation",
+      "shortLabel": "Accuse",
+      "description": "Someone publicly accuses another.",
+      "defaultPrompt": "A public accusation has been made. The accused must defend themselves and others may react.",
+      "accentClass": "danger"
+    },
+    {
+      "type": "unexpected_visitor",
+      "title": "Unexpected Visitor",
+      "shortLabel": "Visitor",
+      "description": "A stranger arrives at the scene.",
+      "defaultPrompt": "An unexpected visitor arrives. Describe their appearance and manner, and how each role reacts.",
+      "accentClass": "neutral"
+    },
+    {
+      "type": "discovery",
+      "title": "Discovery",
+      "shortLabel": "Found",
+      "description": "Someone discovers something important.",
+      "defaultPrompt": "A significant discovery has been made. Each role should react to this new information.",
+      "accentClass": "success"
+    }
+  ]
+}

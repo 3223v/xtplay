@@ -1,36 +1,28 @@
 "use client";
 
 import Link from "next/link";
-import { type ReactNode, useEffect, useMemo, useRef, useState } from "react";
+import { ReactNode } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 export interface SectionPageItem {
   id: string;
   title: string;
   summary: string;
-  blocks: string[];
+  blocks?: string[];
   code?: string;
+  content?: ReactNode;
 }
 
 interface SectionPageShellProps {
-  heroEyebrow: string;
-  heroTitle: string;
-  heroDescription: string;
   activeNav: "docs" | "market";
-  footerLabel: string;
   sections: SectionPageItem[];
   codeTitle?: string;
-  heroPanel?: ReactNode;
 }
 
 export function SectionPageShell({
-  heroEyebrow,
-  heroTitle,
-  heroDescription,
   activeNav,
-  footerLabel,
   sections,
   codeTitle = "参考结构",
-  heroPanel,
 }: SectionPageShellProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [activeSection, setActiveSection] = useState(sections[0]?.id ?? "");
@@ -107,24 +99,15 @@ export function SectionPageShell({
   );
 
   return (
-    <div className="relative min-h-screen overflow-hidden bg-[#050507]">
+    <div className="relative min-h-screen overflow-hidden bg-[#f1f5f9]">
       <canvas ref={canvasRef} className="absolute inset-0 h-full w-full pointer-events-none" />
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(34,197,94,0.10),transparent_28%,rgba(59,130,246,0.08)_70%,transparent)] pointer-events-none" />
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(59,130,246,0.10),transparent_28%,rgba(99,102,241,0.08)_70%,transparent)] pointer-events-none" />
 
-      <header className="relative z-10 flex items-center justify-between px-12 py-6">
-        <div className="flex items-center gap-3">
-          <svg className="h-10 w-10" viewBox="0 0 40 40" fill="none">
-            <circle cx="20" cy="20" r="18" stroke="url(#logoGrad)" strokeWidth="2" />
-            <circle cx="20" cy="20" r="8" fill="url(#logoGrad)" />
-            <defs>
-              <linearGradient id="logoGrad" x1="0" y1="0" x2="40" y2="40">
-                <stop offset="0%" stopColor="#22c55e" />
-                <stop offset="100%" stopColor="#38bdf8" />
-              </linearGradient>
-            </defs>
-          </svg>
-          <span className="text-2xl font-bold tracking-tight text-white">XTPlay</span>
-        </div>
+      <header className="fixed top-0 left-0 right-0 z-50 flex items-center justify-between px-12 py-6 bg-white/80 backdrop-blur-sm border-b border-[#e2e8f0]">
+        <Link href="/" className="flex items-center gap-3">
+          <img src="/blue.png" alt="XTPlay Logo" className="w-10 h-10" />
+          <span className="text-2xl font-bold tracking-tight text-[#1e293b]">XTPlay</span>
+        </Link>
 
         <nav className="flex items-center gap-6">
           {[
@@ -139,8 +122,8 @@ export function SectionPageShell({
               className={`text-sm font-medium transition-colors duration-300 ${
                 (activeNav === "docs" && item.href === "/docs") ||
                 (activeNav === "market" && item.href === "/market")
-                  ? "text-white"
-                  : "text-gray-400 hover:text-white"
+                  ? "text-[#3b82f6]"
+                  : "text-[#64748b] hover:text-[#3b82f6]"
               }`}
             >
               {item.name}
@@ -149,25 +132,25 @@ export function SectionPageShell({
         </nav>
       </header>
 
-      <div className="relative z-10 flex">
+      <div className="relative z-10 flex min-h-screen">
         <aside
-          className={`fixed left-0 top-24 bottom-0 w-72 overflow-y-auto border-r border-[#1f1f2e] bg-[#0d0f16]/95 backdrop-blur-xl transition-transform duration-300 ${
+          className={`fixed left-0 top-[73px] bottom-0 w-72 overflow-hidden rounded-r-2xl border-r border-[#e2e8f0] bg-white/95 shadow-lg shadow-blue-900/5 transition-all duration-300 ${
             sidebarOpen ? "translate-x-0" : "-translate-x-full"
           }`}
         >
-          <div className="p-6">
+          <div className="h-full overflow-y-auto p-6">
             <div className="mb-6 flex items-center justify-between">
               <div>
-                <div className="text-xs uppercase tracking-[0.24em] text-emerald-300">
+                <div className="text-xs uppercase tracking-[0.24em] text-blue-500">
                   {activeNav === "docs" ? "技术文档" : "场景 Market"}
                 </div>
-                <div className="mt-2 text-sm text-gray-400">
+                <div className="mt-1 text-xs text-[#64748b]">
                   {activeNav === "docs" ? "围绕当前代码实现整理" : "围绕可复用 Ground 模板整理"}
                 </div>
               </div>
               <button
                 onClick={() => setSidebarOpen(false)}
-                className="rounded-lg border border-[#2a2a3e] p-2 text-gray-500 transition-colors hover:text-white"
+                className="rounded-lg border border-[#e2e8f0] p-2 text-[#64748b] transition-colors hover:text-[#1e293b] hover:border-blue-300 bg-white"
               >
                 <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 19l-7-7 7-7m8 14l-7-7 7-7" />
@@ -182,12 +165,12 @@ export function SectionPageShell({
                   onClick={() => setActiveSection(section.id)}
                   className={`w-full rounded-xl border px-4 py-3 text-left transition-all duration-200 ${
                     activeSection === section.id
-                      ? "border-emerald-400/30 bg-emerald-400/10 text-emerald-100"
-                      : "border-transparent bg-transparent text-gray-400 hover:border-[#2a2a3e] hover:bg-[#141826] hover:text-white"
+                      ? "border-blue-400 bg-blue-50 text-[#1e293b]"
+                      : "border-transparent bg-transparent text-[#64748b] hover:border-[#e2e8f0] hover:bg-[#f8fafc] hover:text-[#1e293b]"
                   }`}
                 >
                   <div className="text-sm font-semibold">{section.title}</div>
-                  <div className="mt-1 text-xs leading-5 text-inherit opacity-80">
+                  <div className="mt-1 text-xs leading-4 text-inherit opacity-80">
                     {section.summary}
                   </div>
                 </button>
@@ -199,7 +182,7 @@ export function SectionPageShell({
         {!sidebarOpen ? (
           <button
             onClick={() => setSidebarOpen(true)}
-            className="fixed left-4 top-28 z-20 rounded-lg border border-[#2a2a3e] bg-[#151722] p-2 text-gray-400 transition-colors hover:text-white"
+            className="fixed left-4 top-28 z-30 rounded-lg border border-[#e2e8f0] bg-white p-2 text-[#64748b] transition-colors hover:text-[#1e293b]"
           >
             <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 5l7 7-7 7M5 5l7 7-7 7" />
@@ -207,68 +190,52 @@ export function SectionPageShell({
           </button>
         ) : null}
 
-        <main className={`flex-1 px-8 py-8 transition-all duration-300 ${sidebarOpen ? "ml-72" : "ml-8"}`}>
-          <div className="mx-auto max-w-5xl">
-            <div className="mb-10 rounded-[32px] border border-white/10 bg-white/5 p-8 backdrop-blur-xl">
-              <div className="text-xs uppercase tracking-[0.32em] text-sky-300">{heroEyebrow}</div>
-              <h1 className="mt-3 max-w-4xl text-4xl font-bold text-white">{heroTitle}</h1>
-              <p className="mt-4 max-w-3xl text-base leading-7 text-gray-300">{heroDescription}</p>
-            </div>
-
-            {heroPanel ? <div className="mb-10">{heroPanel}</div> : null}
-
+        <main className={`flex-1 px-8 pt-[73px] pb-8 overflow-y-auto transition-all duration-300 ${sidebarOpen ? "ml-72" : "ml-0"}`}>
+          <div className="mx-auto max-w-4xl">
             {activeContent ? (
-              <section className="space-y-6">
-                <div className="rounded-[28px] border border-white/10 bg-[#0d0f16]/95 p-8 backdrop-blur-xl">
+              <section className="space-y-4">
+                <div className="rounded-2xl bg-white/80 p-8">
                   <div className="max-w-3xl">
-                    <div className="text-xs uppercase tracking-[0.28em] text-emerald-300">
+                    <div className="text-xs uppercase tracking-[0.28em] text-blue-500">
                       {activeContent.id}
                     </div>
-                    <h2 className="mt-2 text-3xl font-semibold text-white">{activeContent.title}</h2>
-                    <p className="mt-3 text-base leading-7 text-gray-300">{activeContent.summary}</p>
+                    <h2 className="mt-2 text-3xl font-semibold text-[#1e293b]">{activeContent.title}</h2>
+                    <p className="mt-3 text-base leading-7 text-[#64748b]">{activeContent.summary}</p>
                   </div>
 
-                  <div className="mt-8 grid gap-4">
-                    {activeContent.blocks.map((item, index) => (
-                      <div
-                        key={`${activeContent.id}-${index}`}
-                        className="rounded-2xl border border-white/8 bg-white/[0.03] px-5 py-4 text-sm leading-7 text-gray-300"
-                      >
-                        {item}
+                  {activeContent.content ? (
+                    <div className="mt-8">{activeContent.content}</div>
+                  ) : (
+                    <>
+                      <div className="mt-8 grid gap-4">
+                        {activeContent.blocks?.map((item, index) => (
+                          <div
+                            key={`${activeContent.id}-${index}`}
+                            className="rounded-xl bg-[#f8fafc]/80 px-5 py-4 text-sm leading-7 text-[#475569]"
+                          >
+                            {item}
+                          </div>
+                        ))}
                       </div>
-                    ))}
-                  </div>
 
-                  {activeContent.code ? (
-                    <div className="mt-8 overflow-hidden rounded-2xl border border-[#243047] bg-[#090b12]">
-                      <div className="border-b border-[#1f2a40] px-4 py-3 text-xs font-semibold uppercase tracking-[0.22em] text-sky-200">
-                        {codeTitle}
-                      </div>
-                      <pre className="overflow-x-auto p-5 text-sm leading-7 text-slate-200">
-                        <code>{activeContent.code}</code>
-                      </pre>
-                    </div>
-                  ) : null}
+                      {activeContent.code ? (
+                        <div className="mt-8 overflow-hidden rounded-xl bg-[#f8fafc]/80">
+                          <div className="border-b border-[#e2e8f0]/50 px-4 py-3 text-xs font-semibold uppercase tracking-[0.22em] text-[#3b82f6]">
+                            {codeTitle}
+                          </div>
+                          <pre className="overflow-x-auto p-5 text-sm leading-7 text-[#475569]">
+                            <code>{activeContent.code}</code>
+                          </pre>
+                        </div>
+                      ) : null}
+                    </>
+                  )}
                 </div>
               </section>
             ) : null}
           </div>
         </main>
       </div>
-
-      <footer className="relative z-10 border-t border-[#1f1f2e] px-12 py-8">
-        <div className="flex items-center justify-between text-sm text-gray-500">
-          <span>{footerLabel}</span>
-          <div className="flex items-center gap-6">
-            <Link href="/docs" className="transition-colors hover:text-white">
-              文档
-            </Link>
-            <Link href="/market" className="transition-colors hover:text-white">
-              Market
-            </Link>
-          </div>
-        </div>
-      </footer>
     </div>
   );
 }

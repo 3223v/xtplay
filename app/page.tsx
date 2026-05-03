@@ -66,32 +66,21 @@ export default function Home() {
   }, []);
 
   return (
-    <div className="relative min-h-screen overflow-hidden bg-[#050507]">
+    <div className="relative min-h-screen overflow-hidden bg-[#f1f5f9]">
       <canvas
         ref={canvasRef}
         className="absolute inset-0 w-full h-full pointer-events-none"
       />
 
-      <div className="absolute inset-0 bg-gradient-to-br from-purple-900/20 via-transparent to-indigo-900/20 pointer-events-none" />
-      <div className="absolute top-0 left-1/4 w-[500px] h-[500px] bg-purple-600/10 rounded-full blur-[120px] pointer-events-none" />
-      <div className="absolute bottom-0 right-1/4 w-[600px] h-[600px] bg-indigo-600/10 rounded-full blur-[150px] pointer-events-none" />
+      <div className="absolute inset-0 bg-gradient-to-br from-blue-50 via-transparent to-indigo-50 pointer-events-none" />
+      <div className="absolute top-0 left-1/4 w-[500px] h-[500px] bg-blue-200/30 rounded-full blur-[120px] pointer-events-none" />
+      <div className="absolute bottom-0 right-1/4 w-[600px] h-[600px] bg-indigo-200/30 rounded-full blur-[150px] pointer-events-none" />
 
-      <header className="relative z-10 flex items-center justify-between px-12 py-6">
-        <div className="flex items-center gap-3">
-          <svg className="w-10 h-10" viewBox="0 0 40 40" fill="none">
-            <circle cx="20" cy="20" r="18" stroke="url(#logoGrad)" strokeWidth="2" />
-            <circle cx="20" cy="20" r="8" fill="url(#logoGrad)" />
-            <defs>
-              <linearGradient id="logoGrad" x1="0" y1="0" x2="40" y2="40">
-                <stop offset="0%" stopColor="#a78bfa" />
-                <stop offset="100%" stopColor="#6366f1" />
-              </linearGradient>
-            </defs>
-          </svg>
-          <span className="text-2xl font-bold tracking-tight text-white">
-            <Link href="/">XTPlay</Link>
-          </span>
-        </div>
+      <header className="fixed top-0 left-0 right-0 z-50 flex items-center justify-between px-12 py-6 bg-white/80 backdrop-blur-sm border-b border-[#e2e8f0]">
+        <Link href="/" className="flex items-center gap-3">
+          <img src="/blue.png" alt="XTPlay Logo" className="w-10 h-10" />
+          <span className="text-2xl font-bold tracking-tight text-[#1e293b]">XTPlay</span>
+        </Link>
         <nav className="hidden md:flex items-center gap-8">
           {[
             { label: "文档", href: "/docs" },
@@ -100,34 +89,34 @@ export default function Home() {
             <a
               key={item.label}
               href={item.href}
-              className="text-sm text-gray-400 hover:text-white transition-colors duration-300"
+              className="text-sm text-[#64748b] hover:text-[#3b82f6] transition-colors duration-300"
             >
               {item.label}
             </a>
           ))}
         </nav>
-        <button className="px-5 py-2.5 text-sm font-medium text-white bg-gradient-to-r from-purple-600 to-indigo-600 rounded-full hover:from-purple-500 hover:to-indigo-500 transition-all duration-300 shadow-lg shadow-purple-900/30">
+        <button className="px-5 py-2.5 text-sm font-medium text-white bg-gradient-to-r from-blue-500 to-indigo-500 rounded-full hover:from-blue-400 hover:to-indigo-400 transition-all duration-300 shadow-lg shadow-blue-500/20">
           <Link href="/manage">Get Started</Link>
         </button>
       </header>
 
-      <main className="relative z-10 flex flex-col items-center justify-center min-h-[calc(100vh-100px)] px-6 text-center">
-        <div className="inline-flex items-center gap-2 px-4 py-2 mb-8 rounded-full bg-white/5 border border-white/10 backdrop-blur-sm">
-          <span className="w-2 h-2 rounded-full bg-green-400 animate-pulse" />
-          <span className="text-xs text-gray-400 tracking-wide uppercase">Current Build</span>
+      <main className="relative z-10 flex flex-col items-center justify-center min-h-[calc(100vh-100px)] pt-24 pb-16 px-6 text-center">
+        <div className="inline-flex items-center gap-2 px-4 py-2 mb-8 rounded-full bg-white border border-[#e2e8f0] backdrop-blur-sm shadow-sm">
+          <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
+          <span className="text-xs text-[#64748b] tracking-wide uppercase">Current Build</span>
         </div>
 
         <h1 className="text-5xl md:text-7xl lg:text-8xl font-bold tracking-tight mb-6">
-          <span className="bg-gradient-to-r from-white via-gray-200 to-gray-400 bg-clip-text text-transparent">
+          <span className="bg-gradient-to-r from-[#1e293b] via-[#334155] to-[#475569] bg-clip-text text-transparent">
             Multi-Character
           </span>
           <br />
-          <span className="bg-gradient-to-r from-purple-400 via-indigo-400 to-purple-300 bg-clip-text text-transparent">
+          <span className="bg-gradient-to-r from-blue-500 via-indigo-500 to-blue-400 bg-clip-text text-transparent">
             World Simulation
           </span>
         </h1>
 
-        <p className="max-w-2xl text-lg md:text-xl text-gray-400 mb-12 leading-relaxed">
+        <p className="max-w-2xl text-lg md:text-xl text-[#64748b] mb-12 leading-relaxed">
           构建、管理并推进多角色世界模拟。
           <br className="hidden md:block" />
           面向开发者、设计者与实验者。
@@ -135,8 +124,8 @@ export default function Home() {
 
         <div className="flex flex-col sm:flex-row items-center gap-4">
           <button className="group relative px-8 py-4 text-base font-semibold text-white rounded-full overflow-hidden transition-all duration-300">
-            <span className="absolute inset-0 bg-gradient-to-r from-purple-600 to-indigo-600 group-hover:from-purple-500 group-hover:to-indigo-500" />
-            <span className="absolute inset-0 bg-gradient-to-r from-purple-600 to-indigo-600 blur-xl opacity-40 group-hover:opacity-60 transition-opacity" />
+            <span className="absolute inset-0 bg-gradient-to-r from-blue-500 to-indigo-500 group-hover:from-blue-400 group-hover:to-indigo-400" />
+            <span className="absolute inset-0 bg-gradient-to-r from-blue-500 to-indigo-500 blur-xl opacity-40 group-hover:opacity-60 transition-opacity" />
             <span className="relative flex items-center gap-2">
               <Link href="/manage">Start Building</Link>
               <svg className="w-4 h-4 transition-transform group-hover:translate-x-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -144,7 +133,7 @@ export default function Home() {
               </svg>
             </span>
           </button>
-          <button className="px-8 py-4 text-base font-medium text-gray-300 rounded-full border border-white/10 hover:bg-white/5 hover:border-white/20 transition-all duration-300">
+          <button className="px-8 py-4 text-base font-medium text-[#475569] rounded-full border border-[#e2e8f0] bg-white hover:bg-[#f8fafc] hover:border-[#cbd5e1] transition-all duration-300 shadow-sm">
             <Link href="/market">打开 Market</Link>
           </button>
         </div>
@@ -181,22 +170,22 @@ export default function Home() {
           ].map((feature, i) => (
             <div
               key={i}
-              className="group p-6 rounded-2xl bg-white/5 border border-white/10 backdrop-blur-sm hover:bg-white/10 hover:border-purple-500/30 transition-all duration-500"
+              className="group p-6 rounded-2xl bg-white border border-[#e2e8f0] shadow-sm hover:shadow-lg hover:border-blue-300 transition-all duration-500"
               style={{ animationDelay: `${i * 100}ms` }}
             >
-              <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-purple-500/20 to-indigo-500/20 flex items-center justify-center mb-4 text-purple-400 group-hover:text-purple-300 transition-colors">
+              <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-blue-100 to-indigo-100 flex items-center justify-center mb-4 text-blue-500 group-hover:text-blue-400 transition-colors">
                 {feature.icon}
               </div>
-              <h3 className="text-lg font-semibold text-white mb-2">{feature.title}</h3>
-              <p className="text-sm text-gray-400 leading-relaxed">{feature.desc}</p>
+              <h3 className="text-lg font-semibold text-[#1e293b] mb-2">{feature.title}</h3>
+              <p className="text-sm text-[#64748b] leading-relaxed">{feature.desc}</p>
             </div>
           ))}
         </div>
       </main>
 
-      <footer className="relative z-10 px-12 py-8 border-t border-white/5">
+      <footer className="fixed bottom-0 left-0 right-0 z-10 px-12 py-4 bg-white/60">
         <div className="flex flex-col md:flex-row items-center justify-between gap-4">
-          <p className="text-sm text-gray-500">© 2026 XTPlay.</p>
+          <p className="text-sm text-[#94a3b8]">© 2026 XTPlay.</p>
           <div className="flex items-center gap-6">
             {["GitHub"].map((social) => (
               <a
@@ -204,7 +193,7 @@ export default function Home() {
                 href={`https://${social.toLowerCase()}.com/3223v/xtplay`}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-sm text-gray-500 hover:text-gray-300 transition-colors"
+                className="text-sm text-[#94a3b8] hover:text-[#64748b] transition-colors"
               >
                 {social}
               </a>

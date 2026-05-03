@@ -1,8 +1,8 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --background: #f1f5f9;
+  --foreground: #1e293b;
 }
 
 @theme inline {
@@ -10,13 +10,6 @@
   --color-foreground: var(--foreground);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
 }
 
 body {
@@ -35,13 +28,13 @@ body {
 .sidebar {
   width: 200px;
   height: 100%;
-  background: #1a1a2e;
+  background: #ffffff;
   padding: 16px;
-  border-right: 1px solid #333;
+  border-right: 1px solid #e2e8f0;
 }
 
 .sidebar h3 {
-  color: #fff;
+  color: #1e293b;
   margin-bottom: 16px;
   font-size: 14px;
   font-weight: 600;
@@ -50,18 +43,18 @@ body {
 .draggable-item {
   padding: 10px 14px;
   margin-bottom: 8px;
-  background: #16213e;
-  color: #e0e0e0;
+  background: #ffffff;
+  color: #1e293b;
   border-radius: 6px;
   cursor: grab;
   font-size: 13px;
-  border: 1px solid #333;
+  border: 1px solid #e2e8f0;
   transition: all 0.2s;
 }
 
 .draggable-item:hover {
-  background: #1f3460;
-  border-color: #6366f1;
+  background: #f8fafc;
+  border-color: #3b82f6;
 }
 
 .flow-wrapper {
@@ -71,7 +64,7 @@ body {
 
 .btn {
   padding: 8px 16px;
-  background: #6366f1;
+  background: #3b82f6;
   color: white;
   border: none;
   border-radius: 6px;
@@ -81,5 +74,5 @@ body {
 }
 
 .btn:hover {
-  background: #4f46e5;
+  background: #2563eb;
 }

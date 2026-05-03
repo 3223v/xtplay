@@ -1,9 +1,16 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 
-const GROUND_PASSWORD = "1234";
 const AUTH_COOKIE_NAME = "ground_auth";
 const GROUND_ROUTE = "/ground";
+
+function isAuthEnabled(): boolean {
+  return process.env.NEXT_PUBLIC_AUTH_ENABLED === "true";
+}
+
+function getAuthPassword(): string {
+  return process.env.AUTH_PASSWORD || "";
+}
 
 const LOGIN_PAGE_HTML = `
 <!DOCTYPE html>
@@ -154,9 +161,14 @@ export function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
-  const authCookie = request.cookies.get(AUTH_COOKIE_NAME);
+  if (!isAuthEnabled()) {
+    return NextResponse.next();
+  }
 
-  if (authCookie?.value === GROUND_PASSWORD) {
+  const authCookie = request.cookies.get(AUTH_COOKIE_NAME);
+  const password = getAuthPassword();
+
+  if (authCookie?.value === password) {
     return NextResponse.next();
   }
 

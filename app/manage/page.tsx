@@ -248,36 +248,29 @@ export default function Manage() {
   );
 
   return (
-    <div className="relative min-h-screen overflow-hidden bg-[#050507]">
+    <div className="relative min-h-screen overflow-hidden bg-[#f1f5f9]">
       <canvas ref={canvasRef} className="absolute inset-0 w-full h-full pointer-events-none" />
-      <div className="absolute inset-0 bg-gradient-to-br from-purple-900/20 via-transparent to-indigo-900/20 pointer-events-none" />
-      <div className="absolute top-0 left-1/4 w-[500px] h-[500px] bg-purple-600/10 rounded-full blur-[120px] pointer-events-none" />
-      <div className="absolute bottom-0 right-1/4 w-[600px] h-[600px] bg-indigo-600/10 rounded-full blur-[150px] pointer-events-none" />
+      <div className="absolute inset-0 bg-gradient-to-br from-blue-50 via-transparent to-indigo-50 pointer-events-none" />
+      <div className="absolute top-0 left-1/4 w-[500px] h-[500px] bg-blue-200/30 rounded-full blur-[120px] pointer-events-none" />
+      <div className="absolute bottom-0 right-1/4 w-[600px] h-[600px] bg-indigo-200/30 rounded-full blur-[150px] pointer-events-none" />
 
-      <header className="relative z-10 flex items-center justify-between px-12 py-6">
-        <div className="flex items-center gap-3">
-          <svg className="w-10 h-10" viewBox="0 0 40 40" fill="none">
-            <circle cx="20" cy="20" r="18" stroke="url(#logoGrad)" strokeWidth="2" />
-            <circle cx="20" cy="20" r="8" fill="url(#logoGrad)" />
-            <defs>
-              <linearGradient id="logoGrad" x1="0" y1="0" x2="40" y2="40">
-                <stop offset="0%" stopColor="#a78bfa" />
-                <stop offset="100%" stopColor="#6366f1" />
-              </linearGradient>
-            </defs>
-          </svg>
-          <span className="text-2xl font-bold tracking-tight text-white">XTPlay</span>
-        </div>
+      <header className="fixed top-0 left-0 right-0 z-[100] flex items-center justify-between px-12 py-6 bg-white/80 backdrop-blur-sm border-b border-[#e2e8f0]">
+        <Link href="/" className="flex items-center gap-3">
+          <img src="/blue.png" alt="XTPlay Logo" className="w-10 h-10" />
+          <span className="text-2xl font-bold tracking-tight text-[#1e293b]">XTPlay</span>
+        </Link>
         <nav className="flex items-center gap-6">
           {[
-            { name: "Home", href: "/" },
-            { name: "Manage", href: "/manage" },
+            { name: "首页", href: "/" },
+            { name: "管理", href: "/manage" },
+            { name: "文档", href: "/docs" },
+            { name: "Market", href: "/market" },
           ].map((item) => (
             <Link
               key={item.name}
               href={item.href}
               className={`text-sm font-medium transition-colors duration-300 ${
-                item.name === "Manage" ? "text-white" : "text-gray-400 hover:text-white"
+                item.name === "管理" ? "text-[#3b82f6]" : "text-[#64748b] hover:text-[#3b82f6]"
               }`}
             >
               {item.name}
@@ -286,16 +279,16 @@ export default function Manage() {
         </nav>
       </header>
 
-      <main className="relative z-10 px-12 py-8">
+      <main className="relative z-10 px-12 pt-32 pb-8">
         <div className="flex items-center justify-between mb-8">
           <div>
-            <h1 className="text-4xl font-bold text-white mb-2">Ground Management</h1>
-            <p className="text-gray-400">管理所有工作空间配置</p>
+            <h1 className="text-4xl font-bold text-[#1e293b] mb-2">Ground Management</h1>
+            <p className="text-[#64748b]">管理所有工作空间配置</p>
           </div>
           <div className="flex items-center gap-4">
             <button
               onClick={() => setShowImportModal(true)}
-              className="px-6 py-3 text-sm font-semibold text-gray-300 bg-white/10 border border-white/20 rounded-full hover:bg-white/15 hover:border-white/30 transition-all duration-300 flex items-center gap-2"
+              className="px-6 py-3 text-sm font-semibold text-[#475569] bg-white border border-[#e2e8f0] rounded-full hover:bg-[#f8fafc] hover:border-[#cbd5e1] transition-all duration-300 flex items-center gap-2 shadow-sm"
             >
               <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
@@ -304,7 +297,7 @@ export default function Manage() {
             </button>
             <button
               onClick={handleCreate}
-              className="px-6 py-3 text-sm font-semibold text-white bg-gradient-to-r from-purple-600 to-indigo-600 rounded-full hover:from-purple-500 hover:to-indigo-500 transition-all duration-300 shadow-lg shadow-purple-900/30 flex items-center gap-2"
+              className="px-6 py-3 text-sm font-semibold text-white bg-gradient-to-r from-blue-500 to-indigo-500 rounded-full hover:from-blue-400 hover:to-indigo-400 transition-all duration-300 shadow-lg shadow-blue-500/20 flex items-center gap-2"
             >
               <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
@@ -317,7 +310,7 @@ export default function Manage() {
         <div className="mb-6">
           <div className="relative max-w-md">
             <svg
-              className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-500"
+              className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-[#94a3b8]"
               fill="none"
               viewBox="0 0 24 24"
               stroke="currentColor"
@@ -334,14 +327,14 @@ export default function Manage() {
               placeholder="搜索 Ground..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-12 pr-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:border-purple-500/50 focus:ring-2 focus:ring-purple-500/20 transition-all duration-300"
+              className="w-full pl-12 pr-4 py-3 bg-white border border-[#e2e8f0] rounded-xl text-[#1e293b] placeholder-[#94a3b8] focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/10 transition-all duration-300"
             />
           </div>
         </div>
 
         {isLoading ? (
           <div className="flex items-center justify-center py-20">
-            <div className="w-8 h-8 border-2 border-purple-500 border-t-transparent rounded-full animate-spin" />
+            <div className="w-8 h-8 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
           </div>
         ) : (
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -350,16 +343,16 @@ export default function Manage() {
                 <div
                   key={ground.id}
                   onClick={() => !isEditing && setSelectedGround(ground)}
-                  className={`group p-6 rounded-2xl bg-white/5 border backdrop-blur-sm transition-all duration-300 cursor-pointer ${
+                  className={`group p-6 rounded-2xl bg-white border backdrop-blur-sm transition-all duration-300 cursor-pointer ${
                     selectedGround?.id === ground.id
-                      ? "border-purple-500/50 bg-purple-500/10"
-                      : "border-white/10 hover:bg-white/10 hover:border-purple-500/30"
+                      ? "border-blue-400 shadow-md shadow-blue-500/10"
+                      : "border-[#e2e8f0] hover:shadow-md hover:border-[#cbd5e1]"
                   }`}
                 >
                   <div className="flex items-start justify-between">
                     <div className="flex items-center gap-4">
-                      <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-purple-500/20 to-indigo-500/20 flex items-center justify-center">
-                        <svg className="w-6 h-6 text-purple-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-blue-100 to-indigo-100 flex items-center justify-center">
+                        <svg className="w-6 h-6 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                           <path
                             strokeLinecap="round"
                             strokeLinejoin="round"
@@ -369,10 +362,10 @@ export default function Manage() {
                         </svg>
                       </div>
                       <div>
-                        <h3 className="text-lg font-semibold text-white group-hover:text-purple-300 transition-colors">
+                        <h3 className="text-lg font-semibold text-[#1e293b] group-hover:text-blue-600 transition-colors">
                           {ground.name}
                         </h3>
-                        <p className="text-sm text-gray-400 mt-1">{ground.description}</p>
+                        <p className="text-sm text-[#64748b] mt-1">{ground.description}</p>
                       </div>
                     </div>
                     <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
@@ -381,7 +374,7 @@ export default function Manage() {
                           e.stopPropagation();
                           handleEdit(ground);
                         }}
-                        className="p-2 text-gray-400 hover:text-white hover:bg-white/10 rounded-lg transition-all"
+                        className="p-2 text-[#64748b] hover:text-[#1e293b] hover:bg-[#f8fafc] rounded-lg transition-all"
                       >
                         <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                           <path
@@ -397,7 +390,7 @@ export default function Manage() {
                           e.stopPropagation();
                           handleDelete(ground.id);
                         }}
-                        className="p-2 text-gray-400 hover:text-red-400 hover:bg-red-400/10 rounded-lg transition-all"
+                        className="p-2 text-[#64748b] hover:text-red-500 hover:bg-red-50 rounded-lg transition-all"
                       >
                         <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                           <path
@@ -411,13 +404,13 @@ export default function Manage() {
                     </div>
                   </div>
                   <div className="mt-4 flex items-center justify-between">
-                    <div className="flex items-center gap-4 text-xs text-gray-500">
+                    <div className="flex items-center gap-4 text-xs text-[#94a3b8]">
                       <span>Default Key: ••••••</span>
                       <span>更新于 {ground.updatedAt}</span>
                     </div>
                     <Link
                       href={`/ground?g=${ground.id}`}
-                      className="px-3 py-1.5 text-xs font-medium text-purple-300 bg-purple-500/10 hover:bg-purple-500/20 border border-purple-500/30 rounded-lg transition-all flex items-center gap-1.5"
+                      className="px-3 py-1.5 text-xs font-medium text-blue-600 bg-blue-50 hover:bg-blue-100 border border-blue-200 rounded-lg transition-all flex items-center gap-1.5"
                     >
                       <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
@@ -431,7 +424,7 @@ export default function Manage() {
               {filteredGrounds.length === 0 && (
                 <div className="text-center py-12">
                   <svg
-                    className="w-16 h-16 mx-auto text-gray-600 mb-4"
+                    className="w-16 h-16 mx-auto text-[#94a3b8] mb-4"
                     fill="none"
                     viewBox="0 0 24 24"
                     stroke="currentColor"
@@ -443,15 +436,15 @@ export default function Manage() {
                       d="M9 6.75V15m6-6v8.25m.503 3.498l4.875-2.437c.381-.19.622-.58.622-1.006V4.82c0-.836-.88-1.38-1.628-1.006l-3.869 1.934c-.317.159-.69.159-1.006 0L9.503 3.252a1.125 1.125 0 00-1.006 0L3.622 5.689C3.24 5.88 3 6.27 3 6.695V19.18c0 .836.88 1.38 1.628 1.006l3.869-1.934c.317-.159.69-.159 1.006 0l4.994 2.497c.317.158.69.158 1.006 0z"
                     />
                   </svg>
-                  <p className="text-gray-500">没有找到匹配的 Ground</p>
+                  <p className="text-[#64748b]">没有找到匹配的 Ground</p>
                 </div>
               )}
             </div>
 
             <div className={`${isEditing ? "block" : "hidden"}`}>
-              <div className="sticky top-8 p-6 rounded-2xl bg-white/5 border border-white/10 backdrop-blur-sm">
-                <h3 className="text-xl font-semibold text-white mb-6 flex items-center gap-3">
-                  <svg className="w-6 h-6 text-purple-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <div className="sticky top-28 p-6 rounded-2xl bg-white border border-[#e2e8f0]">
+                <h3 className="text-xl font-semibold text-[#1e293b] mb-6 flex items-center gap-3">
+                  <svg className="w-6 h-6 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path
                       strokeLinecap="round"
                       strokeLinejoin="round"
@@ -464,45 +457,45 @@ export default function Manage() {
 
                 <div className="space-y-4">
                   <div>
-                    <label className="block text-sm font-medium text-gray-300 mb-2">Name</label>
+                    <label className="block text-sm font-medium text-[#374151] mb-2">Name</label>
                     <input
                       type="text"
                       value={editForm.name || ""}
                       onChange={(e) => setEditForm({ ...editForm, name: e.target.value })}
-                      className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:border-purple-500/50 focus:ring-2 focus:ring-purple-500/20 transition-all duration-300"
+                      className="w-full px-4 py-3 bg-white border border-[#e2e8f0] rounded-xl text-[#1e293b] placeholder-[#94a3b8] focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/10 transition-all duration-300"
                       placeholder="Ground name"
                     />
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-300 mb-2">Description</label>
+                    <label className="block text-sm font-medium text-[#374151] mb-2">Description</label>
                     <textarea
                       value={editForm.description || ""}
                       onChange={(e) => setEditForm({ ...editForm, description: e.target.value })}
                       rows={3}
-                      className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:border-purple-500/50 focus:ring-2 focus:ring-purple-500/20 transition-all duration-300 resize-none"
+                      className="w-full px-4 py-3 bg-white border border-[#e2e8f0] rounded-xl text-[#1e293b] placeholder-[#94a3b8] focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/10 transition-all duration-300 resize-none"
                       placeholder="Ground description"
                     />
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-300 mb-2">Default URL</label>
+                    <label className="block text-sm font-medium text-[#374151] mb-2">Default URL</label>
                     <input
                       type="text"
                       value={editForm.default_url || ""}
                       onChange={(e) => setEditForm({ ...editForm, default_url: e.target.value })}
-                      className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:border-purple-500/50 focus:ring-2 focus:ring-purple-500/20 transition-all duration-300"
+                      className="w-full px-4 py-3 bg-white border border-[#e2e8f0] rounded-xl text-[#1e293b] placeholder-[#94a3b8] focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/10 transition-all duration-300"
                       placeholder="https://api.example.com/chat"
                     />
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-300 mb-2">Default Key</label>
+                    <label className="block text-sm font-medium text-[#374151] mb-2">Default Key</label>
                     <input
                       type="text"
                       value={editForm.default_key || ""}
                       onChange={(e) => setEditForm({ ...editForm, default_key: e.target.value })}
-                      className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:border-purple-500/50 focus:ring-2 focus:ring-purple-500/20 transition-all duration-300"
+                      className="w-full px-4 py-3 bg-white border border-[#e2e8f0] rounded-xl text-[#1e293b] placeholder-[#94a3b8] focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/10 transition-all duration-300"
                       placeholder="default_role"
                     />
                   </div>
@@ -510,13 +503,13 @@ export default function Manage() {
                   <div className="flex items-center gap-3 pt-4">
                     <button
                       onClick={handleSave}
-                      className="flex-1 px-6 py-3 text-sm font-semibold text-white bg-gradient-to-r from-purple-600 to-indigo-600 rounded-xl hover:from-purple-500 hover:to-indigo-500 transition-all duration-300 shadow-lg shadow-purple-900/30"
+                      className="flex-1 px-6 py-3 text-sm font-semibold text-white bg-gradient-to-r from-blue-500 to-indigo-500 rounded-xl hover:from-blue-400 hover:to-indigo-400 transition-all duration-300 shadow-lg shadow-blue-500/20"
                     >
                       Save Changes
                     </button>
                     <button
                       onClick={handleCancel}
-                      className="px-6 py-3 text-sm font-medium text-gray-300 bg-white/5 border border-white/10 rounded-xl hover:bg-white/10 hover:border-white/20 transition-all duration-300"
+                      className="px-6 py-3 text-sm font-medium text-[#64748b] bg-white border border-[#e2e8f0] rounded-xl hover:bg-[#f8fafc] hover:border-[#cbd5e1] transition-all duration-300"
                     >
                       Cancel
                     </button>
@@ -527,9 +520,9 @@ export default function Manage() {
 
             {!isEditing && (
               <div className="hidden lg:block">
-                <div className="sticky top-8 p-6 rounded-2xl bg-white/5 border border-white/10 backdrop-blur-sm text-center">
+                <div className="sticky top-28 p-6 rounded-2xl bg-white border border-[#e2e8f0] text-center">
                   <svg
-                    className="w-16 h-16 mx-auto text-gray-600 mb-4"
+                    className="w-16 h-16 mx-auto text-[#94a3b8] mb-4"
                     fill="none"
                     viewBox="0 0 24 24"
                     stroke="currentColor"
@@ -541,8 +534,8 @@ export default function Manage() {
                       d="M9 6.75V15m6-6v8.25m.503 3.498l4.875-2.437c.381-.19.622-.58.622-1.006V4.82c0-.836-.88-1.38-1.628-1.006l-3.869 1.934c-.317.159-.69.159-1.006 0L9.503 3.252a1.125 1.125 0 00-1.006 0L3.622 5.689C3.24 5.88 3 6.27 3 6.695V19.18c0 .836.88 1.38 1.628 1.006l3.869-1.934c.317-.159.69-.159 1.006 0l4.994 2.497c.317.158.69.158 1.006 0z"
                     />
                   </svg>
-                  <p className="text-gray-500 mb-2">选择一个 Ground 进行编辑</p>
-                  <p className="text-sm text-gray-600">或者点击右上角按钮创建新 Ground</p>
+                  <p className="text-[#64748b] mb-2">选择一个 Ground 进行编辑</p>
+                  <p className="text-sm text-[#94a3b8]">或者点击右上角按钮创建新 Ground</p>
                 </div>
               </div>
             )}
@@ -553,13 +546,13 @@ export default function Manage() {
       {/* Import Modal */}
       {showImportModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          <div className="absolute inset-0 bg-black/80 backdrop-blur-sm" onClick={() => setShowImportModal(false)} />
-          <div className="relative w-full max-w-2xl bg-gradient-to-br from-[#1a1a2e] to-[#16162a] border border-[#2a2a3e] rounded-2xl p-6 shadow-2xl">
+          <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={() => setShowImportModal(false)} />
+          <div className="relative w-full max-w-2xl bg-white border border-[#e2e8f0] rounded-2xl p-6 shadow-xl">
             <div className="flex items-center justify-between mb-6">
-              <h3 className="text-2xl font-bold text-white">Import Ground</h3>
+              <h3 className="text-2xl font-bold text-[#1e293b]">Import Ground</h3>
               <button
                 onClick={() => setShowImportModal(false)}
-                className="text-gray-400 hover:text-white transition-colors"
+                className="text-[#64748b] hover:text-[#1e293b] transition-colors"
               >
                 <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -571,36 +564,36 @@ export default function Manage() {
               <div className="flex items-center gap-4 mb-4">
                 <button
                   onClick={() => setImportMethod('file')}
-                  className={`flex-1 py-3 px-4 rounded-lg border transition-all ${importMethod === 'file' ? 'border-purple-500 bg-purple-500/10' : 'border-[#2a2a3e] bg-[#1a1a2e]'}`}
+                  className={`flex-1 py-3 px-4 rounded-lg border transition-all ${importMethod === 'file' ? 'border-blue-400 bg-blue-50 text-[#3b82f6]' : 'border-[#e2e8f0] bg-white text-[#64748b]'}`}
                 >
-                  <span className={`text-sm font-medium ${importMethod === 'file' ? 'text-purple-300' : 'text-gray-400'}`}>
+                  <span className={`text-sm font-medium ${importMethod === 'file' ? 'text-blue-600' : 'text-[#64748b]'}`}>
                     Upload JSON File
                   </span>
                 </button>
                 <button
                   onClick={() => setImportMethod('text')}
-                  className={`flex-1 py-3 px-4 rounded-lg border transition-all ${importMethod === 'text' ? 'border-purple-500 bg-purple-500/10' : 'border-[#2a2a3e] bg-[#1a1a2e]'}`}
+                  className={`flex-1 py-3 px-4 rounded-lg border transition-all ${importMethod === 'text' ? 'border-blue-400 bg-blue-50 text-[#3b82f6]' : 'border-[#e2e8f0] bg-white text-[#64748b]'}`}
                 >
-                  <span className={`text-sm font-medium ${importMethod === 'text' ? 'text-purple-300' : 'text-gray-400'}`}>
+                  <span className={`text-sm font-medium ${importMethod === 'text' ? 'text-blue-600' : 'text-[#64748b]'}`}>
                     Paste JSON Content
                   </span>
                 </button>
               </div>
 
               {importMethod === 'file' ? (
-                <div className="border-2 border-dashed border-[#2a2a3e] rounded-xl p-8 text-center hover:border-purple-500/50 transition-colors">
+                <div className="border-2 border-dashed border-[#e2e8f0] rounded-xl p-8 text-center hover:border-blue-400 transition-colors bg-white">
                   {importFile ? (
                     <div className="flex items-center justify-center gap-3">
-                      <svg className="w-8 h-8 text-purple-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <svg className="w-8 h-8 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                       </svg>
                       <div>
-                        <div className="text-sm font-medium text-white">{importFile.name}</div>
-                        <div className="text-xs text-gray-500">{Math.round(importFile.size / 1024)} KB</div>
+                        <div className="text-sm font-medium text-[#1e293b]">{importFile.name}</div>
+                        <div className="text-xs text-[#94a3b8]">{Math.round(importFile.size / 1024)} KB</div>
                       </div>
                       <button
                         onClick={() => setImportFile(null)}
-                        className="ml-4 text-gray-400 hover:text-red-400 transition-colors"
+                        className="ml-4 text-[#64748b] hover:text-red-500 transition-colors"
                       >
                         <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
@@ -616,11 +609,11 @@ export default function Manage() {
                         className="hidden"
                       />
                       <div className="flex flex-col items-center gap-2">
-                        <svg className="w-12 h-12 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <svg className="w-12 h-12 text-[#94a3b8]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
                         </svg>
-                        <span className="text-sm text-gray-400">Drag and drop your JSON file here</span>
-                        <span className="text-xs text-gray-500">or click to browse</span>
+                        <span className="text-sm text-[#64748b]">Drag and drop your JSON file here</span>
+                        <span className="text-xs text-[#94a3b8]">or click to browse</span>
                       </div>
                     </label>
                   )}
@@ -630,7 +623,7 @@ export default function Manage() {
                   value={importContent}
                   onChange={(e) => setImportContent(e.target.value)}
                   placeholder="Paste your JSON content here..."
-                  className="w-full h-64 px-4 py-3 bg-[#0d0d14] border border-[#2a2a3e] rounded-xl text-white placeholder-gray-500 focus:outline-none focus:border-purple-500/50 resize-none"
+                  className="w-full h-64 px-4 py-3 bg-white border border-[#e2e8f0] rounded-xl text-[#1e293b] placeholder-[#94a3b8] focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/10 resize-none"
                 />
               )}
             </div>
@@ -643,13 +636,13 @@ export default function Manage() {
                   setImportFile(null);
                   setImportMethod('file');
                 }}
-                className="px-6 py-3 text-sm font-semibold text-gray-400 bg-[#1a1a2e] border border-[#2a2a3e] rounded-lg hover:bg-[#2a2a3e] transition-all"
+                className="px-6 py-3 text-sm font-semibold text-[#64748b] bg-white border border-[#e2e8f0] rounded-lg hover:bg-[#f8fafc] hover:border-[#cbd5e1] transition-all"
               >
                 Cancel
               </button>
               <button
                 onClick={handleImport}
-                className="px-6 py-3 text-sm font-semibold text-white bg-gradient-to-r from-purple-600 to-indigo-600 rounded-lg hover:from-purple-500 hover:to-indigo-500 transition-all duration-300 flex items-center gap-2"
+                className="px-6 py-3 text-sm font-semibold text-white bg-gradient-to-r from-blue-500 to-indigo-500 rounded-lg hover:from-blue-400 hover:to-indigo-400 transition-all duration-300 flex items-center gap-2"
                 disabled={isImporting}
               >
                 {isImporting ? (
@@ -667,12 +660,6 @@ export default function Manage() {
           </div>
         </div>
       )}
-
-      <footer className="relative z-10 px-12 py-8 border-t border-white/5">
-        <div className="flex flex-col md:flex-row items-center justify-between gap-4">
-          <p className="text-sm text-gray-500">© 2026 XTPlay.</p>
-        </div>
-      </footer>
     </div>
   );
 }

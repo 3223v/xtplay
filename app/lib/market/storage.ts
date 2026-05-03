@@ -22,10 +22,73 @@ function getIndexPath() {
   return path.join(getMarketPath(), "index.json");
 }
 
+function getPresetsPath() {
+  return path.join(getMarketPath(), "presets.json");
+}
+
 function ensureMarketDir() {
   const dir = getMarketPath();
   if (!fs.existsSync(dir)) {
     fs.mkdirSync(dir, { recursive: true });
+  }
+}
+
+interface PresetItem {
+  title: string;
+  description: string;
+  text: string;
+  tags: string[];
+}
+
+interface PresetsData {
+  [key: string]: PresetItem;
+}
+
+export function loadPresetArticles(): MarketArticle[] {
+  const presetsPath = getPresetsPath();
+
+  if (!fs.existsSync(presetsPath)) {
+    return [];
+  }
+
+  try {
+    const content = fs.readFileSync(presetsPath, "utf-8");
+    const presets: PresetsData = JSON.parse(content);
+
+    return Object.entries(presets).map(([id, preset]) => ({
+      id,
+      title: preset.title,
+      description: preset.description,
+      text: preset.text,
+      jsonContent: "",
+      tags: preset.tags,
+      createdAt: new Date().toISOString().slice(0, 10),
+      updatedAt: new Date().toISOString().slice(0, 10),
+    }));
+  } catch {
+    return [];
+  }
+}
+
+export function initializePresetsIfNeeded(): void {
+  ensureMarketDir();
+  const indexPath = getIndexPath();
+
+  if (fs.existsSync(indexPath)) {
+    const content = fs.readFileSync(indexPath, "utf-8");
+    const index: { id: string; title: string }[] = JSON.parse(content);
+
+    const presetIds = ["werewolf", "debate", "courtroom", "un", "village"];
+    const hasPresets = index.some((item) => presetIds.includes(item.id));
+
+    if (hasPresets) {
+      return;
+    }
+  }
+
+  const presets = loadPresetArticles();
+  for (const article of presets) {
+    writeArticleData(article.id, article);
   }
 }
 
@@ -70,6 +133,7 @@ export function deleteArticleData(articleId: string): void {
 }
 
 export function listArticles(): MarketArticle[] {
+  initializePresetsIfNeeded();
   ensureMarketDir();
   const indexPath = getIndexPath();
 

@@ -166,16 +166,154 @@ POST   /api/round?groundId={id}
 POST   /api/saint?groundId={id}
 POST   /api/saint/toggle?groundId={id}`,
   },
+  {
+    id: "nextgen",
+    title: "下一代架构畅想",
+    summary: "从被动请求到主动感知，智能体异步反应架构，让模拟世界真正\"活\"起来。",
+    content: (
+      <div className="space-y-6">
+        <div className="rounded-xl bg-[#f8fafc]/80 px-6 py-5">
+          <h3 className="text-lg font-semibold text-[#1e293b] mb-3">一、当前架构回顾</h3>
+          <div className="space-y-4 text-sm leading-7 text-[#475569]">
+            <p className="font-medium text-[#3b82f6]">1.1 现有的"请求-响应"模式</p>
+            <p>当前的 XTPlay 架构采用经典的"用户驱动"模式：用户动作 → 主动请求 → Saint 审批 → 执行反馈 → 用户等待</p>
+            <p className="font-medium text-[#3b82f6]">特点：</p>
+            <ul className="list-disc list-inside space-y-1 ml-4">
+              <li>用户通过 UI 主动发起每个操作</li>
+              <li>智能体被动响应用户指令</li>
+              <li>Saint 作为中介协调者存在</li>
+              <li>回合制执行，节奏由用户控制</li>
+            </ul>
+            <p className="font-medium text-[#3b82f6]">局限：</p>
+            <ul className="list-disc list-inside space-y-1 ml-4">
+              <li>体验割裂 - 用户需要不断"推动"世界前进</li>
+              <li>智能体缺乏主动性 - 它们只是执行者，不是"参与者"</li>
+              <li>世界变化依赖人工触发 - 无法模拟真实的"事件驱动"世界</li>
+              <li>并发交互受限 - 同一时刻只有一个智能体活跃</li>
+            </ul>
+          </div>
+        </div>
+
+        <div className="rounded-xl bg-[#f8fafc]/80 px-6 py-5">
+          <h3 className="text-lg font-semibold text-[#1e293b] mb-3">二、下一代架构畅想</h3>
+          <div className="space-y-4 text-sm leading-7 text-[#475569]">
+            <p className="font-medium text-[#3b82f6]">2.1 核心理念：从"被动等待"到"主动感知"</p>
+            <p>未来的多智能体模拟场景，应该是<b>一个活生生的世界</b>：每个智能体都是世界的"活跃公民"，它们自主感知环境变化、主动做出反应、相互影响与协作。</p>
+            <p className="font-medium text-[#3b82f6]">关键转变：</p>
+            <ul className="list-disc list-inside space-y-1 ml-4">
+              <li><b>用户角色</b>：从"导演"变为"观察者"或"规则制定者"</li>
+              <li><b>智能体角色</b>：从"演员"变为"主动参与者"</li>
+              <li><b>世界运行</b>：从"回合制"变为"事件驱动+并行反应"</li>
+            </ul>
+          </div>
+        </div>
+
+        <div className="rounded-xl bg-[#f8fafc]/80 px-6 py-5">
+          <h3 className="text-lg font-semibold text-[#1e293b] mb-3">三、核心机制详解</h3>
+          <div className="space-y-4 text-sm leading-7 text-[#475569]">
+            <p className="font-medium text-[#3b82f6]">3.1 事件驱动架构</p>
+            <p>所有智能体订阅感兴趣的事件，异步接收并主动做出反应。事件类型包括：</p>
+            <ul className="list-disc list-inside space-y-1 ml-4">
+              <li><b>StateChange</b> - 状态变化（角色状态、环境、资源）</li>
+              <li><b>ActionExecuted</b> - 动作执行（角色动作、集体动作）</li>
+              <li><b>Communication</b> - 通信（消息发送、提案提出）</li>
+              <li><b>Vote</b> - 投票（投票开始、投票结束）</li>
+              <li><b>Temporal</b> - 时间驱动（回合流逝、截止日期临近）</li>
+            </ul>
+
+            <p className="font-medium text-[#3b82f6]">3.2 异步反应系统</p>
+            <p>反应模式包括：</p>
+            <ul className="list-disc list-inside space-y-1 ml-4">
+              <li><b>即时反应</b> - 感知到事件后立即响应（低延迟）</li>
+              <li><b>延迟反应</b> - 收集更多信息后再响应（思考型）</li>
+              <li><b>条件反应</b> - 仅在满足特定条件时响应</li>
+              <li><b>忽略</b> - 判断为无关事件，不做响应</li>
+            </ul>
+
+            <p className="font-medium text-[#3b82f6]">3.3 主动决策循环</p>
+            <p>每个智能体拥有自己的决策循环：感知 → 推理 → 规划 → 行动</p>
+            <ul className="list-disc list-inside space-y-1 ml-4">
+              <li><b>Perception</b> - 接收事件 → 解析信息 → 更新认知</li>
+              <li><b>Reasoning</b> - 分析局势 → 评估选项 → 生成意图</li>
+              <li><b>Planning</b> - 制定计划 → 预测后果 → 准备行动</li>
+              <li><b>Action</b> - 执行动作 → 发布事件 → 影响世界</li>
+            </ul>
+          </div>
+        </div>
+
+        <div className="rounded-xl bg-[#f8fafc]/80 px-6 py-5">
+          <h3 className="text-lg font-semibold text-[#1e293b] mb-3">四、用户角色转变</h3>
+          <div className="space-y-4 text-sm leading-7 text-[#475569]">
+            <p className="font-medium text-[#3b82f6]">4.1 从"导演"到"观察者/设定者"</p>
+            <p><b>观察者模式</b>：用户设置初始条件 → 观察世界演化 → 必要时介入</p>
+
+            <p className="font-medium text-[#3b82f6]">4.2 多层次干预</p>
+            <ul className="list-disc list-inside space-y-1 ml-4">
+              <li><b>Level 0</b> - 完全放手：设置完成后完全由智能体自主运行</li>
+              <li><b>Level 1</b> - 事件注入：用户可以随时注入新事件</li>
+              <li><b>Level 2</b> - 参数调整：实时调整世界参数</li>
+              <li><b>Level 3</b> - 规则干预：直接修改规则或状态</li>
+              <li><b>Level 4</b> - 完全控制：回到当前的回合制模式</li>
+            </ul>
+          </div>
+        </div>
+
+        <div className="rounded-xl bg-[#f8fafc]/80 px-6 py-5">
+          <h3 className="text-lg font-semibold text-[#1e293b] mb-3">五、技术实现考量</h3>
+          <div className="space-y-4 text-sm leading-7 text-[#475569]">
+            <p className="font-medium text-[#3b82f6]">5.1 架构组件</p>
+            <ul className="list-disc list-inside space-y-1 ml-4">
+              <li><b>Event Gateway</b> - 事件收集、广播、订阅管理</li>
+              <li><b>World Engine</b> - 包含 Event Bus、Agent Runtime、State Manager</li>
+              <li><b>LLM Client</b> - LLM 调用管理</li>
+              <li><b>Memory Store</b> - 记忆存储</li>
+              <li><b>Rule Engine</b> - 规则引擎</li>
+            </ul>
+
+            <p className="font-medium text-[#3b82f6]">5.2 关键设计决策</p>
+            <ul className="list-disc list-inside space-y-1 ml-4">
+              <li><b>事件溯源</b> - 记录所有事件，支持回放和调试</li>
+              <li><b>异步执行</b> - 智能体决策使用异步执行，不阻塞其他智能体</li>
+              <li><b>冲突解决</b> - 优先级、时间戳、协商、Saint 仲裁</li>
+            </ul>
+          </div>
+        </div>
+
+        <div className="rounded-xl bg-[#f8fafc]/80 px-6 py-5">
+          <h3 className="text-lg font-semibold text-[#1e293b] mb-3">六、过渡策略</h3>
+          <div className="space-y-4 text-sm leading-7 text-[#475569]">
+            <p className="font-medium text-[#3b82f6]">渐进式演进四阶段：</p>
+            <ul className="list-disc list-inside space-y-1 ml-4">
+              <li><b>Phase 1</b> - 混合模式：保留回合制，新增事件注入功能</li>
+              <li><b>Phase 2</b> - 异步反应：引入事件总线，智能体可异步反应</li>
+              <li><b>Phase 3</b> - 自主运行：智能体可主动发起动作</li>
+              <li><b>Phase 4</b> - 完全主动：完整的主动感知架构</li>
+            </ul>
+          </div>
+        </div>
+
+        <div className="rounded-xl bg-[#f8fafc]/80 px-6 py-5">
+          <h3 className="text-lg font-semibold text-[#1e293b] mb-3">七、总结</h3>
+          <div className="space-y-4 text-sm leading-7 text-[#475569]">
+            <p><b>核心价值</b>：</p>
+            <ul className="list-disc list-inside space-y-1 ml-4">
+              <li><b>更真实的模拟</b> - 接近真实世界的运作方式</li>
+              <li><b>更少的干预</b> - 用户从繁重的导演工作中解放</li>
+              <li><b>更多的涌现</b> - 意想不到的情节自然发生</li>
+              <li><b>更深的沉浸</b> - 观察一个"活着"的世界演化</li>
+            </ul>
+            <p>最终，我们追求的是在<b>自主性</b>与<b>可控性</b>之间找到最佳平衡点，让 XTPlay 成为真正意义上的"智能体模拟实验平台"。</p>
+          </div>
+        </div>
+      </div>
+    ),
+  },
 ];
 
 export default function Docs() {
   return (
     <SectionPageShell
-      heroEyebrow="XTPlay 技术架构"
-      heroTitle="Ground、Role、Saint、回合执行与 JSON 持久层是怎样连起来的"
-      heroDescription="这页只描述当前代码真正运行的结构，不写宣传语，不写概念外延，方便你直接对照实现和接口理解项目。"
       activeNav="docs"
-      footerLabel="© 2026 XTPlay · 技术文档"
       sections={sections}
       codeTitle="参考结构"
     />

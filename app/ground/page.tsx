@@ -24,9 +24,12 @@ import {
   GroundFile,
   isSaintRole,
   RoleConfig,
-  roundEventTemplates,
   RoundRecord,
 } from "@/app/lib/sim/types";
+
+import { EventConfig, getEventsConfig } from "@/app/lib/config";
+
+import ExportMenu from "@/app/components/ExportMenu";
 
 type RoleNodeData = RoleConfig & {
   onEdit: (roleId: string) => void;
@@ -334,12 +337,13 @@ function createRoleNode(role: RoleConfig, onEdit: (roleId: string) => void): Nod
 
 interface RoleEditModalProps {
   role: RoleConfig;
+  presets: { urls: { value: string; label: string }[]; models: { value: string; label: string }[] };
   onClose: () => void;
   onSave: (role: RoleConfig) => void;
   onDelete: () => void;
 }
 
-function RoleEditModal({ role, onClose, onSave, onDelete }: RoleEditModalProps) {
+function RoleEditModal({ role, presets, onClose, onSave, onDelete }: RoleEditModalProps) {
   const [formData, setFormData] = useState<RoleConfig>(role);
   const [activeTab, setActiveTab] = useState<"basic" | "prompt" | "api" | "relations">("basic");
   const isSaint = isSaintRole(formData);
@@ -531,24 +535,52 @@ function RoleEditModal({ role, onClose, onSave, onDelete }: RoleEditModalProps) 
                 <div className="form-group">
                   <label>
                     <span className="label-text">Base URL</span>
-                    <input
-                      className="form-input"
-                      value={formData.url}
-                      onChange={(event) => updateField("url", event.target.value)}
-                      placeholder="https://api.example.com/v1"
-                    />
+                    <div className="input-with-select">
+                      <select
+                        className="form-select"
+                        value={presets.urls.find(u => u.value === formData.url) ? formData.url : ""}
+                        onChange={(event) => updateField("url", event.target.value)}
+                      >
+                        <option value="">Custom...</option>
+                        {presets.urls.map((url) => (
+                          <option key={url.value} value={url.value}>
+                            {url.label}
+                          </option>
+                        ))}
+                      </select>
+                      <input
+                        className="form-input"
+                        value={formData.url}
+                        onChange={(event) => updateField("url", event.target.value)}
+                        placeholder="https://api.example.com/v1"
+                      />
+                    </div>
                   </label>
                 </div>
 
                 <div className="form-group">
                   <label>
                     <span className="label-text">Model</span>
-                    <input
-                      className="form-input"
-                      value={formData.model}
-                      onChange={(event) => updateField("model", event.target.value)}
-                      placeholder="gpt-4.1-mini"
-                    />
+                    <div className="input-with-select">
+                      <select
+                        className="form-select"
+                        value={presets.models.find(m => m.value === formData.model) ? formData.model : ""}
+                        onChange={(event) => updateField("model", event.target.value)}
+                      >
+                        <option value="">Custom...</option>
+                        {presets.models.map((model) => (
+                          <option key={model.value} value={model.value}>
+                            {model.label}
+                          </option>
+                        ))}
+                      </select>
+                      <input
+                        className="form-input"
+                        value={formData.model}
+                        onChange={(event) => updateField("model", event.target.value)}
+                        placeholder="gpt-4.1-mini"
+                      />
+                    </div>
                   </label>
                 </div>
               </div>
@@ -558,6 +590,7 @@ function RoleEditModal({ role, onClose, onSave, onDelete }: RoleEditModalProps) 
                   <span className="label-text">API Key</span>
                   <input
                     className="form-input"
+                    type="password"
                     value={formData.key}
                     onChange={(event) => updateField("key", event.target.value)}
                     placeholder="Role-level key"
@@ -686,11 +719,12 @@ function RoleEditModal({ role, onClose, onSave, onDelete }: RoleEditModalProps) 
 
 interface GroundSettingsModalProps {
   ground: GroundFile;
+  presets: { urls: { value: string; label: string }[]; models: { value: string; label: string }[] };
   onClose: () => void;
   onSave: (patch: Partial<GroundFile>) => void;
 }
 
-function GroundSettingsModal({ ground, onClose, onSave }: GroundSettingsModalProps) {
+function GroundSettingsModal({ ground, presets, onClose, onSave }: GroundSettingsModalProps) {
   const [name, setName] = useState(ground.name);
   const [description, setDescription] = useState(ground.description);
   const [rules, setRules] = useState(listToText(ground.rule));
@@ -756,11 +790,26 @@ function GroundSettingsModal({ ground, onClose, onSave }: GroundSettingsModalPro
               <div className="form-group">
                 <label>
                   <span className="label-text">Default Model</span>
-                  <input
-                    className="form-input"
-                    value={defaultModel}
-                    onChange={(event) => setDefaultModel(event.target.value)}
-                  />
+                  <div className="input-with-select">
+                    <select
+                      className="form-select"
+                      value={presets.models.find(m => m.value === defaultModel) ? defaultModel : ""}
+                      onChange={(event) => setDefaultModel(event.target.value)}
+                    >
+                      <option value="">Custom...</option>
+                      {presets.models.map((model) => (
+                        <option key={model.value} value={model.value}>
+                          {model.label}
+                        </option>
+                      ))}
+                    </select>
+                    <input
+                      className="form-input"
+                      value={defaultModel}
+                      onChange={(event) => setDefaultModel(event.target.value)}
+                      placeholder="Enter or select model"
+                    />
+                  </div>
                 </label>
               </div>
             </div>
@@ -781,11 +830,26 @@ function GroundSettingsModal({ ground, onClose, onSave }: GroundSettingsModalPro
               <div className="form-group">
                 <label>
                   <span className="label-text">Default URL</span>
-                  <input
-                    className="form-input"
-                    value={defaultUrl}
-                    onChange={(event) => setDefaultUrl(event.target.value)}
-                  />
+                  <div className="input-with-select">
+                    <select
+                      className="form-select"
+                      value={presets.urls.find(u => u.value === defaultUrl) ? defaultUrl : ""}
+                      onChange={(event) => setDefaultUrl(event.target.value)}
+                    >
+                      <option value="">Custom...</option>
+                      {presets.urls.map((url) => (
+                        <option key={url.value} value={url.value}>
+                          {url.label}
+                        </option>
+                      ))}
+                    </select>
+                    <input
+                      className="form-input"
+                      value={defaultUrl}
+                      onChange={(event) => setDefaultUrl(event.target.value)}
+                      placeholder="Enter or select URL"
+                    />
+                  </div>
                 </label>
               </div>
 
@@ -794,8 +858,10 @@ function GroundSettingsModal({ ground, onClose, onSave }: GroundSettingsModalPro
                   <span className="label-text">Default Key</span>
                   <input
                     className="form-input"
+                    type="password"
                     value={defaultKey}
                     onChange={(event) => setDefaultKey(event.target.value)}
+                    placeholder="API Key"
                   />
                 </label>
               </div>
@@ -932,6 +998,18 @@ function GroundPageContent() {
   const [error, setError] = useState<string | null>(null);
   const [dirty, setDirty] = useState(false);
   const [showVoteResults, setShowVoteResults] = useState(false);
+  const [roundInstruction, setRoundInstruction] = useState("");
+  const [selectedEventType, setSelectedEventType] = useState<string>("");
+  const [eventTitle, setEventTitle] = useState("");
+  const [eventPrompt, setEventPrompt] = useState("");
+  const [excludedRoleIds, setExcludedRoleIds] = useState<string[]>([]);
+  const [manualMode, setManualMode] = useState<"auto" | "manual">("auto");
+  const [eventsConfig, setEventsConfig] = useState<EventConfig[]>([]);
+  const [presetsConfig, setPresetsConfig] = useState<{ urls: { value: string; label: string }[]; models: { value: string; label: string }[] }>({ urls: [], models: [] });
+  const [editablePlanInstructions, setEditablePlanInstructions] = useState("");
+  const [editablePlanEvent, setEditablePlanEvent] = useState<{ type: string; title: string; prompt: string } | null>(null);
+  const [editablePlanBatchRoleIds, setEditablePlanBatchRoleIds] = useState<string[]>([]);
+  const [editablePlanMessageScope, setEditablePlanMessageScope] = useState<"public" | "batch_only">("batch_only");
 
   const openRoleEditor = useCallback((roleId: string) => {
     setSelectedRoleId(roleId);
@@ -1045,6 +1123,28 @@ function GroundPageContent() {
     };
   }, [clearAutoSaveTimer]);
 
+  useEffect(() => {
+    async function loadConfig() {
+      try {
+        const [eventsRes, presetsRes] = await Promise.all([
+          fetch("/api/data/events"),
+          fetch("/api/data/presets"),
+        ]);
+        const eventsResult = await eventsRes.json();
+        const presetsResult = await presetsRes.json();
+        if (eventsResult.success) {
+          setEventsConfig(eventsResult.data);
+        }
+        if (presetsResult.success) {
+          setPresetsConfig(presetsResult.data);
+        }
+      } catch {
+        // ignore
+      }
+    }
+    void loadConfig();
+  }, []);
+
   const editingRole = useMemo(
     () => ground?.role.find((role) => role.id === editingRoleId) ?? null,
     [editingRoleId, ground],
@@ -1053,13 +1153,53 @@ function GroundPageContent() {
   const rounds = useMemo<RoundRecord[]>(() => ground?.round ?? [], [ground]);
 
   const saintRole = useMemo(() => (ground ? getSaintRole(ground) : null), [ground]);
+
+  const upcomingBatch = useMemo(() => {
+    if (!ground) {
+      return [];
+    }
+    return getBatchRoles(ground, undefined, excludedRoleIds);
+  }, [excludedRoleIds, ground]);
+
+  const upcomingParticipants = useMemo(() => {
+    if (!ground) {
+      return [];
+    }
+    const participants = [...upcomingBatch];
+    if (
+      saintRole &&
+      saintRole.enabled &&
+      saintRole.status !== "dead" &&
+      !excludedRoleIds.includes(saintRole.id)
+    ) {
+      participants.push(saintRole);
+    }
+    return participants;
+  }, [excludedRoleIds, ground, saintRole, upcomingBatch]);
+
   const pendingPlan = ground?.workflow.pending_plan ?? null;
   const pendingJudgement = ground?.workflow.pending_judgement ?? null;
+
+  useEffect(() => {
+    if (pendingPlan) {
+      setEditablePlanInstructions(pendingPlan.instructions || "");
+      setEditablePlanEvent(pendingPlan.event ? { type: pendingPlan.event.type, title: pendingPlan.event.title, prompt: pendingPlan.event.prompt } : null);
+      setEditablePlanMessageScope(pendingPlan.message_scope || "batch_only");
+      if (ground && pendingPlan.batch_role_names.length > 0) {
+        const ids = ground.role
+          .filter(role => pendingPlan.batch_role_names.includes(role.name))
+          .map(role => role.id);
+        setEditablePlanBatchRoleIds(ids);
+      } else {
+        setEditablePlanBatchRoleIds([]);
+      }
+    }
+  }, [pendingPlan, ground]);
+
   const defaultUpcomingBatch = useMemo(() => {
     if (!ground) {
       return [];
     }
-
     return getBatchRoles(ground);
   }, [ground]);
   const plannedBatchRoles = useMemo(() => {
@@ -1085,9 +1225,9 @@ function GroundPageContent() {
           "Content-Type": "application/json",
         },
       });
-      
+
       const result = await response.json();
-      
+
       if (result.success) {
         const updatedGround = result.data as GroundFile;
         groundRef.current = updatedGround;
@@ -1097,6 +1237,74 @@ function GroundPageContent() {
       }
     } catch (error) {
       setError(error instanceof Error ? error.message : "Failed to toggle saint role");
+    }
+  }
+
+  async function advanceRound() {
+    const currentGround = groundRef.current;
+
+    if (!currentGround) {
+      return;
+    }
+
+    setIsAdvancing(true);
+    setError(null);
+
+    try {
+      let readyGround = currentGround;
+
+      if (dirty) {
+        const persisted = await persistGround(currentGround);
+
+        if (!persisted) {
+          setIsAdvancing(false);
+          return;
+        }
+
+        readyGround = persisted;
+      }
+
+      const event =
+        !selectedEventType
+          ? null
+          : {
+              type: selectedEventType,
+              title: eventTitle.trim() || "Custom Event",
+              prompt: eventPrompt.trim(),
+            };
+
+      const response = await fetch(`/api/round?groundId=${readyGround.id}`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          instructions: roundInstruction.trim(),
+          event,
+          excludedRoleIds,
+        }),
+      });
+      const result = await response.json();
+
+      if (!response.ok || !result.success) {
+        throw new Error(result.message || "Failed to advance round");
+      }
+
+      const nextGround = result.ground as GroundFile;
+      groundRef.current = nextGround;
+      localVersionRef.current += 1;
+      saveVersionRef.current = localVersionRef.current;
+      applyGround(nextGround, { dirty: false });
+      setRoundInstruction("");
+      setEventTitle("");
+      setEventPrompt("");
+      setSelectedEventType("");
+    } catch (advanceError) {
+      setError(
+        advanceError instanceof Error ? advanceError.message : "Failed to advance round",
+      );
+    } finally {
+      setIsAdvancing(false);
     }
   }
 
@@ -1126,14 +1334,23 @@ function GroundPageContent() {
         }
       }
 
+      const requestBody: Record<string, unknown> = { action };
+
+      if (action === "approve_plan") {
+        requestBody.editedPlan = {
+          instructions: editablePlanInstructions || undefined,
+          event: editablePlanEvent || null,
+          batchRoleIds: editablePlanBatchRoleIds.length > 0 ? editablePlanBatchRoleIds : undefined,
+          messageScope: editablePlanMessageScope,
+        };
+      }
+
       const response = await fetch(`/api/saint?groundId=${currentGround.id}`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({
-          action,
-        }),
+        body: JSON.stringify(requestBody),
       });
       const result = await response.json();
 
@@ -1424,6 +1641,36 @@ function GroundPageContent() {
           >
             Ground Settings
           </button>
+          <ExportMenu
+            groundId={ground.id}
+            groundName={ground.name}
+            getGroundJson={() => JSON.stringify(ground, null, 2)}
+            onCopyJson={(json) => {
+              navigator.clipboard.writeText(json);
+            }}
+            onExportToMarket={async (title, description) => {
+              try {
+                const response = await fetch("/api/market", {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({
+                    title,
+                    description,
+                    text: `XTPlay Ground 场景: ${ground.name}`,
+                    jsonContent: JSON.stringify(ground, null, 2),
+                    tags: ["ground", "场景"],
+                  }),
+                });
+                if (response.ok) {
+                  alert("Successfully exported to Market!");
+                } else {
+                  alert("Failed to export to Market");
+                }
+              } catch {
+                alert("Failed to export to Market");
+              }
+            }}
+          />
           <button
             onClick={() => void persistGround()}
             className="btn btn-secondary"
@@ -1550,9 +1797,9 @@ function GroundPageContent() {
             fitView
             proOptions={{ hideAttribution: true }}
           >
-            <Background gap={20} size={1} color="#2a2a4a" />
+            <Background gap={20} size={1} color="#e2e8f0" />
             <Controls className="flow-controls" />
-            <MiniMap className="flow-minimap" nodeColor="#6366f1" maskColor="rgba(0,0,0,0.8)" />
+            <MiniMap className="flow-minimap" nodeColor="#3b82f6" maskColor="rgba(226, 232, 240, 0.8)" />
           </ReactFlow>
 
           {error ? <div className="floating-error">{error}</div> : null}
@@ -1567,7 +1814,7 @@ function GroundPageContent() {
           <div className="history-content">
             <div className="advance-card">
               <div className="advance-title">
-                Saint Host
+                Advance Control
                 <button
                   onClick={() => setShowVoteResults(!showVoteResults)}
                   className="vote-results-toggle"
@@ -1575,95 +1822,325 @@ function GroundPageContent() {
                   {showVoteResults ? "Hide Votes" : "Show Votes"}
                 </button>
               </div>
-              <div className="advance-subtitle">
-                {saintRole
-                  ? "saint proposes the next moderator step, and every proposal requires your approval before it executes."
-                  : "Add saint if you want a host role to replace manual operator input."}
+
+              <div className="mode-toggle">
+                <button
+                  className={`mode-btn ${manualMode === "auto" ? "active" : ""}`}
+                  onClick={() => setManualMode("auto")}
+                >
+                  Auto (Saint)
+                </button>
+                <button
+                  className={`mode-btn ${manualMode === "manual" ? "active" : ""}`}
+                  onClick={() => setManualMode("manual")}
+                >
+                  Manual
+                </button>
               </div>
 
               {showVoteResults && renderRecentVoteResults()}
 
-              {!saintRole ? (
-                <div className="host-empty-card">
-                  <div className="host-empty-title">No saint host present</div>
-                  <div className="host-empty-body">
-                    Add saint to let the LLM host choose instructions, events, acting roles, and post-round state changes.
+              {manualMode === "manual" ? (
+                <div className="manual-advance-panel">
+                  <div className="manual-section">
+                    <div className="manual-section-title">Manual Advance</div>
+                    <div className="manual-section-desc">
+                      Upcoming participants:{" "}
+                      {upcomingParticipants.length > 0
+                        ? upcomingParticipants.map((role) => role.name).join(", ")
+                        : "none"}
+                    </div>
+                    <textarea
+                      className="advance-input"
+                      rows={3}
+                      value={roundInstruction}
+                      onChange={(event) => setRoundInstruction(event.target.value)}
+                      placeholder="Optional instruction for the next advance"
+                    />
+                    <div className="advance-meta">
+                      <span>Mode: {ground.simulation.mode}</span>
+                      <span>Batch Size: {ground.simulation.batch_size}</span>
+                    </div>
+                    <button
+                      onClick={() => void advanceRound()}
+                      className="advance-button"
+                      disabled={
+                        isSaving || isAdvancing || upcomingParticipants.length === 0
+                      }
+                    >
+                      {isAdvancing ? "Advancing..." : "Advance"}
+                    </button>
                   </div>
-                  <button
-                    onClick={() => void toggleSaintRole()}
-                    className="advance-button"
-                    disabled={isSaving || isAdvancing}
-                  >
-                    Add Saint Host
-                  </button>
-                </div>
-              ) : null}
 
-              {saintRole && !pendingPlan ? (
-                <div className="host-empty-card">
-                  <div className="host-empty-title">No pending host plan</div>
-                  <div className="host-empty-body">
-                    saint will inspect the current scene and propose the next step for your approval.
+                  <div className="manual-section">
+                    <div className="manual-section-title">Event Injection</div>
+                    <div className="manual-section-desc">
+                      Select an event to inject into the next advance.
+                    </div>
+                    <div className="event-card-grid">
+                      {eventsConfig.length === 0 ? (
+                        <div className="event-empty-hint">
+                          No events configured. Add events in config.json.
+                        </div>
+                      ) : (
+                        eventsConfig.map((evt) => (
+                          <div
+                            key={evt.type}
+                            className={`event-inject-card ${evt.accentClass} ${
+                              selectedEventType === evt.type ? "selected" : ""
+                            }`}
+                            onClick={() => {
+                              if (selectedEventType === evt.type) {
+                                setSelectedEventType("");
+                              } else {
+                                setSelectedEventType(evt.type);
+                                setEventPrompt(evt.defaultPrompt);
+                                setEventTitle(evt.title);
+                              }
+                            }}
+                          >
+                            <div className="event-inject-label">{evt.shortLabel}</div>
+                            <div className="event-inject-title">{evt.title}</div>
+                            <div className="event-inject-desc">{evt.description}</div>
+                          </div>
+                        ))
+                      )}
+                    </div>
+                    {selectedEventType && (
+                      <div className="event-config-detail">
+                        <input
+                          type="text"
+                          className="advance-input"
+                          placeholder="Event title (optional)"
+                          value={eventTitle}
+                          onChange={(e) => setEventTitle(e.target.value)}
+                        />
+                        <textarea
+                          className="advance-input"
+                          rows={3}
+                          value={eventPrompt}
+                          onChange={(e) => setEventPrompt(e.target.value)}
+                          placeholder="Event prompt"
+                        />
+                        <button
+                          className="clear-event-btn"
+                          onClick={() => {
+                            setSelectedEventType("");
+                            setEventTitle("");
+                            setEventPrompt("");
+                          }}
+                        >
+                          Clear Event
+                        </button>
+                      </div>
+                    )}
                   </div>
-                  <div className="event-option-grid">
-                    <div className="event-option-card active custom">
-                      <span className="event-option-title">Default Batch</span>
-                      <span className="event-option-desc">
-                        If saint needs a fallback, the default next batch is {defaultUpcomingBatch.map((role) => role.name).join(", ") || "none"}.
-                      </span>
+
+                  <div className="manual-section">
+                    <div className="manual-section-title">Exclude From Next Advance</div>
+                    <div className="manual-section-desc">
+                      Excluded roles will not participate.
+                    </div>
+                    <div className="exclude-list">
+                      {ground.role
+                        .filter(
+                          (role) =>
+                            role.enabled &&
+                            role.status !== "dead" &&
+                            !isSaintRole(role),
+                        )
+                        .map((role) => (
+                          <label key={role.id} className="exclude-row">
+                            <input
+                              type="checkbox"
+                              checked={excludedRoleIds.includes(role.id)}
+                              onChange={(event) => {
+                                if (event.target.checked) {
+                                  setExcludedRoleIds((prev) => [...prev, role.id]);
+                                } else {
+                                  setExcludedRoleIds((prev) =>
+                                    prev.filter((id) => id !== role.id),
+                                  );
+                                }
+                              }}
+                            />
+                            <span>
+                              {role.name} ({role.status})
+                            </span>
+                          </label>
+                        ))}
                     </div>
                   </div>
-                  <button
-                    onClick={() => void runSaintWorkflowAction("propose_plan")}
-                    className="advance-button"
-                    disabled={isSaving || isAdvancing}
-                  >
-                    {isAdvancing ? "Thinking..." : "Ask Saint For Next Step"}
-                  </button>
                 </div>
-              ) : null}
-
-              {pendingPlan ? (
-                <div className="event-preview-card">
-                  <div className="event-preview-header">
-                    <span className={`event-preview-badge ${pendingPlan.event ? roundEventTemplates[pendingPlan.event.type].accentClass : "neutral"}`}>
-                      plan
-                    </span>
-                    <span className="event-preview-title">{pendingPlan.summary || "Saint proposed the next step."}</span>
+              ) : (
+                <>
+                  <div className="advance-subtitle">
+                    {saintRole
+                      ? "saint proposes the next moderator step, and every proposal requires your approval before it executes."
+                      : "Add saint if you want a host role to replace manual operator input."}
                   </div>
 
-                  <div className="event-preview-body">{pendingPlan.reasoning || "No reasoning provided."}</div>
+                  {!saintRole ? (
+                    <div className="host-empty-card">
+                      <div className="host-empty-title">No saint host present</div>
+                      <div className="host-empty-body">
+                        Add saint to let the LLM host choose instructions, events, acting roles, and post-round state changes.
+                      </div>
+                      <button
+                        onClick={() => void toggleSaintRole()}
+                        className="advance-button"
+                        disabled={isSaving || isAdvancing}
+                      >
+                        Add Saint Host
+                      </button>
+                    </div>
+                  ) : null}
+
+                  {saintRole && !pendingPlan ? (
+                    <div className="host-empty-card">
+                      <div className="host-empty-title">No pending host plan</div>
+                      <div className="host-empty-body">
+                        saint will inspect the current scene and propose the next step for your approval.
+                      </div>
+                      <div className="event-option-grid">
+                        <div className="event-option-card active custom">
+                          <span className="event-option-title">Default Batch</span>
+                          <span className="event-option-desc">
+                            If saint needs a fallback, the default next batch is{" "}
+                            {defaultUpcomingBatch.map((role) => role.name).join(", ") ||
+                              "none"}
+                            .
+                          </span>
+                        </div>
+                      </div>
+                      <button
+                        onClick={() => void runSaintWorkflowAction("propose_plan")}
+                        className="advance-button"
+                        disabled={isSaving || isAdvancing}
+                      >
+                        {isAdvancing ? "Thinking..." : "Ask Saint For Next Step"}
+                      </button>
+                    </div>
+                  ) : null}
+                </>
+              )}
+
+              {pendingPlan && manualMode === "auto" ? (
+                <div className="event-preview-card">
+                  <div className="event-preview-header">
+                    <span
+                      className={`event-preview-badge ${
+                        pendingPlan.event
+                          ? eventsConfig.find(e => e.type === pendingPlan.event!.type)?.accentClass || "neutral"
+                          : "neutral"
+                      }`}
+                    >
+                      plan
+                    </span>
+                    <span className="event-preview-title">
+                      {pendingPlan.summary || "Saint proposed the next step."}
+                    </span>
+                  </div>
+
+                  <div className="event-preview-body">
+                    {pendingPlan.reasoning || "No reasoning provided."}
+                  </div>
 
                   <div className="detail-block">
                     <div className="detail-label">Moderator Instruction</div>
-                    <pre className="detail-pre">{pendingPlan.instructions || "empty"}</pre>
+                    <textarea
+                      className="detail-textarea"
+                      rows={2}
+                      defaultValue={pendingPlan.instructions || ""}
+                      onChange={(e) => setEditablePlanInstructions(e.target.value)}
+                      placeholder="Enter moderator instruction..."
+                    />
                   </div>
 
-                  <div className="detail-grid">
-                    <div className="detail-grid-item">
-                      <span className="detail-grid-label">Selected Roles</span>
-                      <span className="detail-grid-value">
-                        {plannedBatchRoles.length > 0
-                          ? plannedBatchRoles.map((role) => role.name).join(", ")
-                          : pendingPlan.batch_role_names.join(", ") || "none"}
-                      </span>
-                    </div>
-                    <div className="detail-grid-item">
-                      <span className="detail-grid-label">Event</span>
-                      <span className="detail-grid-value">
-                        {pendingPlan.event
-                          ? `${pendingPlan.event.type} / ${pendingPlan.event.title}`
-                          : "none"}
-                      </span>
+                  <div className="detail-block">
+                    <div className="detail-label">Selected Roles</div>
+                    <div className="batch-role-grid">
+                      {ground.role
+                        .filter(role => role.kind !== "saint" && role.enabled && role.status !== "dead")
+                        .map(role => (
+                          <label key={role.id} className={`batch-role-item ${editablePlanBatchRoleIds.includes(role.id) ? "selected" : ""}`}>
+                            <input
+                              type="checkbox"
+                              checked={editablePlanBatchRoleIds.includes(role.id)}
+                              onChange={(e) => {
+                                if (e.target.checked) {
+                                  setEditablePlanBatchRoleIds(prev => [...prev, role.id]);
+                                } else {
+                                  setEditablePlanBatchRoleIds(prev => prev.filter(id => id !== role.id));
+                                }
+                              }}
+                            />
+                            <span>{role.name}</span>
+                          </label>
+                        ))}
                     </div>
                   </div>
 
-                  {pendingPlan.event ? (
-                    <div className="detail-block">
-                      <div className="detail-label">Event Prompt</div>
-                      <pre className="detail-pre">{pendingPlan.event.prompt}</pre>
+                  <div className="detail-block">
+                    <div className="detail-label">Message Scope</div>
+                    <div className="message-scope-toggle">
+                      <button
+                        type="button"
+                        className={`scope-btn ${editablePlanMessageScope === "public" ? "active" : ""}`}
+                        onClick={() => setEditablePlanMessageScope("public")}
+                      >
+                        Public
+                      </button>
+                      <button
+                        type="button"
+                        className={`scope-btn ${editablePlanMessageScope === "batch_only" ? "active" : ""}`}
+                        onClick={() => setEditablePlanMessageScope("batch_only")}
+                      >
+                        Batch Only
+                      </button>
                     </div>
-                  ) : null}
+                  </div>
+
+                  <div className="detail-block">
+                    <div className="detail-label">Event</div>
+                    <select
+                      className="detail-select"
+                      value={editablePlanEvent?.type || ""}
+                      onChange={(e) => {
+                        const evt = eventsConfig.find(ev => ev.type === e.target.value);
+                        if (evt) {
+                          setEditablePlanEvent({ type: evt.type, title: evt.title, prompt: evt.defaultPrompt });
+                        } else {
+                          setEditablePlanEvent(null);
+                        }
+                      }}
+                    >
+                      <option value="">none</option>
+                      {eventsConfig.map(evt => (
+                        <option key={evt.type} value={evt.type}>{evt.title}</option>
+                      ))}
+                    </select>
+                    {editablePlanEvent && (
+                      <>
+                        <input
+                          type="text"
+                          className="detail-input"
+                          placeholder="Event title"
+                          defaultValue={editablePlanEvent.title}
+                          onChange={(e) => setEditablePlanEvent({ ...editablePlanEvent, title: e.target.value })}
+                          style={{ marginTop: 8 }}
+                        />
+                        <textarea
+                          className="detail-textarea"
+                          rows={2}
+                          placeholder="Event prompt"
+                          defaultValue={editablePlanEvent.prompt}
+                          onChange={(e) => setEditablePlanEvent({ ...editablePlanEvent, prompt: e.target.value })}
+                          style={{ marginTop: 8 }}
+                        />
+                      </>
+                    )}
+                  </div>
 
                   <div className="approval-actions">
                     <button
@@ -1684,11 +2161,12 @@ function GroundPageContent() {
                 </div>
               ) : null}
 
-              {pendingJudgement ? (
+              {pendingJudgement && manualMode === "auto" ? (
                 <div className="latest-event-card">
                   <div className="latest-event-title">Pending Saint Judgement</div>
                   <div className="latest-event-line">
-                    Round {pendingJudgement.round} - {pendingJudgement.summary || "No summary"}
+                    Round {pendingJudgement.round} -{" "}
+                    {pendingJudgement.summary || "No summary"}
                   </div>
                   <div className="latest-event-line subtle">
                     {pendingJudgement.reasoning || "No reasoning provided."}
@@ -1701,18 +2179,28 @@ function GroundPageContent() {
                           <div className="judgement-role">{patch.role}</div>
                           <div className="judgement-reason">{patch.reason}</div>
                           <div className="judgement-tags">
-                            {patch.status ? <span className="judgement-tag">status {patch.status}</span> : null}
+                            {patch.status ? (
+                              <span className="judgement-tag">
+                                status {patch.status}
+                              </span>
+                            ) : null}
                             {typeof patch.redundancy === "number" ? (
-                              <span className="judgement-tag">red {patch.redundancy}</span>
+                              <span className="judgement-tag">
+                                red {patch.redundancy}
+                              </span>
                             ) : null}
                             {typeof patch.enabled === "boolean" ? (
-                              <span className="judgement-tag">{patch.enabled ? "enabled" : "disabled"}</span>
+                              <span className="judgement-tag">
+                                {patch.enabled ? "enabled" : "disabled"}
+                              </span>
                             ) : null}
                           </div>
                         </div>
                       ))
                     ) : (
-                      <div className="vote-results-empty">saint proposed no state changes.</div>
+                      <div className="vote-results-empty">
+                        saint proposed no state changes.
+                      </div>
                     )}
                   </div>
 
@@ -1786,6 +2274,7 @@ function GroundPageContent() {
       {showGroundSettings ? (
         <GroundSettingsModal
           ground={ground}
+          presets={presetsConfig}
           onClose={() => setShowGroundSettings(false)}
           onSave={(patch) => {
             mutateGround((current) => ({
@@ -1804,6 +2293,7 @@ function GroundPageContent() {
       {editingRole ? (
         <RoleEditModal
           role={editingRole}
+          presets={presetsConfig}
           onClose={() => setEditingRoleId(null)}
           onSave={updateRole}
           onDelete={() => removeRole(editingRole.id)}
@@ -1816,8 +2306,8 @@ function GroundPageContent() {
           flex-direction: column;
           width: 100vw;
           height: 100vh;
-          background: #0a0a0f;
-          color: #fff;
+          background: #f1f5f9;
+          color: #1e293b;
         }
 
         .top-bar {
@@ -1826,9 +2316,9 @@ function GroundPageContent() {
           align-items: center;
           justify-content: space-between;
           padding: 0 24px;
-          border-bottom: 1px solid #1f1f2e;
-          background: linear-gradient(180deg, rgba(18, 18, 26, 0.96) 0%, rgba(13, 13, 20, 0.96) 100%);
-          backdrop-filter: blur(12px);
+          border-bottom: 1px solid #e2e8f0;
+          background: #ffffff;
+          box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
         }
 
         .brand-block {
@@ -1839,16 +2329,16 @@ function GroundPageContent() {
         }
 
         .crumb {
-          color: #a5b4fc;
+          color: #3b82f6;
           text-decoration: none;
         }
 
         .crumb.current {
-          color: #fff;
+          color: #1e293b;
         }
 
         .crumb-separator {
-          color: #4b5563;
+          color: #94a3b8;
         }
 
         .top-actions {
@@ -1865,29 +2355,29 @@ function GroundPageContent() {
         }
 
         .sync-badge.clean {
-          color: #bbf7d0;
-          background: rgba(16, 185, 129, 0.14);
-          border: 1px solid rgba(16, 185, 129, 0.3);
+          color: #059669;
+          background: #d1fae5;
+          border: 1px solid #a7f3d0;
         }
 
         .sync-badge.dirty {
-          color: #fde68a;
-          background: rgba(245, 158, 11, 0.14);
-          border: 1px solid rgba(245, 158, 11, 0.3);
+          color: #d97706;
+          background: #fef3c7;
+          border: 1px solid #fde68a;
         }
 
         .flow-container {
           display: flex;
           flex: 1;
           min-height: 0;
-          background: #0a0a0f;
+          background: #f1f5f9;
         }
 
         .sidebar {
           width: 300px;
           height: 100%;
-          background: linear-gradient(180deg, #12121a 0%, #0d0d14 100%);
-          border-right: 1px solid #1f1f2e;
+          background: #ffffff;
+          border-right: 1px solid #e2e8f0;
           display: flex;
           flex-direction: column;
         }
@@ -1895,7 +2385,7 @@ function GroundPageContent() {
         .sidebar-header,
         .history-header {
           padding: 20px;
-          border-bottom: 1px solid #1f1f2e;
+          border-bottom: 1px solid #e2e8f0;
           display: flex;
           align-items: center;
           justify-content: space-between;
@@ -1903,7 +2393,7 @@ function GroundPageContent() {
 
         .sidebar-header h3,
         .history-header h3 {
-          color: #fff;
+          color: #1e293b;
           font-size: 14px;
           font-weight: 600;
           letter-spacing: 0.5px;
@@ -1911,7 +2401,7 @@ function GroundPageContent() {
 
         .component-count,
         .round-count {
-          background: #6366f1;
+          background: #3b82f6;
           color: #fff;
           font-size: 11px;
           font-weight: 600;
@@ -1920,7 +2410,7 @@ function GroundPageContent() {
         }
 
         .round-count {
-          background: #10b981;
+          background: #059669;
         }
 
         .sidebar-content {
@@ -1930,7 +2420,7 @@ function GroundPageContent() {
         }
 
         .section-title {
-          color: #6b7280;
+          color: #64748b;
           font-size: 11px;
           font-weight: 700;
           letter-spacing: 0.2em;
@@ -1948,23 +2438,25 @@ function GroundPageContent() {
           gap: 12px;
           padding: 14px;
           margin-bottom: 12px;
-          background: linear-gradient(135deg, #1a1a2e 0%, #16162a 100%);
+          background: #ffffff;
           border-radius: 10px;
           cursor: grab;
-          border: 1px solid #2a2a3e;
+          border: 1px solid #e2e8f0;
           transition: all 0.25s ease;
+          box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
         }
 
         .draggable-item:hover {
-          background: linear-gradient(135deg, #1f1f3a 0%, #1a1a30 100%);
-          border-color: #6366f1;
+          background: #f8fafc;
+          border-color: #3b82f6;
           transform: translateX(4px);
+          box-shadow: 0 4px 12px rgba(59, 130, 246, 0.15);
         }
 
         .item-icon {
           width: 40px;
           height: 40px;
-          background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+          background: linear-gradient(135deg, #3b82f6 0%, #6366f1 100%);
           border-radius: 10px;
           display: flex;
           align-items: center;
@@ -1985,32 +2477,33 @@ function GroundPageContent() {
         }
 
         .item-label {
-          color: #fff;
+          color: #1e293b;
           font-size: 14px;
           font-weight: 500;
         }
 
         .item-desc {
-          color: #6b7280;
+          color: #64748b;
           font-size: 11px;
           line-height: 1.5;
         }
 
         .sidebar-add {
           width: 100%;
-          border: 1px solid #2a2a3e;
+          border: 1px solid #e2e8f0;
           border-radius: 10px;
           padding: 12px;
-          background: #161625;
-          color: #d1d5db;
+          background: #ffffff;
+          color: #64748b;
           font-size: 12px;
           cursor: pointer;
           transition: all 0.2s ease;
         }
 
         .sidebar-add:hover {
-          border-color: #6366f1;
-          color: #fff;
+          border-color: #3b82f6;
+          color: #3b82f6;
+          background: #f8fafc;
         }
 
         .role-list {
@@ -2025,16 +2518,16 @@ function GroundPageContent() {
           justify-content: space-between;
           gap: 10px;
           padding: 12px;
-          background: linear-gradient(135deg, #171724 0%, #12121d 100%);
-          border: 1px solid #242438;
+          background: #ffffff;
+          border: 1px solid #e2e8f0;
           border-radius: 10px;
           cursor: pointer;
           transition: all 0.2s ease;
         }
 
         .role-list-item.selected {
-          border-color: #6366f1;
-          box-shadow: 0 0 0 1px rgba(99, 102, 241, 0.25);
+          border-color: #3b82f6;
+          box-shadow: 0 0 0 1px rgba(59, 130, 246, 0.25);
         }
 
         .role-list-main {
@@ -2045,7 +2538,7 @@ function GroundPageContent() {
         }
 
         .role-index {
-          color: #6366f1;
+          color: #3b82f6;
           font-size: 11px;
           font-weight: 700;
         }
@@ -2055,7 +2548,7 @@ function GroundPageContent() {
         }
 
         .role-list-name {
-          color: #fff;
+          color: #1e293b;
           font-size: 13px;
           font-weight: 500;
           display: flex;
@@ -2070,14 +2563,14 @@ function GroundPageContent() {
           padding: 1px 6px;
           border-radius: 999px;
           font-size: 10px;
-          background: rgba(245, 158, 11, 0.16);
-          color: #fde68a;
+          background: #fef3c7;
+          color: #d97706;
           text-transform: uppercase;
           letter-spacing: 0.08em;
         }
 
         .role-list-status {
-          color: #6b7280;
+          color: #64748b;
           font-size: 11px;
           margin-top: 2px;
         }
@@ -2092,19 +2585,19 @@ function GroundPageContent() {
           width: 24px;
           height: 24px;
           border-radius: 6px;
-          border: 1px solid #2a2a3e;
-          background: #1c1c2b;
-          color: #d1d5db;
+          border: 1px solid #e2e8f0;
+          background: #ffffff;
+          color: #64748b;
           cursor: pointer;
         }
 
         .sidebar-footer {
           padding: 16px;
-          border-top: 1px solid #1f1f2e;
+          border-top: 1px solid #e2e8f0;
         }
 
         .hint-text {
-          color: #4b5563;
+          color: #94a3b8;
           font-size: 11px;
           text-align: center;
         }
@@ -2113,14 +2606,16 @@ function GroundPageContent() {
           position: relative;
           flex: 1;
           height: 100%;
-          background: radial-gradient(circle at top, rgba(44, 62, 124, 0.16) 0%, rgba(10, 10, 15, 0) 45%), #0a0a0f;
+          background: #f8fafc;
+          border-radius: 12px;
+          border: 1px solid #e2e8f0;
         }
 
         .history-sidebar {
           width: 360px;
           height: 100%;
-          background: linear-gradient(180deg, #12121a 0%, #0d0d14 100%);
-          border-left: 1px solid #1f1f2e;
+          background: #ffffff;
+          border-left: 1px solid #e2e8f0;
           display: flex;
           flex-direction: column;
         }
@@ -2140,13 +2635,14 @@ function GroundPageContent() {
         .world-card,
         .round-item {
           padding: 14px;
-          background: linear-gradient(135deg, #1a1a2e 0%, #16162a 100%);
-          border: 1px solid #2a2a3e;
+          background: #ffffff;
+          border: 1px solid #e2e8f0;
           border-radius: 12px;
+          box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
         }
 
         .advance-title {
-          color: #fff;
+          color: #1e293b;
           font-size: 13px;
           font-weight: 600;
           display: flex;
@@ -2155,7 +2651,7 @@ function GroundPageContent() {
         }
 
         .vote-results-toggle {
-          background: #6366f1;
+          background: #3b82f6;
           color: white;
           border: none;
           border-radius: 6px;
@@ -2171,12 +2667,194 @@ function GroundPageContent() {
           transform: translateY(-1px);
         }
 
+        .mode-toggle {
+          display: flex;
+          gap: 8px;
+          margin-top: 12px;
+          margin-bottom: 12px;
+        }
+
+        .mode-btn {
+          flex: 1;
+          padding: 10px 14px;
+          border: 1px solid #e2e8f0;
+          border-radius: 8px;
+          background: #ffffff;
+          color: #64748b;
+          font-size: 12px;
+          font-weight: 500;
+          cursor: pointer;
+          transition: all 0.2s;
+        }
+
+        .mode-btn:hover {
+          border-color: #3b82f6;
+          color: #3b82f6;
+        }
+
+        .mode-btn.active {
+          background: linear-gradient(135deg, #3b82f6 0%, #6366f1 100%);
+          border-color: #3b82f6;
+          color: #ffffff;
+        }
+
+        .manual-advance-panel {
+          display: flex;
+          flex-direction: column;
+          gap: 16px;
+          margin-top: 12px;
+        }
+
+        .manual-section {
+          padding: 14px;
+          background: #f8fafc;
+          border: 1px solid #e2e8f0;
+          border-radius: 10px;
+        }
+
+        .manual-section-title {
+          color: #1e293b;
+          font-size: 12px;
+          font-weight: 600;
+          margin-bottom: 6px;
+        }
+
+        .manual-section-desc {
+          color: #64748b;
+          font-size: 11px;
+          margin-bottom: 10px;
+          line-height: 1.5;
+        }
+
+        .manual-section .advance-input {
+          margin-top: 8px;
+        }
+
+        .select-input {
+          resize: none;
+        }
+
+        .event-card-grid {
+          display: grid;
+          grid-template-columns: repeat(2, 1fr);
+          gap: 10px;
+          margin-top: 10px;
+        }
+
+        .event-inject-card {
+          padding: 12px;
+          border-radius: 8px;
+          border: 1px solid #e2e8f0;
+          background: #ffffff;
+          cursor: pointer;
+          transition: all 0.2s;
+        }
+
+        .event-inject-card:hover {
+          border-color: #3b82f6;
+          transform: translateY(-1px);
+          box-shadow: 0 4px 12px rgba(59, 130, 246, 0.15);
+        }
+
+        .event-inject-card.selected {
+          border-color: #3b82f6;
+          background: #eff6ff;
+        }
+
+        .event-inject-card.dark { border-left: 3px solid #6366f1; }
+        .event-inject-card.info { border-left: 3px solid #38bdf8; }
+        .event-inject-card.danger { border-left: 3px solid #ef4444; }
+        .event-inject-card.neutral { border-left: 3px solid #9ca3af; }
+        .event-inject-card.success { border-left: 3px solid #22c55e; }
+
+        .event-inject-label {
+          font-size: 10px;
+          font-weight: 600;
+          text-transform: uppercase;
+          color: #64748b;
+          margin-bottom: 4px;
+        }
+
+        .event-inject-title {
+          color: #1e293b;
+          font-size: 13px;
+          font-weight: 500;
+          margin-bottom: 4px;
+        }
+
+        .event-inject-desc {
+          color: #64748b;
+          font-size: 11px;
+          line-height: 1.4;
+        }
+
+        .event-empty-hint {
+          grid-column: 1 / -1;
+          color: #94a3b8;
+          font-size: 12px;
+          text-align: center;
+          padding: 20px;
+        }
+
+        .event-config-detail {
+          margin-top: 12px;
+          display: flex;
+          flex-direction: column;
+          gap: 8px;
+        }
+
+        .event-config-detail .advance-input {
+          resize: none;
+        }
+
+        .clear-event-btn {
+          align-self: flex-end;
+          padding: 6px 12px;
+          background: transparent;
+          border: 1px solid #e2e8f0;
+          border-radius: 6px;
+          color: #64748b;
+          font-size: 11px;
+          cursor: pointer;
+          transition: all 0.2s;
+        }
+
+        .clear-event-btn:hover {
+          border-color: #ef4444;
+          color: #ef4444;
+        }
+
+        .exclude-list {
+          display: flex;
+          flex-direction: column;
+          gap: 8px;
+          margin-top: 8px;
+          max-height: 160px;
+          overflow-y: auto;
+        }
+
+        .exclude-row {
+          display: flex;
+          align-items: center;
+          gap: 10px;
+          color: #1e293b;
+          font-size: 12px;
+          cursor: pointer;
+        }
+
+        .exclude-row input[type="checkbox"] {
+          width: 16px;
+          height: 16px;
+          accent-color: #3b82f6;
+        }
+
         .vote-results-card {
-          background: linear-gradient(135deg, #1a1a2e 0%, #16162a 100%);
-          border: 1px solid #2a2a3e;
+          background: #ffffff;
+          border: 1px solid #e2e8f0;
           border-radius: 8px;
           padding: 14px;
           margin: 12px 0;
+          box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
         }
 
         .vote-results-title {
@@ -2202,7 +2880,7 @@ function GroundPageContent() {
           justify-content: space-between;
           align-items: center;
           padding: 6px 0;
-          border-bottom: 1px solid #2a2a3e;
+          border-bottom: 1px solid #e2e8f0;
         }
 
         .vote-result-item:last-child {
@@ -2211,16 +2889,17 @@ function GroundPageContent() {
 
         .vote-result-item.winner .vote-result-role,
         .vote-result-item.winner .vote-result-count {
-          color: #fde68a;
+          color: #d97706;
+          font-weight: 600;
         }
 
         .vote-result-role {
-          color: #fff;
+          color: #1e293b;
           font-size: 12px;
         }
 
         .vote-result-count {
-          color: #10b981;
+          color: #059669;
           font-size: 12px;
           font-weight: 600;
         }
@@ -2228,8 +2907,8 @@ function GroundPageContent() {
         .vote-results-event {
           margin-top: 10px;
           padding-top: 10px;
-          border-top: 1px solid #2a2a3e;
-          color: #9ca3af;
+          border-top: 1px solid #e2e8f0;
+          color: #64748b;
           font-size: 11px;
         }
 
@@ -2246,42 +2925,43 @@ function GroundPageContent() {
           gap: 6px;
           padding: 12px;
           border-radius: 10px;
-          border: 1px solid #2a2a3e;
-          background: rgba(255, 255, 255, 0.03);
-          color: #cbd5e1;
+          border: 1px solid #e2e8f0;
+          background: #ffffff;
+          color: #1e293b;
           text-align: left;
           cursor: pointer;
           transition: all 0.2s ease;
         }
 
         .event-option-card:hover {
-          border-color: #6366f1;
+          border-color: #3b82f6;
           transform: translateY(-1px);
+          box-shadow: 0 4px 12px rgba(59, 130, 246, 0.15);
         }
 
         .event-option-card.active.neutral {
           border-color: #64748b;
-          background: rgba(100, 116, 139, 0.12);
+          background: #f1f5f9;
         }
 
         .event-option-card.active.custom {
-          border-color: #6366f1;
-          background: rgba(99, 102, 241, 0.14);
+          border-color: #3b82f6;
+          background: #eff6ff;
         }
 
         .event-option-card.active.danger {
           border-color: #f59e0b;
-          background: rgba(245, 158, 11, 0.14);
+          background: #fef3c7;
         }
 
         .event-option-title {
-          color: #fff;
+          color: #1e293b;
           font-size: 12px;
           font-weight: 600;
         }
 
         .event-option-desc {
-          color: #9ca3af;
+          color: #64748b;
           font-size: 11px;
           line-height: 1.5;
         }
@@ -2289,10 +2969,11 @@ function GroundPageContent() {
         .event-preview-card,
         .latest-event-card {
           margin-top: 12px;
-          padding: 12px;
-          border-radius: 10px;
-          background: rgba(255, 255, 255, 0.03);
-          border: 1px solid #2a2a3e;
+          padding: 16px;
+          border-radius: 12px;
+          background: #ffffff;
+          border: 1px solid #e2e8f0;
+          box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
         }
 
         .event-preview-header {
@@ -2309,31 +2990,31 @@ function GroundPageContent() {
           font-weight: 700;
           text-transform: uppercase;
           letter-spacing: 0.08em;
-          background: rgba(100, 116, 139, 0.14);
-          color: #cbd5e1;
+          background: #f1f5f9;
+          color: #64748b;
         }
 
         .event-preview-badge.custom {
-          background: rgba(99, 102, 241, 0.14);
-          color: #c7d2fe;
+          background: #dbeafe;
+          color: #3b82f6;
         }
 
         .event-preview-badge.danger {
-          background: rgba(245, 158, 11, 0.14);
-          color: #fde68a;
+          background: #fef3c7;
+          color: #d97706;
         }
 
         .event-preview-title,
         .latest-event-title {
-          color: #fff;
-          font-size: 12px;
+          color: #1e293b;
+          font-size: 14px;
           font-weight: 600;
         }
 
         .event-preview-body {
           margin-top: 10px;
-          color: #cbd5e1;
-          font-size: 12px;
+          color: #475569;
+          font-size: 13px;
           line-height: 1.6;
           white-space: pre-wrap;
         }
@@ -2343,41 +3024,41 @@ function GroundPageContent() {
           justify-content: space-between;
           gap: 10px;
           margin-top: 10px;
-          color: #94a3b8;
+          color: #64748b;
           font-size: 11px;
           flex-wrap: wrap;
         }
 
         .latest-event-line {
           margin-top: 6px;
-          color: #cbd5e1;
-          font-size: 12px;
+          color: #475569;
+          font-size: 13px;
           line-height: 1.5;
         }
 
         .latest-event-line.subtle {
-          color: #94a3b8;
-          font-size: 11px;
+          color: #64748b;
+          font-size: 12px;
         }
 
         .host-empty-card {
           margin-top: 12px;
-          padding: 12px;
-          border-radius: 10px;
-          border: 1px dashed #3b3f58;
-          background: rgba(255, 255, 255, 0.03);
+          padding: 16px;
+          border-radius: 12px;
+          border: 1px dashed #94a3b8;
+          background: #f8fafc;
         }
 
         .host-empty-title {
-          color: #fff;
-          font-size: 12px;
-          font-weight: 700;
+          color: #1e293b;
+          font-size: 13px;
+          font-weight: 600;
         }
 
         .host-empty-body {
           margin-top: 8px;
-          color: #9ca3af;
-          font-size: 12px;
+          color: #64748b;
+          font-size: 13px;
           line-height: 1.6;
         }
 
@@ -2395,22 +3076,22 @@ function GroundPageContent() {
         }
 
         .judgement-item {
-          padding: 10px;
+          padding: 12px;
           border-radius: 10px;
-          background: rgba(255, 255, 255, 0.03);
-          border: 1px solid rgba(255, 255, 255, 0.05);
+          background: #f8fafc;
+          border: 1px solid #e2e8f0;
         }
 
         .judgement-role {
-          color: #fff;
-          font-size: 12px;
-          font-weight: 700;
+          color: #1e293b;
+          font-size: 13px;
+          font-weight: 600;
         }
 
         .judgement-reason {
           margin-top: 6px;
-          color: #cbd5e1;
-          font-size: 12px;
+          color: #475569;
+          font-size: 13px;
           line-height: 1.5;
         }
 
@@ -2424,8 +3105,8 @@ function GroundPageContent() {
         .judgement-tag {
           padding: 3px 8px;
           border-radius: 999px;
-          background: rgba(99, 102, 241, 0.12);
-          color: #c7d2fe;
+          background: #eff6ff;
+          color: #3b82f6;
           font-size: 10px;
           font-weight: 600;
           text-transform: uppercase;
@@ -2434,7 +3115,7 @@ function GroundPageContent() {
 
         .advance-subtitle,
         .world-line {
-          color: #9ca3af;
+          color: #64748b;
           font-size: 12px;
           line-height: 1.5;
           margin-top: 6px;
@@ -2443,14 +3124,20 @@ function GroundPageContent() {
         .advance-input {
           width: 100%;
           margin-top: 12px;
-          background: #0a0a0f;
-          border: 1px solid #2a2a3e;
+          background: #ffffff;
+          border: 1px solid #e2e8f0;
           border-radius: 10px;
           padding: 12px;
-          color: #fff;
+          color: #1e293b;
           font-size: 12px;
           resize: vertical;
           box-sizing: border-box;
+          transition: border-color 0.2s;
+        }
+
+        .advance-input:focus {
+          outline: none;
+          border-color: #3b82f6;
         }
 
         .select-input {
@@ -2462,7 +3149,7 @@ function GroundPageContent() {
           justify-content: space-between;
           gap: 10px;
           margin-top: 10px;
-          color: #6b7280;
+          color: #64748b;
           font-size: 11px;
         }
 
@@ -2495,7 +3182,7 @@ function GroundPageContent() {
           display: flex;
           align-items: center;
           gap: 10px;
-          color: #d1d5db;
+          color: #1e293b;
           font-size: 12px;
         }
 
@@ -2507,26 +3194,26 @@ function GroundPageContent() {
         }
 
         .round-number {
-          color: #818cf8;
+          color: #6366f1;
           font-size: 12px;
           font-weight: 700;
         }
 
         .round-time {
-          color: #6b7280;
+          color: #64748b;
           font-size: 11px;
         }
 
         .round-event {
           margin-top: 8px;
-          color: #fde68a;
+          color: #d97706;
           font-size: 11px;
         }
 
         .round-summary {
           margin-top: 8px;
-          color: #d1d5db;
-          font-size: 12px;
+          color: #475569;
+          font-size: 13px;
           line-height: 1.6;
         }
 
@@ -2538,7 +3225,7 @@ function GroundPageContent() {
         }
 
         .message {
-          font-size: 12px;
+          font-size: 13px;
           line-height: 1.5;
         }
 
@@ -2549,20 +3236,21 @@ function GroundPageContent() {
         }
 
         .message-content {
-          color: #a3a3a3;
+          color: #475569;
         }
 
         .message.empty {
-          color: #6b7280;
+          color: #64748b;
         }
 
         .empty-history {
           padding: 18px;
-          color: #6b7280;
+          color: #94a3b8;
           font-size: 12px;
-          border: 1px dashed #2a2a3e;
+          border: 1px dashed #e2e8f0;
           border-radius: 10px;
           text-align: center;
+          background: #f8fafc;
         }
 
         .btn {
@@ -2615,33 +3303,35 @@ function GroundPageContent() {
         }
 
         .btn-secondary {
-          background: #1f1f2e;
-          color: #9ca3af;
-          border: 1px solid #2a2a3e;
+          background: #f1f5f9;
+          color: #64748b;
+          border: 1px solid #e2e8f0;
         }
 
         .btn-secondary:hover:not(:disabled) {
-          background: #29293a;
+          background: #e2e8f0;
+          color: #1e293b;
         }
 
         .btn-danger {
-          background: rgba(239, 68, 68, 0.16);
-          color: #fecaca;
-          border: 1px solid rgba(239, 68, 68, 0.25);
+          background: #fef2f2;
+          color: #dc2626;
+          border: 1px solid #fecaca;
         }
 
         .btn-disabled {
-          background: rgba(148, 163, 184, 0.12);
+          background: #f1f5f9;
           color: #94a3b8;
-          border: 1px solid rgba(148, 163, 184, 0.16);
+          border: 1px solid #e2e8f0;
         }
 
         .role-node {
-          background: linear-gradient(135deg, #1e1e3f 0%, #252550 100%);
-          border: 1px solid #3b3b6f;
+          background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+          border: 1px solid #e2e8f0;
           border-radius: 12px;
           padding: 0;
           min-width: 220px;
+          box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
           box-shadow: 0 4px 20px rgba(99, 102, 241, 0.15);
           overflow: hidden;
           transition: all 0.2s;
@@ -2653,13 +3343,13 @@ function GroundPageContent() {
         }
 
         .role-node:hover {
-          border-color: #6366f1;
-          box-shadow: 0 6px 30px rgba(99, 102, 241, 0.25);
+          border-color: #3b82f6;
+          box-shadow: 0 6px 30px rgba(59, 130, 246, 0.25);
         }
 
         .role-node.selected {
-          border-color: #818cf8;
-          box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.3);
+          border-color: #3b82f6;
+          box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.3);
         }
 
         .role-node.disabled {
@@ -2667,7 +3357,7 @@ function GroundPageContent() {
         }
 
         .role-header {
-          background: linear-gradient(90deg, #6366f1 0%, #8b5cf6 100%);
+          background: linear-gradient(90deg, #3b82f6 0%, #6366f1 100%);
           padding: 10px 14px;
           display: flex;
           align-items: center;
@@ -2707,13 +3397,13 @@ function GroundPageContent() {
         }
 
         .role-name {
-          color: #fff;
+          color: #1e293b;
           font-size: 14px;
           font-weight: 600;
         }
 
         .role-desc {
-          color: #9ca3af;
+          color: #64748b;
           font-size: 11px;
           line-height: 1.5;
         }
@@ -2722,7 +3412,7 @@ function GroundPageContent() {
           display: flex;
           gap: 8px;
           padding: 0 14px 8px;
-          color: #6b7280;
+          color: #64748b;
           font-size: 10px;
           text-transform: uppercase;
           letter-spacing: 0.08em;
@@ -2735,7 +3425,7 @@ function GroundPageContent() {
 
         .role-meta-secondary {
           padding-top: 0;
-          color: #8086a4;
+          color: #94a3b8;
         }
 
         .role-fact-grid {
@@ -2751,20 +3441,20 @@ function GroundPageContent() {
           gap: 3px;
           padding: 8px 10px;
           border-radius: 10px;
-          background: rgba(255, 255, 255, 0.04);
-          border: 1px solid rgba(255, 255, 255, 0.06);
+          background: #f8fafc;
+          border: 1px solid #e2e8f0;
           min-width: 0;
         }
 
         .role-fact-label {
-          color: #7c81a3;
+          color: #64748b;
           font-size: 9px;
           text-transform: uppercase;
           letter-spacing: 0.08em;
         }
 
         .role-fact-value {
-          color: #e5e7eb;
+          color: #1e293b;
           font-size: 11px;
           font-weight: 600;
           white-space: nowrap;
@@ -2781,23 +3471,23 @@ function GroundPageContent() {
         }
 
         .status-pill.active {
-          background: rgba(16, 185, 129, 0.14);
-          color: #bbf7d0;
+          background: rgba(16, 185, 129, 0.1);
+          color: #16a34a;
         }
 
         .status-pill.silent {
-          background: rgba(245, 158, 11, 0.14);
-          color: #fde68a;
+          background: rgba(245, 158, 11, 0.1);
+          color: #d97706;
         }
 
         .status-pill.dead {
-          background: rgba(239, 68, 68, 0.14);
-          color: #fecaca;
+          background: rgba(239, 68, 68, 0.1);
+          color: #dc2626;
         }
 
         .role-footer {
           padding: 8px 14px;
-          border-top: 1px solid #2a2a4f;
+          border-top: 1px solid #e2e8f0;
           display: flex;
           align-items: center;
           justify-content: space-between;
@@ -2805,23 +3495,25 @@ function GroundPageContent() {
         }
 
         .edit-hint {
-          color: #6b7280;
+          color: #94a3b8;
           font-size: 10px;
         }
 
         .role-expand-toggle {
-          border: 1px solid #343456;
-          background: rgba(99, 102, 241, 0.08);
-          color: #c7d2fe;
+          border: 1px solid #e2e8f0;
+          background: #f1f5f9;
+          color: #64748b;
           border-radius: 999px;
           padding: 4px 10px;
           font-size: 10px;
           font-weight: 600;
           cursor: pointer;
+          transition: all 0.2s;
         }
 
         .role-expand-toggle:hover {
-          background: rgba(99, 102, 241, 0.16);
+          background: #e2e8f0;
+          color: #1e293b;
         }
 
         .role-details {
@@ -2832,9 +3524,9 @@ function GroundPageContent() {
         }
 
         .detail-group {
-          border: 1px solid rgba(255, 255, 255, 0.07);
+          border: 1px solid #e2e8f0;
           border-radius: 12px;
-          background: rgba(10, 10, 15, 0.36);
+          background: #f8fafc;
           overflow: hidden;
         }
 
@@ -2842,12 +3534,12 @@ function GroundPageContent() {
           list-style: none;
           cursor: pointer;
           padding: 10px 12px;
-          color: #f3f4f6;
+          color: #1e293b;
           font-size: 11px;
           font-weight: 700;
           letter-spacing: 0.08em;
           text-transform: uppercase;
-          background: rgba(255, 255, 255, 0.03);
+          background: #f1f5f9;
         }
 
         .detail-group summary::-webkit-details-marker {
@@ -2874,7 +3566,7 @@ function GroundPageContent() {
         .detail-grid-label,
         .detail-label {
           display: block;
-          color: #8b92b4;
+          color: #64748b;
           font-size: 10px;
           text-transform: uppercase;
           letter-spacing: 0.08em;
@@ -2883,7 +3575,7 @@ function GroundPageContent() {
 
         .detail-grid-value {
           display: block;
-          color: #f3f4f6;
+          color: #1e293b;
           font-size: 12px;
           line-height: 1.5;
           word-break: break-word;
@@ -2897,15 +3589,142 @@ function GroundPageContent() {
           margin: 0;
           padding: 10px;
           border-radius: 10px;
-          background: rgba(255, 255, 255, 0.03);
-          border: 1px solid rgba(255, 255, 255, 0.05);
-          color: #dbe1f0;
+          background: #ffffff;
+          border: 1px solid #e2e8f0;
+          color: #1e293b;
           font-size: 11px;
           line-height: 1.6;
           white-space: pre-wrap;
           word-break: break-word;
           max-height: 180px;
           overflow: auto;
+        }
+
+        .detail-textarea {
+          width: 100%;
+          margin: 0;
+          padding: 10px;
+          border-radius: 10px;
+          background: #ffffff;
+          border: 1px solid #e2e8f0;
+          color: #1e293b;
+          font-size: 12px;
+          line-height: 1.5;
+          resize: vertical;
+          font-family: inherit;
+        }
+
+        .detail-textarea:focus {
+          outline: none;
+          border-color: #3b82f6;
+          box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+        }
+
+        .detail-input {
+          width: 100%;
+          margin: 0;
+          padding: 8px 12px;
+          border-radius: 8px;
+          background: #ffffff;
+          border: 1px solid #e2e8f0;
+          color: #1e293b;
+          font-size: 12px;
+        }
+
+        .detail-input:focus {
+          outline: none;
+          border-color: #3b82f6;
+          box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+        }
+
+        .detail-select {
+          width: 100%;
+          margin: 0;
+          padding: 8px 12px;
+          border-radius: 8px;
+          background: #ffffff;
+          border: 1px solid #e2e8f0;
+          color: #1e293b;
+          font-size: 12px;
+          cursor: pointer;
+          appearance: none;
+          background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%2364748b' d='M2 4l4 4 4-4'/%3E%3C/svg%3E");
+          background-repeat: no-repeat;
+          background-position: right 12px center;
+          padding-right: 36px;
+        }
+
+        .detail-select:focus {
+          outline: none;
+          border-color: #3b82f6;
+          box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+        }
+
+        .batch-role-grid {
+          display: grid;
+          grid-template-columns: repeat(2, 1fr);
+          gap: 6px;
+          margin-top: 6px;
+        }
+
+        .batch-role-item {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          padding: 8px 10px;
+          border-radius: 6px;
+          background: #f8fafc;
+          border: 1px solid #e2e8f0;
+          cursor: pointer;
+          font-size: 12px;
+          color: #64748b;
+          transition: all 0.2s;
+        }
+
+        .batch-role-item:hover {
+          border-color: #cbd5e1;
+          color: #1e293b;
+        }
+
+        .batch-role-item.selected {
+          background: #eff6ff;
+          border-color: #3b82f6;
+          color: #1e293b;
+        }
+
+        .batch-role-item input[type="checkbox"] {
+          width: 14px;
+          height: 14px;
+          accent-color: #3b82f6;
+        }
+
+        .message-scope-toggle {
+          display: flex;
+          gap: 8px;
+          margin-top: 6px;
+        }
+
+        .scope-btn {
+          flex: 1;
+          padding: 8px 12px;
+          border: 1px solid #e2e8f0;
+          border-radius: 6px;
+          background: #f8fafc;
+          color: #64748b;
+          font-size: 11px;
+          cursor: pointer;
+          transition: all 0.2s;
+        }
+
+        .scope-btn:hover {
+          border-color: #cbd5e1;
+          color: #1e293b;
+        }
+
+        .scope-btn.active {
+          background: #eff6ff;
+          border-color: #3b82f6;
+          color: #1e293b;
         }
 
         .handle {
@@ -2932,22 +3751,22 @@ function GroundPageContent() {
         .modal-overlay {
           position: fixed;
           inset: 0;
-          background: rgba(0, 0, 0, 0.7);
+          background: rgba(15, 23, 42, 0.6);
+          backdrop-filter: blur(4px);
           display: flex;
           align-items: center;
           justify-content: center;
           z-index: 1000;
-          backdrop-filter: blur(8px);
+          padding: 20px;
         }
 
         .modal-content {
-          background: linear-gradient(180deg, #1a1a2e 0%, #12121a 100%);
-          border: 1px solid #2a2a3e;
+          background: #ffffff;
           border-radius: 16px;
           width: min(640px, 92vw);
           max-height: 88vh;
           overflow: hidden;
-          box-shadow: 0 25px 75px rgba(0, 0, 0, 0.6);
+          box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
         }
 
         .modal-wide {
@@ -2959,8 +3778,8 @@ function GroundPageContent() {
           align-items: center;
           justify-content: space-between;
           padding: 24px 28px;
-          border-bottom: 1px solid #2a2a3e;
-          background: rgba(26, 26, 46, 0.8);
+          border-bottom: 1px solid #e2e8f0;
+          background: #ffffff;
         }
 
         .modal-title {
@@ -2970,7 +3789,7 @@ function GroundPageContent() {
         }
 
         .modal-title h3 {
-          color: #fff;
+          color: #1e293b;
           font-size: 18px;
           font-weight: 600;
           margin: 0;
@@ -2978,7 +3797,7 @@ function GroundPageContent() {
 
         .modal-subtitle {
           margin-top: 4px;
-          color: #9ca3af;
+          color: #64748b;
           font-size: 12px;
           line-height: 1.5;
         }
@@ -2986,7 +3805,7 @@ function GroundPageContent() {
         .title-icon {
           width: 32px;
           height: 32px;
-          background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+          background: linear-gradient(135deg, #3b82f6 0%, #6366f1 100%);
           border-radius: 8px;
           display: flex;
           align-items: center;
@@ -3000,9 +3819,9 @@ function GroundPageContent() {
         }
 
         .modal-close {
-          background: none;
+          background: #f1f5f9;
           border: none;
-          color: #6b7280;
+          color: #64748b;
           cursor: pointer;
           padding: 8px;
           display: flex;
@@ -3012,8 +3831,8 @@ function GroundPageContent() {
         }
 
         .modal-close:hover {
-          background: #2a2a3e;
-          color: #fff;
+          background: #e2e8f0;
+          color: #1e293b;
         }
 
         .modal-close svg {
@@ -3023,8 +3842,8 @@ function GroundPageContent() {
 
         .modal-tabs {
           display: flex;
-          border-bottom: 1px solid #2a2a3e;
-          background: rgba(18, 18, 26, 0.6);
+          border-bottom: 1px solid #e2e8f0;
+          background: #f8fafc;
         }
 
         .tab {
@@ -3032,15 +3851,16 @@ function GroundPageContent() {
           padding: 14px 12px;
           background: none;
           border: none;
-          color: #6b7280;
+          color: #64748b;
           font-size: 13px;
           font-weight: 500;
           cursor: pointer;
         }
 
         .tab.active {
-          color: #6366f1;
-          background: rgba(99, 102, 241, 0.1);
+          color: #3b82f6;
+          background: #eff6ff;
+          border-bottom: 2px solid #3b82f6;
         }
 
         .modal-form {
@@ -3058,7 +3878,7 @@ function GroundPageContent() {
 
         .label-text {
           display: block;
-          color: #e5e7eb;
+          color: #374151;
           font-size: 13px;
           font-weight: 500;
           margin-bottom: 8px;
@@ -3067,11 +3887,11 @@ function GroundPageContent() {
         .form-input,
         .form-textarea {
           width: 100%;
-          background: #0a0a0f;
-          border: 1px solid #2a2a3e;
+          background: #ffffff;
+          border: 1px solid #e2e8f0;
           border-radius: 8px;
           padding: 12px 16px;
-          color: #fff;
+          color: #1e293b;
           font-size: 14px;
           font-family: inherit;
           box-sizing: border-box;
@@ -3081,8 +3901,8 @@ function GroundPageContent() {
         .form-textarea:focus,
         .advance-input:focus {
           outline: none;
-          border-color: #6366f1;
-          box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+          border-color: #3b82f6;
+          box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
         }
 
         .form-textarea {
@@ -3097,6 +3917,43 @@ function GroundPageContent() {
           gap: 16px;
         }
 
+        .input-with-select {
+          display: flex;
+          gap: 8px;
+        }
+
+        .input-with-select .form-select {
+          width: 140px;
+          flex-shrink: 0;
+        }
+
+        .input-with-select .form-input {
+          flex: 1;
+          min-width: 0;
+        }
+
+        .form-select {
+          background: #ffffff;
+          border: 1px solid #e2e8f0;
+          border-radius: 8px;
+          padding: 12px 16px;
+          color: #1e293b;
+          font-size: 14px;
+          font-family: inherit;
+          cursor: pointer;
+          appearance: none;
+          background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%2364748b' d='M2 4l4 4 4-4'/%3E%3C/svg%3E");
+          background-repeat: no-repeat;
+          background-position: right 12px center;
+          padding-right: 36px;
+        }
+
+        .form-select:focus {
+          outline: none;
+          border-color: #3b82f6;
+          box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+        }
+
         .checkbox-field {
           display: flex;
           align-items: center;
@@ -3106,14 +3963,14 @@ function GroundPageContent() {
         }
 
         .info-card {
-          background: rgba(255, 255, 255, 0.04);
-          border: 1px solid #2a2a3e;
+          background: #f8fafc;
+          border: 1px solid #e2e8f0;
           border-radius: 10px;
           padding: 14px;
         }
 
         .info-title {
-          color: #818cf8;
+          color: #3b82f6;
           font-size: 11px;
           text-transform: uppercase;
           letter-spacing: 0.08em;
@@ -3121,7 +3978,7 @@ function GroundPageContent() {
         }
 
         .info-body {
-          color: #d1d5db;
+          color: #1e293b;
           font-size: 13px;
           line-height: 1.6;
           white-space: pre-wrap;
@@ -3132,8 +3989,8 @@ function GroundPageContent() {
           align-items: center;
           gap: 12px;
           padding: 20px 28px;
-          border-top: 1px solid #2a2a3e;
-          background: rgba(26, 26, 46, 0.8);
+          border-top: 1px solid #e2e8f0;
+          background: #f8fafc;
         }
 
         .footer-spacer {
@@ -3145,17 +4002,17 @@ function GroundPageContent() {
           display: flex;
           align-items: center;
           justify-content: center;
-          background: #070816;
-          color: #fff;
+          background: #f1f5f9;
+          color: #1e293b;
         }
 
         .loading-card,
         .error-card {
-          background: rgba(255, 255, 255, 0.05);
-          border: 1px solid rgba(255, 255, 255, 0.08);
+          background: #ffffff;
+          border: 1px solid #e2e8f0;
           border-radius: 16px;
           padding: 20px 24px;
-          color: #d1d5db;
+          color: #1e293b;
         }
 
         .error-card {
@@ -3166,7 +4023,7 @@ function GroundPageContent() {
         }
 
         .back-link {
-          color: #a5b4fc;
+          color: #3b82f6;
           text-decoration: none;
         }
 
@@ -3181,7 +4038,7 @@ function GroundPageContent() {
             width: auto;
             height: 360px;
             border-left: none;
-            border-top: 1px solid #1f1f2e;
+            border-top: 1px solid #e2e8f0;
           }
         }
 

@@ -4,30 +4,28 @@ import { saintSystemPrompt, saintUsePrompt } from "./prompts";
 
 export const roleStatusSchema = z.enum(["active", "silent", "dead"]);
 export const roleKindSchema = z.enum(["role", "saint"]);
-export const roundEventTypeSchema = z.enum(["custom", "death_vote"]);
+export const roundEventTypeSchema = z.enum(["custom"]);
 export const saintMessageScopeSchema = z.enum(["public", "batch_only"]);
 
-export const roundEventTemplates = {
-  custom: {
-    type: "custom" as const,
-    title: "Custom Event",
-    shortLabel: "Custom",
-    description: "Inject a one-off world event or instruction bundle into the next advance.",
-    defaultPrompt:
-      "A custom event is active. Tell the roles what happened, why it matters, and how they should react this round.",
-    accentClass: "custom",
-  },
-  death_vote: {
-    type: "death_vote" as const,
-    title: "Death Vote",
-    shortLabel: "Death Vote",
-    description:
-      "All participating visible, living, non-saint roles should vote for one role they think must die.",
-    defaultPrompt:
-      "A death vote is active. Each participating non-saint role should vote for one visible, living, non-saint role that they believe should die. Explain your reasoning in think, and put the vote target in vote[].",
-    accentClass: "danger",
-  },
-};
+export const eventAccentClasses = ["dark", "info", "danger", "neutral", "success"] as const;
+export type EventAccentClass = (typeof eventAccentClasses)[number];
+
+export const eventSchema = z.object({
+  type: z.string(),
+  title: z.string(),
+  shortLabel: z.string(),
+  description: z.string(),
+  defaultPrompt: z.string(),
+  accentClass: z.string(),
+});
+
+export type EventConfig = z.infer<typeof eventSchema>;
+
+export const roundEventSchema = z.object({
+  type: z.string(),
+  title: z.string(),
+  prompt: z.string(),
+});
 
 export const roleOutboundMessageSchema = z.object({
   role: z.string().default("all"),
@@ -78,12 +76,6 @@ export const saintActionSchema = z.object({
   knowledge_public: z.array(z.string()).default([]),
   output: z.array(roleOutboundMessageSchema).default([]),
   role_updates: z.array(saintRolePatchSchema).default([]),
-});
-
-export const roundEventSchema = z.object({
-  type: roundEventTypeSchema,
-  title: z.string().default(""),
-  prompt: z.string().default(""),
 });
 
 export const saintPlanSchema = z.object({
@@ -271,32 +263,17 @@ export function todayStamp() {
   return new Date().toISOString().slice(0, 10);
 }
 
-export function getRoundEventTemplate(type: RoundEventType) {
-  return roundEventTemplates[type];
+export function getRoundEventTemplate(type: string) {
+  return null;
 }
 
-export function buildRoundEventDraft(
-  type: RoundEventType,
-  prompt: string,
-  title?: string,
-) {
-  const template = getRoundEventTemplate(type);
+export function buildRoundEventDraft(type: string, prompt: string, title?: string) {
   const normalizedPrompt = prompt.trim();
-
-  if (type === "custom") {
-    return {
-      type,
-      title: title?.trim() || template.title,
-      prompt: normalizedPrompt || template.defaultPrompt,
-    };
-  }
 
   return {
     type,
-    title: template.title,
-    prompt: normalizedPrompt
-      ? `${template.defaultPrompt}\n\nAdditional context:\n${normalizedPrompt}`
-      : template.defaultPrompt,
+    title: title?.trim() || "Custom Event",
+    prompt: normalizedPrompt || "A custom event is active. Tell the roles what happened and how they should react.",
   };
 }
 

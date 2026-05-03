@@ -55,6 +55,12 @@ export async function POST(request: Request) {
     const body = (await request.json().catch(() => ({}))) as {
       action?: SaintAction;
       dryRun?: boolean;
+      editedPlan?: {
+        instructions?: string;
+        event?: { type: string; title: string; prompt: string } | null;
+        batchRoleIds?: string[];
+        messageScope?: "public" | "batch_only";
+      };
     };
 
     if (!groundExists(groundId)) {
@@ -141,6 +147,11 @@ export async function POST(request: Request) {
         );
       }
 
+      const instructions = body.editedPlan?.instructions ?? pendingPlan.instructions;
+      const event = body.editedPlan?.event ?? pendingPlan.event;
+      const messageScope = body.editedPlan?.messageScope ?? pendingPlan.message_scope;
+      const batchRoleIds = body.editedPlan?.batchRoleIds ?? resolvePlanBatchRoleIds(ground, pendingPlan);
+
       const cleanedGround = writeGroundData(groundId, {
         ...ground,
         workflow: {
@@ -151,9 +162,10 @@ export async function POST(request: Request) {
       });
 
       const { ground: executedGround, round } = await advanceGroundRound(cleanedGround, {
-        instructions: pendingPlan.instructions,
-        event: pendingPlan.event,
-        batchRoleIds: resolvePlanBatchRoleIds(cleanedGround, pendingPlan),
+        instructions,
+        event,
+        batchRoleIds,
+        messageScope,
         dryRun: body.dryRun,
       });
 
