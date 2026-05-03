@@ -3,9 +3,11 @@ import { NextResponse } from "next/server";
 import {
   createGround,
   deleteGround,
+  exportGroundData,
   groundExists,
   listGroundSummaries,
   readGroundData,
+  undoLastRound,
   updateGround,
 } from "@/app/lib/sim/storage";
 import { GroundFile, toGroundSummary } from "@/app/lib/sim/types";
@@ -27,6 +29,7 @@ export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
     const id = searchParams.get("id");
+    const exportMode = searchParams.get("export") === "true";
 
     if (id) {
       if (!groundExists(id)) {
@@ -37,6 +40,14 @@ export async function GET(request: Request) {
           },
           { status: 404 },
         );
+      }
+
+      if (exportMode) {
+        const exportedGround = exportGroundData(id);
+        return NextResponse.json({
+          success: true,
+          data: exportedGround,
+        });
       }
 
       const ground = readGroundData(id);
@@ -190,6 +201,61 @@ export async function DELETE(request: Request) {
       {
         success: false,
         message: "Failed to delete ground",
+      },
+      { status: 500 },
+    );
+  }
+}
+
+export async function PATCH(request: Request) {
+  try {
+    const { searchParams } = new URL(request.url);
+    const id = searchParams.get("id");
+    const action = searchParams.get("action");
+
+    if (!id) {
+      return NextResponse.json(
+        {
+          success: false,
+          message: "Ground ID is required",
+        },
+        { status: 400 },
+      );
+    }
+
+    if (!groundExists(id)) {
+      return NextResponse.json(
+        {
+          success: false,
+          message: "Ground not found",
+        },
+        { status: 404 },
+      );
+    }
+
+    if (action === "undo") {
+      const ground = undoLastRound(id);
+      return NextResponse.json({
+        success: true,
+        data: ground,
+        summary: toGroundSummary(ground),
+        message: "Last round undone successfully",
+      });
+    }
+
+    return NextResponse.json(
+      {
+        success: false,
+        message: "Invalid action",
+      },
+      { status: 400 },
+    );
+  } catch (error) {
+    console.error("PATCH /api/ground failed:", error);
+    return NextResponse.json(
+      {
+        success: false,
+        message: "Failed to perform action",
       },
       { status: 500 },
     );

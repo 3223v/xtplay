@@ -14,16 +14,8 @@ function getMarketPath() {
   return path.join(getDataPath(), "market");
 }
 
-function getArticlePath(articleId: string) {
-  return path.join(getMarketPath(), `${articleId}.json`);
-}
-
-function getIndexPath() {
-  return path.join(getMarketPath(), "index.json");
-}
-
-function getPresetsPath() {
-  return path.join(getMarketPath(), "presets.json");
+function getDatabasePath() {
+  return path.join(getMarketPath(), "database.json");
 }
 
 function ensureMarketDir() {
@@ -33,162 +25,77 @@ function ensureMarketDir() {
   }
 }
 
-interface PresetItem {
-  title: string;
-  description: string;
-  text: string;
-  tags: string[];
+interface DatabaseContent {
+  articles: MarketArticle[];
 }
 
-interface PresetsData {
-  [key: string]: PresetItem;
-}
+function loadDatabase(): DatabaseContent {
+  ensureMarketDir();
+  const dbPath = getDatabasePath();
 
-export function loadPresetArticles(): MarketArticle[] {
-  const presetsPath = getPresetsPath();
-
-  if (!fs.existsSync(presetsPath)) {
-    return [];
+  if (!fs.existsSync(dbPath)) {
+    return { articles: [] };
   }
 
   try {
-    const content = fs.readFileSync(presetsPath, "utf-8");
-    const presets: PresetsData = JSON.parse(content);
-
-    return Object.entries(presets).map(([id, preset]) => ({
-      id,
-      title: preset.title,
-      description: preset.description,
-      text: preset.text,
-      jsonContent: "",
-      tags: preset.tags,
-      createdAt: new Date().toISOString().slice(0, 10),
-      updatedAt: new Date().toISOString().slice(0, 10),
-    }));
+    const content = fs.readFileSync(dbPath, "utf-8");
+    return JSON.parse(content);
   } catch {
-    return [];
+    return { articles: [] };
   }
 }
 
-export function initializePresetsIfNeeded(): void {
+function saveDatabase(data: DatabaseContent): void {
   ensureMarketDir();
-  const indexPath = getIndexPath();
-
-  if (fs.existsSync(indexPath)) {
-    const content = fs.readFileSync(indexPath, "utf-8");
-    const index: { id: string; title: string }[] = JSON.parse(content);
-
-    const presetIds = ["werewolf", "debate", "courtroom", "un", "village"];
-    const hasPresets = index.some((item) => presetIds.includes(item.id));
-
-    if (hasPresets) {
-      return;
-    }
-  }
-
-  const presets = loadPresetArticles();
-  for (const article of presets) {
-    writeArticleData(article.id, article);
-  }
+  const dbPath = getDatabasePath();
+  fs.writeFileSync(dbPath, JSON.stringify(data, null, 2));
 }
 
 export function readArticleData(articleId: string): MarketArticle {
-  ensureMarketDir();
-  const filePath = getArticlePath(articleId);
+  const db = loadDatabase();
+  const article = db.articles.find((a) => a.id === articleId);
 
-  if (!fs.existsSync(filePath)) {
+  if (!article) {
     throw new Error(`Article ${articleId} not found`);
   }
 
-  const fileContent = fs.readFileSync(filePath, "utf-8");
-  const raw = JSON.parse(fileContent);
-
-  return marketArticleSchema.parse(raw);
+  return marketArticleSchema.parse(article);
 }
 
 export function writeArticleData(articleId: string, data: MarketArticle): MarketArticle {
-  ensureMarketDir();
-  const filePath = getArticlePath(articleId);
+  const db = loadDatabase();
   const normalized = marketArticleSchema.parse({
     ...data,
     id: articleId,
     updatedAt: new Date().toISOString().slice(0, 10),
   });
 
-  fs.writeFileSync(filePath, JSON.stringify(normalized, null, 2));
-  updateIndex(articleId, normalized.title);
+  const existingIndex = db.articles.findIndex((a) => a.id === articleId);
+  if (existingIndex >= 0) {
+    db.articles[existingIndex] = normalized;
+  } else {
+    db.articles.push(normalized);
+  }
 
+  saveDatabase(db);
   return normalized;
 }
 
 export function deleteArticleData(articleId: string): void {
-  ensureMarketDir();
-  const filePath = getArticlePath(articleId);
+  const db = loadDatabase();
+  const filtered = db.articles.filter((a) => a.id !== articleId);
 
-  if (fs.existsSync(filePath)) {
-    fs.unlinkSync(filePath);
+  if (filtered.length === db.articles.length) {
+    throw new Error(`Article ${articleId} not found`);
   }
 
-  removeFromIndex(articleId);
+  db.articles = filtered;
+  saveDatabase(db);
 }
 
 export function listArticles(): MarketArticle[] {
-  initializePresetsIfNeeded();
-  ensureMarketDir();
-  const indexPath = getIndexPath();
-
-  if (!fs.existsSync(indexPath)) {
-    return [];
-  }
-
-  const indexContent = fs.readFileSync(indexPath, "utf-8");
-  const index: { id: string; title: string }[] = JSON.parse(indexContent);
-
-  const articles: MarketArticle[] = [];
-
-  for (const item of index) {
-    try {
-      const article = readArticleData(item.id);
-      articles.push(article);
-    } catch {
-      // Skip invalid articles
-    }
-  }
-
-  return articles;
-}
-
-function updateIndex(articleId: string, title: string): void {
-  const indexPath = getIndexPath();
-  let index: { id: string; title: string }[] = [];
-
-  if (fs.existsSync(indexPath)) {
-    const content = fs.readFileSync(indexPath, "utf-8");
-    index = JSON.parse(content);
-  }
-
-  const existingIndex = index.findIndex((item) => item.id === articleId);
-  if (existingIndex >= 0) {
-    index[existingIndex].title = title;
-  } else {
-    index.push({ id: articleId, title });
-  }
-
-  fs.writeFileSync(indexPath, JSON.stringify(index, null, 2));
-}
-
-function removeFromIndex(articleId: string): void {
-  const indexPath = getIndexPath();
-
-  if (!fs.existsSync(indexPath)) {
-    return;
-  }
-
-  const content = fs.readFileSync(indexPath, "utf-8");
-  const index: { id: string; title: string }[] = JSON.parse(content);
-
-  const filtered = index.filter((item) => item.id !== articleId);
-  fs.writeFileSync(indexPath, JSON.stringify(filtered, null, 2));
+  const db = loadDatabase();
+  return db.articles.map((article) => marketArticleSchema.parse(article));
 }
 
 export function generateUniqueArticleId(): string {
@@ -198,8 +105,8 @@ export function generateUniqueArticleId(): string {
     id += chars[Math.floor(Math.random() * chars.length)];
   }
 
-  const filePath = getArticlePath(id);
-  if (fs.existsSync(filePath)) {
+  const db = loadDatabase();
+  if (db.articles.some((a) => a.id === id)) {
     return generateUniqueArticleId();
   }
 

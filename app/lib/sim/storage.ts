@@ -423,3 +423,186 @@ export function deleteGround(groundId: string) {
 
   clearGroundCache(groundId);
 }
+
+export function undoLastRound(groundId: string): GroundFile {
+  const ground = readGroundData(groundId);
+
+  if (ground.round.length === 0) {
+    return ground;
+  }
+
+  const lastRound = ground.round[ground.round.length - 1];
+
+  const restoredRoleMap = new Map<string, RoleConfig>();
+  for (const role of ground.role) {
+    restoredRoleMap.set(role.id, { ...role });
+  }
+
+  for (const action of lastRound.roleActions) {
+    const role = restoredRoleMap.get(action.roleId);
+    if (!role) continue;
+
+    if (action.knowledge_private.length > 0) {
+      const privateSet = new Set(role.knowledge_private);
+      for (const k of action.knowledge_private) {
+        privateSet.delete(k);
+      }
+      role.knowledge_private = Array.from(privateSet);
+    }
+
+    if (action.knowledge_public.length > 0) {
+      const publicSet = new Set(role.knowledge_public);
+      for (const k of action.knowledge_public) {
+        publicSet.delete(k);
+      }
+      role.knowledge_public = Array.from(publicSet);
+    }
+
+    if (action.output.length > 0) {
+      const inboxSet = new Set(role.inbox);
+      for (const msg of action.output) {
+        inboxSet.delete(msg.content);
+      }
+      role.inbox = Array.from(inboxSet);
+    }
+
+    if (action.role_updates.length > 0) {
+      for (const update of action.role_updates) {
+        if (update.status !== undefined) {
+          role.status = update.status;
+        }
+        if (update.redundancy !== undefined) {
+          role.redundancy = update.redundancy;
+        }
+      }
+    }
+
+    if (action.think) {
+      role.last_think = "";
+    }
+  }
+
+  for (const msg of lastRound.output) {
+    const targetRole = restoredRoleMap.get(msg.role);
+    if (targetRole) {
+      const inboxSet = new Set(targetRole.inbox);
+      inboxSet.delete(msg.content);
+      targetRole.inbox = Array.from(inboxSet);
+    }
+  }
+
+  const restoredRoles = Array.from(restoredRoleMap.values());
+
+  const updatedGround = {
+    ...ground,
+    role: restoredRoles,
+    round: ground.round.slice(0, -1),
+    simulation: {
+      ...ground.simulation,
+      current_batch_index: 0,
+    },
+    updatedAt: todayStamp(),
+  };
+
+  return writeGroundData(groundId, updatedGround);
+}
+
+export interface ExportedGround {
+  id: string;
+  name: string;
+  description: string;
+  default_url: string;
+  default_key: string;
+  default_model: string;
+  knowledge: string[];
+  rule: string[];
+  role: Array<{
+    id: string;
+    kind: string;
+    name: string;
+    description: string;
+    use_prompt: string;
+    system_prompt: string;
+    canvas_position: { x: number; y: number };
+    url: string;
+    key: string;
+    model: string;
+    temperature: number;
+    knowledge_private: string[];
+    knowledge_public: string[];
+    blocked_role_names: string[];
+    unknown_role_names: string[];
+    inbox: string[];
+    redundancy: number;
+    status: string;
+    enabled: boolean;
+    last_think: string;
+    last_error: string;
+  }>;
+  round: [];
+  simulation: {
+    batch_size: number;
+    current_batch_index: number;
+    max_round_history: number;
+    mode: string;
+    round_goal: string;
+  };
+  workflow: {
+    pending_plan: null;
+    pending_judgement: null;
+  };
+  createdAt: string;
+  updatedAt: string;
+}
+
+export function exportGroundData(groundId: string): ExportedGround {
+  const ground = readGroundData(groundId);
+
+  return {
+    id: ground.id,
+    name: ground.name,
+    description: ground.description,
+    default_url: ground.default_url,
+    default_key: "",
+    default_model: ground.default_model,
+    knowledge: [...ground.knowledge],
+    rule: [...ground.rule],
+    role: ground.role.map((r) => ({
+      id: r.id,
+      kind: r.kind,
+      name: r.name,
+      description: r.description,
+      use_prompt: r.use_prompt,
+      system_prompt: r.system_prompt,
+      canvas_position: { ...r.canvas_position },
+      url: "",
+      key: "",
+      model: r.model,
+      temperature: r.temperature,
+      knowledge_private: [...r.knowledge_private],
+      knowledge_public: [...r.knowledge_public],
+      blocked_role_names: [...r.blocked_role_names],
+      unknown_role_names: [...r.unknown_role_names],
+      inbox: [],
+      redundancy: 0,
+      status: r.status,
+      enabled: r.enabled,
+      last_think: "",
+      last_error: "",
+    })),
+    round: [],
+    simulation: {
+      batch_size: ground.simulation.batch_size,
+      current_batch_index: 0,
+      max_round_history: ground.simulation.max_round_history,
+      mode: ground.simulation.mode,
+      round_goal: ground.simulation.round_goal,
+    },
+    workflow: {
+      pending_plan: null,
+      pending_judgement: null,
+    },
+    createdAt: ground.createdAt,
+    updatedAt: ground.updatedAt,
+  };
+}

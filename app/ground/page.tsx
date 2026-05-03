@@ -1127,8 +1127,8 @@ function GroundPageContent() {
     async function loadConfig() {
       try {
         const [eventsRes, presetsRes] = await Promise.all([
-          fetch("/api/data/events"),
-          fetch("/api/data/presets"),
+          fetch("/api/events"),
+          fetch("/api/presets"),
         ]);
         const eventsResult = await eventsRes.json();
         const presetsResult = await presetsRes.json();
@@ -1151,6 +1151,27 @@ function GroundPageContent() {
   );
 
   const rounds = useMemo<RoundRecord[]>(() => ground?.round ?? [], [ground]);
+
+  const handleUndoRound = useCallback(async () => {
+    if (!ground || ground.round.length === 0) {
+      return;
+    }
+
+    try {
+      const response = await fetch(`/api/ground?id=${groundId}&action=undo`, {
+        method: "PATCH",
+      });
+
+      if (response.ok) {
+        const result = await response.json();
+        if (result.success) {
+          applyGround(result.data, { dirty: false });
+        }
+      }
+    } catch (error) {
+      console.error("Failed to undo round:", error);
+    }
+  }, [applyGround, ground, groundId]);
 
   const saintRole = useMemo(() => (ground ? getSaintRole(ground) : null), [ground]);
 
@@ -1677,6 +1698,14 @@ function GroundPageContent() {
             disabled={isSaving || isAdvancing}
           >
             {isSaving ? "Saving..." : "Save"}
+          </button>
+          <button
+            onClick={handleUndoRound}
+            className="btn btn-secondary"
+            disabled={isSaving || isAdvancing || !ground || ground.round.length === 0}
+            title="Undo last round"
+          >
+            ↩ Undo Round
           </button>
         </div>
       </div>

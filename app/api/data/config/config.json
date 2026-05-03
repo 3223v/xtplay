@@ -6,42 +6,38 @@
   "presets": {
     "urls": [
       {
-        "value": "https://api.openai.com/v1",
-        "label": "OpenAI Official"
+        "value": "https://token-plan-cn.xiaomimimo.com/v1",
+        "label": "小米"
       },
       {
-        "value": "https://api.deepseek.com/v1",
+        "value": "https://api.deepseek.com/",
         "label": "DeepSeek"
-      },
-      {
-        "value": "https://ark.cn-beijing.volcenpc.com/v1",
-        "label": "Volcengine ARK"
       }
     ],
     "models": [
       {
-        "value": "gpt-4o",
-        "label": "GPT-4o"
+        "value": "deepseek-v4-flash",
+        "label": "deepseek-v4-flash"
       },
       {
-        "value": "gpt-4o-mini",
-        "label": "GPT-4o Mini"
-      },
-      {
-        "value": "gpt-4-turbo",
-        "label": "GPT-4 Turbo"
+        "value": "deepseek-v4-pro",
+        "label": "deepseek-v4-pro"
       },
       {
         "value": "deepseek-chat",
-        "label": "DeepSeek Chat"
+        "label": "deepseek-chat"
+      },
+      {
+        "value": "deepseek-reasoner",
+        "label": "DeepSeek Reasoner"
       },
       {
         "value": "deepseek-coder",
-        "label": "DeepSeek Coder"
+        "label": "MiMo-V2.5-Pro"
       },
       {
         "value": "doubao-pro-32k",
-        "label": "Doubao Pro 32K"
+        "label": "MiMo-V2.5"
       }
     ]
   },
