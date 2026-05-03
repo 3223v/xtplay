@@ -158,32 +158,3 @@ Saint 是可选的主持人角色，负责：
 }
 ```
 
-## 贡献指南
-
-欢迎提交 Issue 和 Pull Request！
-
-### 开发规范
-
-1. 使用 TypeScript 编写代码
-2. 遵循 ESLint 规则
-3. 添加适当的注释
-4. 编写测试用例
-
-### 提交规范
-
-```
-feat: 添加新功能
-fix: 修复 bug
-docs: 更新文档
-style: 代码风格
-refactor: 重构代码
-test: 添加测试
-```
-
-## 许可证
-
-MIT License
-
-## 联系方式
-
-- GitHub: https://github.com/3223v/xtplay
