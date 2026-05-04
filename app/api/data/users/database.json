@@ -19,8 +19,8 @@
   },
   {
     "id": "user_4",
-    "username": "charlie",
-    "email": "charlie@example.com",
+    "username": "c",
+    "email": "c@example.com",
     "password": "123456"
   }
 ]

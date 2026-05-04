@@ -54,9 +54,12 @@ export default function UserMenu() {
 
   if (!user) {
     return (
-      <button className="px-5 py-2.5 text-sm font-medium text-white bg-gradient-to-r from-blue-500 to-indigo-500 rounded-full hover:from-blue-400 hover:to-indigo-400 transition-all duration-300 shadow-lg shadow-blue-500/20">
-        <a href="/manage">登录</a>
-      </button>
+      <a
+        href="/manage"
+        className="px-5 py-2.5 text-sm font-medium text-white bg-gradient-to-r from-blue-500 to-indigo-500 rounded-full hover:from-blue-400 hover:to-indigo-400 transition-all duration-300 shadow-lg shadow-blue-500/20"
+      >
+        登录
+      </a>
     );
   }
 

@@ -360,7 +360,7 @@ export default function Manage() {
       <div className="absolute top-0 left-1/4 w-[500px] h-[500px] bg-blue-200/30 rounded-full blur-[120px] pointer-events-none" />
       <div className="absolute bottom-0 right-1/4 w-[600px] h-[600px] bg-indigo-200/30 rounded-full blur-[150px] pointer-events-none" />
 
-      <header className="fixed top-0 left-0 right-0 z-[100] flex items-center justify-between px-12 py-6 bg-white/80 backdrop-blur-sm border-b border-[#e2e8f0]">
+      <header className="fixed top-0 left-0 right-0 z-[100] flex items-center justify-between px-4 md:px-8 lg:px-12 py-4 md:py-6 bg-white/80 backdrop-blur-sm border-b border-[#e2e8f0]">
         <Link href="/" className="flex items-center gap-3">
           <img src="/blue.png" alt="XTPlay Logo" className="w-10 h-10" />
           <span className="text-2xl font-bold tracking-tight text-[#1e293b]">XTPlay</span>
@@ -387,7 +387,7 @@ export default function Manage() {
         <UserMenu />
       </header>
 
-      <main className="relative z-10 px-12 pt-32 pb-8">
+      <main className="relative z-10 px-4 md:px-8 lg:px-12 pt-32 pb-8">
         <div className="flex items-center justify-between mb-8">
           <div>
             <h1 className="text-4xl font-bold text-[#1e293b] mb-2">工作空间管理</h1>

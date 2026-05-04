@@ -104,7 +104,7 @@ export function SectionPageShell({
       <canvas ref={canvasRef} className="absolute inset-0 h-full w-full pointer-events-none" />
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(59,130,246,0.10),transparent_28%,rgba(99,102,241,0.08)_70%,transparent)] pointer-events-none" />
 
-      <header className="fixed top-0 left-0 right-0 z-50 flex items-center justify-between px-12 py-6 bg-white/80 backdrop-blur-sm border-b border-[#e2e8f0]">
+      <header className="fixed top-0 left-0 right-0 z-50 flex items-center justify-between px-4 md:px-8 lg:px-12 py-4 md:py-6 bg-white/80 backdrop-blur-sm border-b border-[#e2e8f0]">
         <Link href="/" className="flex items-center gap-3">
           <img src="/blue.png" alt="XTPlay Logo" className="w-10 h-10" />
           <span className="text-2xl font-bold tracking-tight text-[#1e293b]">XTPlay</span>
