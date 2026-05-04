@@ -1,0 +1,130 @@
+{
+  "id": "1",
+  "name": "新工作空间",
+  "description": "",
+  "default_url": "",
+  "default_key": "",
+  "default_model": "",
+  "knowledge": [],
+  "rule": [],
+  "role": [
+    {
+      "id": "role-1-w1oue6",
+      "kind": "role",
+      "name": "角色 1",
+      "description": "角色智能体",
+      "use_prompt": "",
+      "system_prompt": "",
+      "canvas_position": {
+        "x": 68.63292876108957,
+        "y": -17.654308072413144
+      },
+      "url": "",
+      "key": "",
+      "model": "",
+      "temperature": 0.7,
+      "knowledge_private": [],
+      "knowledge_public": [],
+      "blocked_role_names": [],
+      "unknown_role_names": [],
+      "inbox": [],
+      "redundancy": 0,
+      "status": "active",
+      "enabled": true,
+      "last_think": "",
+      "last_error": ""
+    },
+    {
+      "id": "role-2-pr7j1a",
+      "kind": "role",
+      "name": "角色 2",
+      "description": "角色智能体",
+      "use_prompt": "",
+      "system_prompt": "",
+      "canvas_position": {
+        "x": 481.95194677190665,
+        "y": 51.42239403740045
+      },
+      "url": "",
+      "key": "",
+      "model": "",
+      "temperature": 0.7,
+      "knowledge_private": [],
+      "knowledge_public": [],
+      "blocked_role_names": [],
+      "unknown_role_names": [],
+      "inbox": [],
+      "redundancy": 0,
+      "status": "active",
+      "enabled": true,
+      "last_think": "",
+      "last_error": ""
+    },
+    {
+      "id": "saint",
+      "kind": "saint",
+      "name": "saint",
+      "description": "Optional host role that proposes the next moderator step and post-round state changes for human approval.",
+      "use_prompt": "You are saint, the optional host role for this ground. You replace manual operator input when asked to moderate the next step. You can read the full world state, propose the next action plan, and suggest post-round state changes for human approval.",
+      "system_prompt": "You are saint, the host and moderator of the simulation. When asked for a plan, propose only the next moderator instruction, an optional structured event, and the exact non-saint roles that should act next. When asked for a judgement, review the executed round and propose only the minimal world-state patches that are justified by the rules, event outcome, and observed actions. You never execute changes directly. Every plan and every judgement must be reviewed by a human before it becomes real. Be concrete, conservative, and easy to audit. Your Next Step suggestions must be at the minimal level and cannot simply rely on changes over time to determine which roles enter the current batch. You need to carefully consider which roles should participate in the minimal events at the current stage.",
+      "canvas_position": {
+        "x": 80,
+        "y": 120
+      },
+      "url": "",
+      "key": "",
+      "model": "",
+      "temperature": 0.2,
+      "knowledge_private": [],
+      "knowledge_public": [],
+      "blocked_role_names": [],
+      "unknown_role_names": [],
+      "inbox": [],
+      "redundancy": 0,
+      "status": "active",
+      "enabled": true,
+      "last_think": "",
+      "last_error": ""
+    },
+    {
+      "id": "role-4-c16yiz",
+      "kind": "role",
+      "name": "角色 4",
+      "description": "角色智能体",
+      "use_prompt": "",
+      "system_prompt": "",
+      "canvas_position": {
+        "x": 260,
+        "y": 320
+      },
+      "url": "",
+      "key": "",
+      "model": "",
+      "temperature": 0.7,
+      "knowledge_private": [],
+      "knowledge_public": [],
+      "blocked_role_names": [],
+      "unknown_role_names": [],
+      "inbox": [],
+      "redundancy": 0,
+      "status": "active",
+      "enabled": true,
+      "last_think": "",
+      "last_error": ""
+    }
+  ],
+  "round": [],
+  "simulation": {
+    "batch_size": 10,
+    "current_batch_index": 0,
+    "max_round_history": 50,
+    "mode": "auto",
+    "round_goal": ""
+  },
+  "workflow": {
+    "pending_plan": null,
+    "pending_judgement": null
+  },
+  "createdAt": "2026-05-04",
+  "updatedAt": "2026-05-04"
+}

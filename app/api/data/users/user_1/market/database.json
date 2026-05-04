@@ -1,0 +1,27 @@
+{
+  "articles": [
+    {
+      "id": "1305nahx",
+      "title": "大顶堆",
+      "description": "",
+      "text": "",
+      "jsonContent": "",
+      "tags": [],
+      "createdAt": "2026-05-04",
+      "updatedAt": "2026-05-04"
+    },
+    {
+      "id": "uvldwnw3",
+      "title": "新工作空间",
+      "description": "",
+      "text": "XTPlay Ground 场景: 新工作空间",
+      "jsonContent": "{\n  \"id\": \"1\",\n  \"name\": \"新工作空间\",\n  \"description\": \"\",\n  \"default_url\": \"\",\n  \"default_key\": \"\",\n  \"default_model\": \"\",\n  \"knowledge\": [],\n  \"rule\": [],\n  \"role\": [\n    {\n      \"id\": \"role-1-w1oue6\",\n      \"kind\": \"role\",\n      \"name\": \"角色 1\",\n      \"description\": \"角色智能体\",\n      \"use_prompt\": \"\",\n      \"system_prompt\": \"\",\n      \"canvas_position\": {\n        \"x\": 68.63292876108957,\n        \"y\": -17.654308072413144\n      },\n      \"url\": \"\",\n      \"key\": \"\",\n      \"model\": \"\",\n      \"temperature\": 0.7,\n      \"knowledge_private\": [],\n      \"knowledge_public\": [],\n      \"blocked_role_names\": [],\n      \"unknown_role_names\": [],\n      \"inbox\": [],\n      \"redundancy\": 0,\n      \"status\": \"active\",\n      \"enabled\": true,\n      \"last_think\": \"\",\n      \"last_error\": \"\"\n    },\n    {\n      \"id\": \"role-2-pr7j1a\",\n      \"kind\": \"role\",\n      \"name\": \"角色 2\",\n      \"description\": \"角色智能体\",\n      \"use_prompt\": \"\",\n      \"system_prompt\": \"\",\n      \"canvas_position\": {\n        \"x\": 481.95194677190665,\n        \"y\": 51.42239403740045\n      },\n      \"url\": \"\",\n      \"key\": \"\",\n      \"model\": \"\",\n      \"temperature\": 0.7,\n      \"knowledge_private\": [],\n      \"knowledge_public\": [],\n      \"blocked_role_names\": [],\n      \"unknown_role_names\": [],\n      \"inbox\": [],\n      \"redundancy\": 0,\n      \"status\": \"active\",\n      \"enabled\": true,\n      \"last_think\": \"\",\n      \"last_error\": \"\"\n    },\n    {\n      \"id\": \"saint\",\n      \"kind\": \"saint\",\n      \"name\": \"saint\",\n      \"description\": \"Optional host role that proposes the next moderator step and post-round state changes for human approval.\",\n      \"use_prompt\": \"You are saint, the optional host role for this ground. You replace manual operator input when asked to moderate the next step. You can read the full world state, propose the next action plan, and suggest post-round state changes for human approval.\",\n      \"system_prompt\": \"You are saint, the host and moderator of the simulation. When asked for a plan, propose only the next moderator instruction, an optional structured event, and the exact non-saint roles that should act next. When asked for a judgement, review the executed round and propose only the minimal world-state patches that are justified by the rules, event outcome, and observed actions. You never execute changes directly. Every plan and every judgement must be reviewed by a human before it becomes real. Be concrete, conservative, and easy to audit. Your Next Step suggestions must be at the minimal level and cannot simply rely on changes over time to determine which roles enter the current batch. You need to carefully consider which roles should participate in the minimal events at the current stage.\",\n      \"canvas_position\": {\n        \"x\": 80,\n        \"y\": 120\n      },\n      \"url\": \"\",\n      \"key\": \"\",\n      \"model\": \"\",\n      \"temperature\": 0.2,\n      \"knowledge_private\": [],\n      \"knowledge_public\": [],\n      \"blocked_role_names\": [],\n      \"unknown_role_names\": [],\n      \"inbox\": [],\n      \"redundancy\": 0,\n      \"status\": \"active\",\n      \"enabled\": true,\n      \"last_think\": \"\",\n      \"last_error\": \"\"\n    },\n    {\n      \"id\": \"role-4-c16yiz\",\n      \"kind\": \"role\",\n      \"name\": \"角色 4\",\n      \"description\": \"角色智能体\",\n      \"use_prompt\": \"\",\n      \"system_prompt\": \"\",\n      \"canvas_position\": {\n        \"x\": 260,\n        \"y\": 320\n      },\n      \"url\": \"\",\n      \"key\": \"\",\n      \"model\": \"\",\n      \"temperature\": 0.7,\n      \"knowledge_private\": [],\n      \"knowledge_public\": [],\n      \"blocked_role_names\": [],\n      \"unknown_role_names\": [],\n      \"inbox\": [],\n      \"redundancy\": 0,\n      \"status\": \"active\",\n      \"enabled\": true,\n      \"last_think\": \"\",\n      \"last_error\": \"\"\n    }\n  ],\n  \"round\": [],\n  \"simulation\": {\n    \"batch_size\": 10,\n    \"current_batch_index\": 0,\n    \"max_round_history\": 50,\n    \"mode\": \"auto\",\n    \"round_goal\": \"\"\n  },\n  \"workflow\": {\n    \"pending_plan\": null,\n    \"pending_judgement\": null\n  },\n  \"createdAt\": \"2026-05-04\",\n  \"updatedAt\": \"2026-05-04\"\n}",
+      "tags": [
+        "ground",
+        "场景"
+      ],
+      "createdAt": "2026-05-04",
+      "updatedAt": "2026-05-04"
+    }
+  ]
+}

@@ -87,7 +87,8 @@ export default function Home() {
             { label: "首页", href: "/" },
             { label: "管理", href: "/manage" },
             { label: "文档", href: "/docs" },
-            { label: "市场", href: "/market" },
+            { label: "模板", href: "/market" },
+            { label: "市场", href: "/public/market" },
           ].map((item) => (
             <a
               key={item.label}

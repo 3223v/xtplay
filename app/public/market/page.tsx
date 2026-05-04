@@ -27,14 +27,14 @@ function ArticleEditor({ article, onSave, onCancel }: ArticleEditorProps) {
     description: article?.description || "",
     text: article?.text || "",
     jsonContent: article?.jsonContent || "",
-    tags: article?.tags.join(", ") || "",
+    tags: Array.isArray(article?.tags) ? article.tags.join(", ") : "",
   });
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     onSave({
       ...form,
-      tags: form.tags.split(",").map((t) => t.trim()).filter(Boolean),
+      tags: typeof form.tags === 'string' ? form.tags.split(",").map((t) => t.trim()).filter(Boolean) : [],
     });
   };
 
@@ -134,6 +134,7 @@ function ArticleEditor({ article, onSave, onCancel }: ArticleEditorProps) {
 export default function PublicMarket() {
   const [articles, setArticles] = useState<MarketArticle[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [selectedArticle, setSelectedArticle] = useState<MarketArticle | null>(null);
   const [showEditor, setShowEditor] = useState(false);
   const [editingArticle, setEditingArticle] = useState<MarketArticle | null>(null);
@@ -144,13 +145,29 @@ export default function PublicMarket() {
   }, []);
 
   const fetchArticles = async () => {
+    setLoadError(null);
     try {
-      const response = await fetch("/api/public/market");
+      const response = await fetch("/api/public/market", {
+        signal: AbortSignal.timeout(10000),
+      });
+      if (!response.ok) {
+        throw new Error(`HTTP error: ${response.status}`);
+      }
       const result = await response.json();
       if (result.success) {
-        setArticles(result.data);
+        // 确保 data 是数组，并处理每个文章的 tags 字段
+        const rawArticles = result.data || [];
+        const safeArticles = Array.isArray(rawArticles) ? rawArticles.map((article: any) => ({
+          ...article,
+          tags: Array.isArray(article.tags) ? article.tags : []
+        })) : [];
+        setArticles(safeArticles);
+      } else {
+        throw new Error(result.message || "加载失败");
       }
     } catch (error) {
+      const message = error instanceof Error ? error.message : "加载失败";
+      setLoadError(message);
       console.error("获取市场文章列表失败:", error);
     } finally {
       setIsLoading(false);
@@ -278,6 +295,22 @@ export default function PublicMarket() {
           <div className="flex items-center justify-center py-20">
             <div className="h-8 w-8 animate-spin rounded-full border-2 border-blue-500 border-t-transparent" />
           </div>
+        ) : loadError ? (
+          <div className="rounded-[28px] border border-red-200 bg-red-50 p-12 text-center shadow-sm">
+            <svg className="mx-auto h-16 w-16 text-red-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+            </svg>
+            <p className="mt-4 text-red-600 font-medium">{loadError}</p>
+            <button
+              onClick={() => {
+                setIsLoading(true);
+                fetchArticles();
+              }}
+              className="mt-4 px-6 py-2 text-sm font-semibold text-white bg-red-500 rounded-lg hover:bg-red-600 transition-colors"
+            >
+              重试
+            </button>
+          </div>
         ) : articles.length === 0 ? (
           <div className="rounded-[28px] border border-[#e2e8f0] bg-white p-12 text-center shadow-sm">
             <svg className="mx-auto h-16 w-16 text-[#94a3b8]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -295,7 +328,7 @@ export default function PublicMarket() {
                 <div className="flex items-start justify-between">
                   <div className="flex-1">
                     <div className="flex items-center gap-2 flex-wrap">
-                      {article.tags.map((tag) => (
+                      {Array.isArray(article.tags) && article.tags.map((tag) => (
                         <span
                           key={tag}
                           className="rounded-full bg-blue-100 px-2 py-0.5 text-xs font-medium text-blue-600"
