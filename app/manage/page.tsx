@@ -104,7 +104,7 @@ export default function Manage() {
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm("确定要删除这个 Ground 吗？")) return;
+    if (!confirm("确定要删除这个工作空间吗？")) return;
     
     try {
       const response = await fetch(`/api/ground?id=${id}`, { method: "DELETE" });
@@ -116,13 +116,13 @@ export default function Manage() {
           setSelectedGround(null);
           setIsEditing(false);
         }
-        alert("Ground deleted successfully!");
+        alert("工作空间删除成功！");
       } else {
-        alert(`Failed to delete ground: ${result.message}`);
+        alert(`删除工作空间失败: ${result.message}`);
       }
     } catch (error) {
-      console.error("Failed to delete ground:", error);
-      alert("Failed to delete ground. Please try again.");
+      console.error("删除工作空间失败:", error);
+      alert("删除工作空间失败，请重试。");
     }
   };
 
@@ -148,13 +148,13 @@ export default function Manage() {
         setIsEditing(false);
         setSelectedGround(null);
         setEditForm({});
-        alert("Ground updated successfully!");
+        alert("工作空间更新成功！");
       } else {
-        alert(`Failed to update ground: ${result.message}`);
+        alert(`更新工作空间失败: ${result.message}`);
       }
     } catch (error) {
-      console.error("Failed to update ground:", error);
-      alert("Failed to update ground. Please try again.");
+      console.error("更新工作空间失败:", error);
+      alert("更新工作空间失败，请重试。");
     }
   };
 
@@ -170,7 +170,7 @@ export default function Manage() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          name: "New Ground",
+          name: "新工作空间",
           description: "",
           default_url: "",
           default_key: "",
@@ -182,11 +182,11 @@ export default function Manage() {
         setGrounds([...grounds, result.data]);
         handleEdit(result.data);
       } else {
-        alert(`Failed to create ground: ${result.message}`);
+        alert(`创建工作空间失败: ${result.message}`);
       }
     } catch (error) {
-      console.error("Failed to create ground:", error);
-      alert("Failed to create ground. Please try again.");
+      console.error("创建工作空间失败:", error);
+      alert("创建工作空间失败，请重试。");
     }
   };
 
@@ -213,7 +213,7 @@ export default function Manage() {
       } else if (importMethod === 'text' && importContent) {
         data = JSON.parse(importContent);
       } else {
-        throw new Error('Please select a file or enter JSON content');
+        throw new Error('请选择文件或输入 JSON 内容');
       }
 
       const response = await fetch("/api/ground/import", {
@@ -229,13 +229,13 @@ export default function Manage() {
         setShowImportModal(false);
         setImportContent('');
         setImportFile(null);
-        alert("Ground imported successfully!");
+        alert("工作空间导入成功！");
       } else {
-        alert(`Failed to import ground: ${result.message}`);
+        alert(`导入工作空间失败: ${result.message}`);
       }
     } catch (error) {
-      console.error("Failed to import ground:", error);
-      alert(`Failed to import ground: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      console.error("导入工作空间失败:", error);
+      alert(`导入工作空间失败: ${error instanceof Error ? error.message : '未知错误'}`);
     } finally {
       setIsImporting(false);
     }
@@ -264,7 +264,7 @@ export default function Manage() {
             { name: "首页", href: "/" },
             { name: "管理", href: "/manage" },
             { name: "文档", href: "/docs" },
-            { name: "Market", href: "/market" },
+            { name: "市场", href: "/market" },
           ].map((item) => (
             <Link
               key={item.name}
@@ -282,7 +282,7 @@ export default function Manage() {
       <main className="relative z-10 px-12 pt-32 pb-8">
         <div className="flex items-center justify-between mb-8">
           <div>
-            <h1 className="text-4xl font-bold text-[#1e293b] mb-2">Ground Management</h1>
+            <h1 className="text-4xl font-bold text-[#1e293b] mb-2">工作空间管理</h1>
             <p className="text-[#64748b]">管理所有工作空间配置</p>
           </div>
           <div className="flex items-center gap-4">
@@ -293,7 +293,7 @@ export default function Manage() {
               <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
               </svg>
-              Import Ground
+              导入工作空间
             </button>
             <button
               onClick={handleCreate}
@@ -302,7 +302,7 @@ export default function Manage() {
               <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
               </svg>
-              Create Ground
+              创建工作空间
             </button>
           </div>
         </div>
@@ -324,7 +324,7 @@ export default function Manage() {
             </svg>
             <input
               type="text"
-              placeholder="搜索 Ground..."
+              placeholder="搜索工作空间..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="w-full pl-12 pr-4 py-3 bg-white border border-[#e2e8f0] rounded-xl text-[#1e293b] placeholder-[#94a3b8] focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/10 transition-all duration-300"
@@ -405,7 +405,7 @@ export default function Manage() {
                   </div>
                   <div className="mt-4 flex items-center justify-between">
                     <div className="flex items-center gap-4 text-xs text-[#94a3b8]">
-                      <span>Default Key: ••••••</span>
+                      <span>默认密钥: ••••••</span>
                       <span>更新于 {ground.updatedAt}</span>
                     </div>
                     <Link
@@ -415,7 +415,7 @@ export default function Manage() {
                       <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
                       </svg>
-                      Open
+                      打开
                     </Link>
                   </div>
                 </div>
@@ -436,7 +436,7 @@ export default function Manage() {
                       d="M9 6.75V15m6-6v8.25m.503 3.498l4.875-2.437c.381-.19.622-.58.622-1.006V4.82c0-.836-.88-1.38-1.628-1.006l-3.869 1.934c-.317.159-.69.159-1.006 0L9.503 3.252a1.125 1.125 0 00-1.006 0L3.622 5.689C3.24 5.88 3 6.27 3 6.695V19.18c0 .836.88 1.38 1.628 1.006l3.869-1.934c.317-.159.69-.159 1.006 0l4.994 2.497c.317.158.69.158 1.006 0z"
                     />
                   </svg>
-                  <p className="text-[#64748b]">没有找到匹配的 Ground</p>
+                  <p className="text-[#64748b]">没有找到匹配的工作空间</p>
                 </div>
               )}
             </div>
@@ -452,34 +452,34 @@ export default function Manage() {
                       d="M9 6.75V15m6-6v8.25m.503 3.498l4.875-2.437c.381-.19.622-.58.622-1.006V4.82c0-.836-.88-1.38-1.628-1.006l-3.869 1.934c-.317.159-.69.159-1.006 0L9.503 3.252a1.125 1.125 0 00-1.006 0L3.622 5.689C3.24 5.88 3 6.27 3 6.695V19.18c0 .836.88 1.38 1.628 1.006l3.869-1.934c.317-.159.69-.159 1.006 0l4.994 2.497c.317.158.69.158 1.006 0z"
                     />
                   </svg>
-                  Edit Ground
+                  编辑工作空间
                 </h3>
 
                 <div className="space-y-4">
                   <div>
-                    <label className="block text-sm font-medium text-[#374151] mb-2">Name</label>
+                    <label className="block text-sm font-medium text-[#374151] mb-2">名称</label>
                     <input
                       type="text"
                       value={editForm.name || ""}
                       onChange={(e) => setEditForm({ ...editForm, name: e.target.value })}
                       className="w-full px-4 py-3 bg-white border border-[#e2e8f0] rounded-xl text-[#1e293b] placeholder-[#94a3b8] focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/10 transition-all duration-300"
-                      placeholder="Ground name"
+                      placeholder="工作空间名称"
                     />
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-[#374151] mb-2">Description</label>
+                    <label className="block text-sm font-medium text-[#374151] mb-2">描述</label>
                     <textarea
                       value={editForm.description || ""}
                       onChange={(e) => setEditForm({ ...editForm, description: e.target.value })}
                       rows={3}
                       className="w-full px-4 py-3 bg-white border border-[#e2e8f0] rounded-xl text-[#1e293b] placeholder-[#94a3b8] focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/10 transition-all duration-300 resize-none"
-                      placeholder="Ground description"
+                      placeholder="工作空间描述"
                     />
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-[#374151] mb-2">Default URL</label>
+                    <label className="block text-sm font-medium text-[#374151] mb-2">默认 URL</label>
                     <input
                       type="text"
                       value={editForm.default_url || ""}
@@ -490,7 +490,7 @@ export default function Manage() {
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-[#374151] mb-2">Default Key</label>
+                    <label className="block text-sm font-medium text-[#374151] mb-2">默认密钥</label>
                     <input
                       type="text"
                       value={editForm.default_key || ""}
@@ -505,13 +505,13 @@ export default function Manage() {
                       onClick={handleSave}
                       className="flex-1 px-6 py-3 text-sm font-semibold text-white bg-gradient-to-r from-blue-500 to-indigo-500 rounded-xl hover:from-blue-400 hover:to-indigo-400 transition-all duration-300 shadow-lg shadow-blue-500/20"
                     >
-                      Save Changes
+                      保存修改
                     </button>
                     <button
                       onClick={handleCancel}
                       className="px-6 py-3 text-sm font-medium text-[#64748b] bg-white border border-[#e2e8f0] rounded-xl hover:bg-[#f8fafc] hover:border-[#cbd5e1] transition-all duration-300"
                     >
-                      Cancel
+                      取消
                     </button>
                   </div>
                 </div>
@@ -534,8 +534,8 @@ export default function Manage() {
                       d="M9 6.75V15m6-6v8.25m.503 3.498l4.875-2.437c.381-.19.622-.58.622-1.006V4.82c0-.836-.88-1.38-1.628-1.006l-3.869 1.934c-.317.159-.69.159-1.006 0L9.503 3.252a1.125 1.125 0 00-1.006 0L3.622 5.689C3.24 5.88 3 6.27 3 6.695V19.18c0 .836.88 1.38 1.628 1.006l3.869-1.934c.317-.159.69-.159 1.006 0l4.994 2.497c.317.158.69.158 1.006 0z"
                     />
                   </svg>
-                  <p className="text-[#64748b] mb-2">选择一个 Ground 进行编辑</p>
-                  <p className="text-sm text-[#94a3b8]">或者点击右上角按钮创建新 Ground</p>
+                  <p className="text-[#64748b] mb-2">选择一个工作空间进行编辑</p>
+                  <p className="text-sm text-[#94a3b8]">或者点击右上角按钮创建新工作空间</p>
                 </div>
               </div>
             )}
@@ -549,7 +549,7 @@ export default function Manage() {
           <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={() => setShowImportModal(false)} />
           <div className="relative w-full max-w-2xl bg-white border border-[#e2e8f0] rounded-2xl p-6 shadow-xl">
             <div className="flex items-center justify-between mb-6">
-              <h3 className="text-2xl font-bold text-[#1e293b]">Import Ground</h3>
+              <h3 className="text-2xl font-bold text-[#1e293b]">导入工作空间</h3>
               <button
                 onClick={() => setShowImportModal(false)}
                 className="text-[#64748b] hover:text-[#1e293b] transition-colors"
@@ -567,7 +567,7 @@ export default function Manage() {
                   className={`flex-1 py-3 px-4 rounded-lg border transition-all ${importMethod === 'file' ? 'border-blue-400 bg-blue-50 text-[#3b82f6]' : 'border-[#e2e8f0] bg-white text-[#64748b]'}`}
                 >
                   <span className={`text-sm font-medium ${importMethod === 'file' ? 'text-blue-600' : 'text-[#64748b]'}`}>
-                    Upload JSON File
+                    上传 JSON 文件
                   </span>
                 </button>
                 <button
@@ -575,7 +575,7 @@ export default function Manage() {
                   className={`flex-1 py-3 px-4 rounded-lg border transition-all ${importMethod === 'text' ? 'border-blue-400 bg-blue-50 text-[#3b82f6]' : 'border-[#e2e8f0] bg-white text-[#64748b]'}`}
                 >
                   <span className={`text-sm font-medium ${importMethod === 'text' ? 'text-blue-600' : 'text-[#64748b]'}`}>
-                    Paste JSON Content
+                    粘贴 JSON 内容
                   </span>
                 </button>
               </div>
@@ -612,8 +612,8 @@ export default function Manage() {
                         <svg className="w-12 h-12 text-[#94a3b8]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
                         </svg>
-                        <span className="text-sm text-[#64748b]">Drag and drop your JSON file here</span>
-                        <span className="text-xs text-[#94a3b8]">or click to browse</span>
+                        <span className="text-sm text-[#64748b]">拖拽 JSON 文件到这里</span>
+                        <span className="text-xs text-[#94a3b8]">或点击浏览</span>
                       </div>
                     </label>
                   )}
@@ -622,7 +622,7 @@ export default function Manage() {
                 <textarea
                   value={importContent}
                   onChange={(e) => setImportContent(e.target.value)}
-                  placeholder="Paste your JSON content here..."
+                  placeholder="在这里粘贴 JSON 内容..."
                   className="w-full h-64 px-4 py-3 bg-white border border-[#e2e8f0] rounded-xl text-[#1e293b] placeholder-[#94a3b8] focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/10 resize-none"
                 />
               )}
@@ -638,7 +638,7 @@ export default function Manage() {
                 }}
                 className="px-6 py-3 text-sm font-semibold text-[#64748b] bg-white border border-[#e2e8f0] rounded-lg hover:bg-[#f8fafc] hover:border-[#cbd5e1] transition-all"
               >
-                Cancel
+                取消
               </button>
               <button
                 onClick={handleImport}
@@ -654,7 +654,7 @@ export default function Manage() {
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                   </svg>
                 )}
-                {isImporting ? 'Importing...' : 'Import'}
+                {isImporting ? '导入中...' : '导入'}
               </button>
             </div>
           </div>

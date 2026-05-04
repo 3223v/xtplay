@@ -78,16 +78,16 @@ export default function ExportMenu({
         <div className="export-dropdown">
           {showMarketForm ? (
             <div className="export-form">
-              <div className="export-form-title">Export to Market</div>
+              <div className="export-form-title">导出到市场</div>
               <input
                 type="text"
-                placeholder="Title"
+                placeholder="标题"
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
                 className="export-input"
               />
               <textarea
-                placeholder="Description (optional)"
+                placeholder="描述（可选）"
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
                 className="export-textarea"
@@ -98,14 +98,14 @@ export default function ExportMenu({
                   onClick={() => setShowMarketForm(false)}
                   className="btn btn-secondary"
                 >
-                  Back
+                  返回
                 </button>
                 <button
                   onClick={handleSubmitToMarket}
                   className="btn btn-primary"
                   disabled={!title.trim()}
                 >
-                  Submit
+                  提交
                 </button>
               </div>
             </div>
@@ -117,14 +117,14 @@ export default function ExportMenu({
                   <path d="M2 17l10 5 10-5" />
                   <path d="M2 12l10 5 10-5" />
                 </svg>
-                Export to Market
+                导出到市场
               </button>
               <button onClick={handleCopyJson} className="export-option">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                   <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
                   <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
                 </svg>
-                {copied ? "Copied!" : "Copy JSON"}
+                {copied ? "已复制！" : "复制 JSON"}
               </button>
             </>
           )}

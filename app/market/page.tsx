@@ -313,13 +313,13 @@ export default function Market() {
             { name: "首页", href: "/" },
             { name: "管理", href: "/manage" },
             { name: "文档", href: "/docs" },
-            { name: "Market", href: "/market" },
+            { name: "市场", href: "/market" },
           ].map((item) => (
             <a
               key={item.name}
               href={item.href}
               className={`text-sm font-medium transition-colors duration-300 ${
-                item.name === "Market" ? "text-[#3b82f6]" : "text-[#64748b] hover:text-[#3b82f6]"
+                item.name === "市场" ? "text-[#3b82f6]" : "text-[#64748b] hover:text-[#3b82f6]"
               }`}
             >
               {item.name}

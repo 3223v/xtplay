@@ -3,6 +3,7 @@
     "enabled": false,
     "password": "1234"
   },
+  "language": "zh",
   "presets": {
     "urls": [
       {
@@ -41,46 +42,90 @@
       }
     ]
   },
-  "events": [
-    {
-      "type": "night_falls",
-      "title": "Night Falls",
-      "shortLabel": "Night",
-      "description": "Night has fallen. Something stirs in the darkness.",
-      "defaultPrompt": "Night falls on the village. Tell the roles what they observe and how they react.",
-      "accentClass": "dark"
-    },
-    {
-      "type": "strange_rumor",
-      "title": "Strange Rumor",
-      "shortLabel": "Rumor",
-      "description": "A rumor spreads through the crowd.",
-      "defaultPrompt": "A strange rumor is spreading. Each role should react based on what they heard and their character.",
-      "accentClass": "info"
-    },
-    {
-      "type": "public_accusation",
-      "title": "Public Accusation",
-      "shortLabel": "Accuse",
-      "description": "Someone publicly accuses another.",
-      "defaultPrompt": "A public accusation has been made. The accused must defend themselves and others may react.",
-      "accentClass": "danger"
-    },
-    {
-      "type": "unexpected_visitor",
-      "title": "Unexpected Visitor",
-      "shortLabel": "Visitor",
-      "description": "A stranger arrives at the scene.",
-      "defaultPrompt": "An unexpected visitor arrives. Describe their appearance and manner, and how each role reacts.",
-      "accentClass": "neutral"
-    },
-    {
-      "type": "discovery",
-      "title": "Discovery",
-      "shortLabel": "Found",
-      "description": "Someone discovers something important.",
-      "defaultPrompt": "A significant discovery has been made. Each role should react to this new information.",
-      "accentClass": "success"
-    }
-  ]
+  "events": {
+    "en": [
+      {
+        "type": "night_falls",
+        "title": "Night Falls",
+        "shortLabel": "Night",
+        "description": "Night has fallen. Something stirs in the darkness.",
+        "defaultPrompt": "Night falls on the village. Tell the roles what they observe and how they react.",
+        "accentClass": "dark"
+      },
+      {
+        "type": "strange_rumor",
+        "title": "Strange Rumor",
+        "shortLabel": "Rumor",
+        "description": "A rumor spreads through the crowd.",
+        "defaultPrompt": "A strange rumor is spreading. Each role should react based on what they heard and their character.",
+        "accentClass": "info"
+      },
+      {
+        "type": "public_accusation",
+        "title": "Public Accusation",
+        "shortLabel": "Accuse",
+        "description": "Someone publicly accuses another.",
+        "defaultPrompt": "A public accusation has been made. The accused must defend themselves and others may react.",
+        "accentClass": "danger"
+      },
+      {
+        "type": "unexpected_visitor",
+        "title": "Unexpected Visitor",
+        "shortLabel": "Visitor",
+        "description": "A stranger arrives at the scene.",
+        "defaultPrompt": "An unexpected visitor arrives. Describe their appearance and manner, and how each role reacts.",
+        "accentClass": "neutral"
+      },
+      {
+        "type": "discovery",
+        "title": "Discovery",
+        "shortLabel": "Found",
+        "description": "Someone discovers something important.",
+        "defaultPrompt": "A significant discovery has been made. Each role should react to this new information.",
+        "accentClass": "success"
+      }
+    ],
+    "zh": [
+      {
+        "type": "night_falls",
+        "title": "夜幕降临",
+        "shortLabel": "夜幕",
+        "description": "夜幕降临。黑暗中有什么在骚动。",
+        "defaultPrompt": "夜幕降临在村庄。告诉角色他们观察到什么，以及他们如何反应。",
+        "accentClass": "dark"
+      },
+      {
+        "type": "strange_rumor",
+        "title": "奇怪的传闻",
+        "shortLabel": "传闻",
+        "description": "一则传闻在人群中传播。",
+        "defaultPrompt": "一个奇怪的传闻正在传播。每个角色应该根据他们听到的和他们的性格做出反应。",
+        "accentClass": "info"
+      },
+      {
+        "type": "public_accusation",
+        "title": "公开指控",
+        "shortLabel": "指控",
+        "description": "有人公开指控另一个人。",
+        "defaultPrompt": "已经进行了公开指控。被指控者必须为自己辩护，其他人可能会做出反应。",
+        "accentClass": "danger"
+      },
+      {
+        "type": "unexpected_visitor",
+        "title": "意外访客",
+        "shortLabel": "访客",
+        "description": "一个陌生人来到现场。",
+        "defaultPrompt": "一位意外访客到来。描述他们的外表和举止，以及每个角色的反应。",
+        "accentClass": "neutral"
+      },
+      {
+        "type": "discovery",
+        "title": "发现",
+        "shortLabel": "发现",
+        "description": "有人发现了重要的东西。",
+        "defaultPrompt": "已经有了重大发现。每个角色应该对这个新信息做出反应。",
+        "accentClass": "success"
+      }
+    ]
+  }
 }

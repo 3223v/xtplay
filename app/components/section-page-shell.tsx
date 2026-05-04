@@ -114,7 +114,7 @@ export function SectionPageShell({
             { name: "首页", href: "/" },
             { name: "管理", href: "/manage" },
             { name: "文档", href: "/docs" },
-            { name: "Market", href: "/market" },
+            { name: "市场", href: "/market" },
           ].map((item) => (
             <Link
               key={item.name}

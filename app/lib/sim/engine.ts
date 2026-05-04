@@ -28,11 +28,8 @@ import {
   SaintRolePatch,
   uniqueTextList,
 } from "./types";
-import {
-  roleExecutionSystemLines,
-  saintJudgementSystemLines,
-  saintPlanSystemLines,
-} from "./prompts";
+import { getLanguageConfig } from "@/app/lib/config";
+import { getPrompts, Language } from "./prompts";
 
 interface AdvanceRoundOptions {
   instructions?: string;
@@ -305,6 +302,9 @@ function buildRoleMessages(
   role: RoleConfig,
   options: AdvanceRoundOptions,
 ) {
+  const language = getLanguageConfig();
+  const prompts = getPrompts(language);
+
   const recentRounds = ground.round.slice(-3).map((round) => ({
     round: round.round,
     event: round.event,
@@ -321,7 +321,21 @@ function buildRoleMessages(
     public_knowledge_count: candidate.knowledge_public.length,
     inbox_seen_by_them: candidate.inbox.length,
   }));
-  const schemaHint = {
+  const schemaHint = language === "zh" ? {
+    think: "string",
+    summary: "string",
+    knowledge_private: ["string"],
+    knowledge_public: ["string"],
+    status: "active | silent | dead",
+    redundancy: 0,
+    output: [
+      {
+        role: "目标角色名或 all",
+        content: "该目标的消息内容",
+      },
+    ],
+    vote: [{ thing: "正在投票的内容", role: "投票对象", vote: 1 }],
+  } : {
     think: "string",
     summary: "string",
     knowledge_private: ["string"],
@@ -343,11 +357,97 @@ function buildRoleMessages(
         )
       : visiblePeers.map((candidate) => candidate.name);
 
+  const userContent = language === "zh" ? {
+    task: "为该角色在模拟批次中生成下一步行动。",
+    instructions: options.instructions ?? "",
+    event_instructions: buildEventInstructions(event),
+    round_goal: ground.simulation.round_goal,
+    selected_for_current_batch: true,
+    current_step_message_scope: options.messageScope ?? "public",
+    allowed_message_targets: allowedMessageTargets,
+    ground: {
+      name: ground.name,
+      description: ground.description,
+      knowledge: ground.knowledge,
+      rule: ground.rule,
+    },
+    role: {
+      id: role.id,
+      kind: role.kind,
+      name: role.name,
+      description: role.description,
+      use_prompt: role.use_prompt,
+      status: role.status,
+      redundancy: role.redundancy,
+      blocked_role_names: role.blocked_role_names,
+      unknown_role_names: role.unknown_role_names,
+      inbox: role.inbox,
+      private_knowledge: role.knowledge_private,
+      public_knowledge: role.knowledge_public,
+    },
+    visible_peers: visiblePeers,
+    information_scope: [
+      "你只知道你的私有知识、公共知识、收件箱、世界公共状态和可见角色。",
+      "除非通过自己的知识来源明确揭示，否则你不知道其他角色的隐藏身份。",
+    ],
+    messaging_rules: [
+      'output[] 可以包含零条或多条消息。',
+      '每个独立目标消息使用一个数组项。',
+      '如果 Alice 和 Bob 应该收到不同内容，请发出两个独立的输出项。',
+      'role 字段必须是一个可见角色名或 "all"。',
+      '对于这一步骤，只有 allowed_message_targets 中的名字是有效的消息目标。',
+    ],
+    recent_rounds: recentRounds,
+    output_schema: schemaHint,
+  } : {
+    task: "Generate the next action for this role in the simulation batch.",
+    instructions: options.instructions ?? "",
+    event_instructions: buildEventInstructions(event),
+    round_goal: ground.simulation.round_goal,
+    selected_for_current_batch: true,
+    current_step_message_scope: options.messageScope ?? "public",
+    allowed_message_targets: allowedMessageTargets,
+    ground: {
+      name: ground.name,
+      description: ground.description,
+      knowledge: ground.knowledge,
+      rule: ground.rule,
+    },
+    role: {
+      id: role.id,
+      kind: role.kind,
+      name: role.name,
+      description: role.description,
+      use_prompt: role.use_prompt,
+      status: role.status,
+      redundancy: role.redundancy,
+      blocked_role_names: role.blocked_role_names,
+      unknown_role_names: role.unknown_role_names,
+      inbox: role.inbox,
+      private_knowledge: role.knowledge_private,
+      public_knowledge: role.knowledge_public,
+    },
+    visible_peers: visiblePeers,
+    information_scope: [
+      "You only know what is in your private knowledge, public knowledge, inbox, ground public state, and visible_peers.",
+      "You do not know another role's hidden identity unless it is explicitly revealed by your own knowledge sources.",
+    ],
+    messaging_rules: [
+      'output[] may contain zero or more messages.',
+      'Use one array item per distinct target message.',
+      'If Alice and Bob should receive different content, emit two separate output items.',
+      'The role field must be one visible role name or "all".',
+      'For this current step, only names in allowed_message_targets are valid message targets.',
+    ],
+    recent_rounds: recentRounds,
+    output_schema: schemaHint,
+  };
+
   return [
     {
       role: "system" as const,
       content: [
-        ...roleExecutionSystemLines,
+        ...prompts.roleExecutionSystemLines,
         role.system_prompt.trim(),
       ]
         .filter(Boolean)
@@ -355,58 +455,15 @@ function buildRoleMessages(
     },
     {
       role: "user" as const,
-      content: JSON.stringify(
-        {
-          task: "Generate the next action for this role in the simulation batch.",
-          instructions: options.instructions ?? "",
-          event_instructions: buildEventInstructions(event),
-          round_goal: ground.simulation.round_goal,
-          selected_for_current_batch: true,
-          current_step_message_scope: options.messageScope ?? "public",
-          allowed_message_targets: allowedMessageTargets,
-          ground: {
-            name: ground.name,
-            description: ground.description,
-            knowledge: ground.knowledge,
-            rule: ground.rule,
-          },
-          role: {
-            id: role.id,
-            kind: role.kind,
-            name: role.name,
-            description: role.description,
-            use_prompt: role.use_prompt,
-            status: role.status,
-            redundancy: role.redundancy,
-            blocked_role_names: role.blocked_role_names,
-            unknown_role_names: role.unknown_role_names,
-            inbox: role.inbox,
-            private_knowledge: role.knowledge_private,
-            public_knowledge: role.knowledge_public,
-          },
-          visible_peers: visiblePeers,
-          information_scope: [
-            "You only know what is in your private knowledge, public knowledge, inbox, ground public state, and visible_peers.",
-            "You do not know another role's hidden identity unless it is explicitly revealed by your own knowledge sources.",
-          ],
-          messaging_rules: [
-            'output[] may contain zero or more messages.',
-            'Use one array item per distinct target message.',
-            'If Alice and Bob should receive different content, emit two separate output items.',
-            'The role field must be one visible role name or "all".',
-            'For this current step, only names in allowed_message_targets are valid message targets.',
-          ],
-          recent_rounds: recentRounds,
-          output_schema: schemaHint,
-        },
-        null,
-        2,
-      ),
+      content: JSON.stringify(userContent, null, 2),
     },
   ];
 }
 
 function buildSaintPlanMessages(ground: GroundFile, saint: RoleConfig) {
+  const language = getLanguageConfig();
+  const prompts = getPrompts(language);
+
   const availableRoles = ground.role.filter(
     (role) => role.enabled && role.status !== "dead" && !isSaintRole(role),
   );
@@ -418,7 +475,18 @@ function buildSaintPlanMessages(ground: GroundFile, saint: RoleConfig) {
     output: round.output,
     votes: round.votes,
   }));
-  const schemaHint = {
+  const schemaHint = language === "zh" ? {
+    summary: "主持人提议的简短摘要",
+    reasoning: "该计划适合的原因",
+    instructions: "下一步的主持人指令",
+    event: {
+      type: "custom | death_vote",
+      title: "事件标题",
+      prompt: "事件提示词",
+    },
+    batch_role_names: ["具体角色名"],
+    message_scope: "public | batch_only",
+  } : {
     summary: "short summary for the host proposal",
     reasoning: "why this plan is appropriate",
     instructions: "the moderator instruction for the next step",
@@ -431,11 +499,63 @@ function buildSaintPlanMessages(ground: GroundFile, saint: RoleConfig) {
     message_scope: "public | batch_only",
   };
 
+  const userContent = language === "zh" ? {
+    task: "为模拟提议下一步的主持人计划。",
+    ground: {
+      name: ground.name,
+      description: ground.description,
+      knowledge: ground.knowledge,
+      rule: ground.rule,
+    },
+    simulation: ground.simulation,
+    planning_guardrails: [
+      "一个批准的计划应该代表一个连贯的执行步骤。",
+      "只有在当前步骤应该保持私密或内部范围时才使用 message_scope=batch_only。",
+      "只有在当前步骤是公开可见的交流时才使用 message_scope=public。",
+      "场景特定的调度规则应该来自存储的规则和 saint 提示词，而不是来自未说明的假设。",
+    ],
+    available_roles: availableRoles.map((role) => ({
+      id: role.id,
+      name: role.name,
+      description: role.description,
+      status: role.status,
+      redundancy: role.redundancy,
+      inbox_size: role.inbox.length,
+    })),
+    recent_rounds: recentRounds,
+    output_schema: schemaHint,
+  } : {
+    task: "Propose the next host plan for the simulation.",
+    ground: {
+      name: ground.name,
+      description: ground.description,
+      knowledge: ground.knowledge,
+      rule: ground.rule,
+    },
+    simulation: ground.simulation,
+    planning_guardrails: [
+      "One approved plan should represent one coherent execution step.",
+      "Use message_scope=batch_only only when the current step should stay private or internally scoped.",
+      "Use message_scope=public only when the current step is openly visible communication.",
+      "Scene-specific scheduling rules should come from stored rules and saint prompt, not from unstated assumptions.",
+    ],
+    available_roles: availableRoles.map((role) => ({
+      id: role.id,
+      name: role.name,
+      description: role.description,
+      status: role.status,
+      redundancy: role.redundancy,
+      inbox_size: role.inbox.length,
+    })),
+    recent_rounds: recentRounds,
+    output_schema: schemaHint,
+  };
+
   return [
     {
       role: "system" as const,
       content: [
-        ...saintPlanSystemLines,
+        ...prompts.saintPlanSystemLines,
         saint.system_prompt.trim(),
       ]
         .filter(Boolean)
@@ -443,36 +563,7 @@ function buildSaintPlanMessages(ground: GroundFile, saint: RoleConfig) {
     },
     {
       role: "user" as const,
-      content: JSON.stringify(
-        {
-          task: "Propose the next host plan for the simulation.",
-          ground: {
-            name: ground.name,
-            description: ground.description,
-            knowledge: ground.knowledge,
-            rule: ground.rule,
-          },
-          simulation: ground.simulation,
-          planning_guardrails: [
-            "One approved plan should represent one coherent execution step.",
-            "Use message_scope=batch_only only when the current step should stay private or internally scoped.",
-            "Use message_scope=public only when the current step is openly visible communication.",
-            "Scene-specific scheduling rules should come from stored rules and saint prompt, not from unstated assumptions.",
-          ],
-          available_roles: availableRoles.map((role) => ({
-            id: role.id,
-            name: role.name,
-            description: role.description,
-            status: role.status,
-            redundancy: role.redundancy,
-            inbox_size: role.inbox.length,
-          })),
-          recent_rounds: recentRounds,
-          output_schema: schemaHint,
-        },
-        null,
-        2,
-      ),
+      content: JSON.stringify(userContent, null, 2),
     },
   ];
 }
@@ -482,7 +573,27 @@ function buildSaintJudgementMessages(
   saint: RoleConfig,
   round: ReturnType<typeof roundSchema.parse>,
 ) {
-  const schemaHint = {
+  const language = getLanguageConfig();
+  const prompts = getPrompts(language);
+
+  const schemaHint = language === "zh" ? {
+    summary: "主持人裁决的简短摘要",
+    reasoning: "为什么应该应用补丁",
+    role_updates: [
+      {
+        role: "目标角色名",
+        reason: "为什么应用补丁",
+        status: "active | silent | dead",
+        redundancy: 0,
+        enabled: true,
+        blocked_role_names: ["角色名"],
+        unknown_role_names: ["角色名"],
+        knowledge_private_add: ["string"],
+        knowledge_public_add: ["string"],
+        inbox_add: ["string"],
+      },
+    ],
+  } : {
     summary: "short summary of the host judgement",
     reasoning: "why patches should be applied",
     role_updates: [
@@ -501,11 +612,53 @@ function buildSaintJudgementMessages(
     ],
   };
 
+  const userContent = language === "zh" ? {
+    task: "审核已执行的回合并提议任何应该被用户批准的角色补丁。",
+    rules: ground.rule,
+    public_knowledge: ground.knowledge,
+    role_state: ground.role.map((role) => ({
+      id: role.id,
+      kind: role.kind,
+      name: role.name,
+      description: role.description,
+      status: role.status,
+      redundancy: role.redundancy,
+      enabled: role.enabled,
+      blocked_role_names: role.blocked_role_names,
+      unknown_role_names: role.unknown_role_names,
+      inbox: role.inbox,
+      knowledge_private: role.knowledge_private,
+      knowledge_public: role.knowledge_public,
+    })),
+    executed_round: round,
+    output_schema: schemaHint,
+  } : {
+    task: "Review the executed round and propose any role patches that should be approved by the user.",
+    rules: ground.rule,
+    public_knowledge: ground.knowledge,
+    role_state: ground.role.map((role) => ({
+      id: role.id,
+      kind: role.kind,
+      name: role.name,
+      description: role.description,
+      status: role.status,
+      redundancy: role.redundancy,
+      enabled: role.enabled,
+      blocked_role_names: role.blocked_role_names,
+      unknown_role_names: role.unknown_role_names,
+      inbox: role.inbox,
+      knowledge_private: role.knowledge_private,
+      knowledge_public: role.knowledge_public,
+    })),
+    executed_round: round,
+    output_schema: schemaHint,
+  };
+
   return [
     {
       role: "system" as const,
       content: [
-        ...saintJudgementSystemLines,
+        ...prompts.saintJudgementSystemLines,
         saint.system_prompt.trim(),
       ]
         .filter(Boolean)
@@ -513,31 +666,7 @@ function buildSaintJudgementMessages(
     },
     {
       role: "user" as const,
-      content: JSON.stringify(
-        {
-          task: "Review the executed round and propose any role patches that should be approved by the user.",
-          rules: ground.rule,
-          public_knowledge: ground.knowledge,
-          role_state: ground.role.map((role) => ({
-            id: role.id,
-            kind: role.kind,
-            name: role.name,
-            description: role.description,
-            status: role.status,
-            redundancy: role.redundancy,
-            enabled: role.enabled,
-            blocked_role_names: role.blocked_role_names,
-            unknown_role_names: role.unknown_role_names,
-            inbox: role.inbox,
-            knowledge_private: role.knowledge_private,
-            knowledge_public: role.knowledge_public,
-          })),
-          executed_round: round,
-          output_schema: schemaHint,
-        },
-        null,
-        2,
-      ),
+      content: JSON.stringify(userContent, null, 2),
     },
   ];
 }
@@ -558,6 +687,7 @@ function createMockAction(
   options: AdvanceRoundOptions,
 ): RoleAction {
   const event = normalizeEvent(options.event);
+  const language = getLanguageConfig();
   const focus =
     buildEventInstructions(event) ||
     options.instructions?.trim() ||
@@ -573,10 +703,10 @@ function createMockAction(
     event?.type === "death_vote" ? buildMockEventTarget(ground, role) : visiblePeer;
 
   return {
-    think: `${role.name} is reviewing "${focus}" while considering the latest public fact: ${sharedFact}`,
-    summary: `${role.name} prepared one small action for the current batch.`,
-    knowledge_private: [`${role.name} reassessed the current objective: ${focus}`],
-    knowledge_public: [`${role.name} shared a public observation: ${sharedFact}`],
+    think: language === "zh" ? `${role.name} 正在回顾 "${focus}"，同时考虑最新的公共事实：${sharedFact}` : `${role.name} is reviewing "${focus}" while considering the latest public fact: ${sharedFact}`,
+    summary: language === "zh" ? `${role.name} 为当前批次准备了一个小行动。` : `${role.name} prepared one small action for the current batch.`,
+    knowledge_private: [language === "zh" ? `${role.name} 重新评估了当前目标：${focus}` : `${role.name} reassessed the current objective: ${focus}`],
+    knowledge_public: [language === "zh" ? `${role.name} 分享了一个公共观察：${sharedFact}` : `${role.name} shared a public observation: ${sharedFact}`],
     status: role.status,
     redundancy: role.redundancy,
     output:
@@ -584,7 +714,7 @@ function createMockAction(
         ? [
             {
               role: visiblePeer.name,
-              content: `${role.name}: around "${focus}", I suggest we prioritize "${sharedFact}" next.`,
+              content: language === "zh" ? `${role.name}：关于 "${focus}"，我建议我们接下来优先考虑 "${sharedFact}"。` : `${role.name}: around "${focus}", I suggest we prioritize "${sharedFact}" next.`,
             },
           ]
         : [],
@@ -602,15 +732,16 @@ function createMockAction(
 }
 
 function createMockSaintPlan(ground: GroundFile): SaintPlan {
+  const language = getLanguageConfig();
   const batchRoleNames = getBatchRoles(ground).map((role) => role.name);
 
   return saintPlanSchema.parse({
-    summary: "saint proposes the next simulation step.",
+    summary: language === "zh" ? "saint 提议下一个模拟步骤。" : "saint proposes the next simulation step.",
     reasoning:
-      "The mock host continues the current scene by selecting the default next batch and leaving scene-specific sequencing to stored rules and prompts.",
+      language === "zh" ? "模拟主持人通过选择默认下一批次继续当前场景，并将场景特定的排序留给存储的规则和提示词。" : "The mock host continues the current scene by selecting the default next batch and leaving scene-specific sequencing to stored rules and prompts.",
     instructions:
       ground.simulation.round_goal ||
-      "Continue the simulation based on the latest world state and each role's inbox.",
+      (language === "zh" ? "根据最新的世界状态和每个角色的收件箱继续模拟。" : "Continue the simulation based on the latest world state and each role's inbox."),
     event: null,
     batch_role_names: batchRoleNames,
     message_scope: "public",
@@ -621,6 +752,8 @@ function createMockSaintJudgement(
   ground: GroundFile,
   round: ReturnType<typeof roundSchema.parse>,
 ): SaintJudgement {
+  const language = getLanguageConfig();
+
   if (round.event?.type === "death_vote" && round.votes.length > 0) {
     const tally = new Map<string, number>();
 
@@ -634,12 +767,12 @@ function createMockSaintJudgement(
     if (winnerName) {
       return saintJudgementSchema.parse({
         round: round.round,
-        summary: `saint proposes to mark ${winnerName} as dead after the vote.`,
-        reasoning: "Highest vote count in death vote event.",
+        summary: language === "zh" ? `saint 提议在投票后标记 ${winnerName} 为死亡。` : `saint proposes to mark ${winnerName} as dead after the vote.`,
+        reasoning: language === "zh" ? "死亡投票事件中得票最高。" : "Highest vote count in death vote event.",
         role_updates: [
           {
             role: winnerName,
-            reason: "Highest vote count in death vote event.",
+            reason: language === "zh" ? "死亡投票事件中得票最高。" : "Highest vote count in death vote event.",
             status: "dead",
             knowledge_private_add: [],
             knowledge_public_add: [],
@@ -652,8 +785,8 @@ function createMockSaintJudgement(
 
   return saintJudgementSchema.parse({
     round: round.round,
-    summary: "saint proposes no post-round state changes.",
-    reasoning: "The round result does not require any mandatory patches.",
+    summary: language === "zh" ? "saint 提议不进行任何回合后状态变更。" : "saint proposes no post-round state changes.",
+    reasoning: language === "zh" ? "回合结果不需要任何强制补丁。" : "The round result does not require any mandatory patches.",
     role_updates: [],
   });
 }
@@ -848,10 +981,11 @@ export async function proposeSaintJudgement(
   const saint = getSaintRole(ground);
 
   if (!saint || !saint.enabled || saint.status === "dead") {
+    const language = getLanguageConfig();
     return saintJudgementSchema.parse({
       round: round.round,
-      summary: "No saint host was available to propose post-round changes.",
-      reasoning: "saint is absent, disabled, or dead.",
+      summary: language === "zh" ? "没有可用的 saint 主持人来提议回合后变更。" : "No saint host was available to propose post-round changes.",
+      reasoning: language === "zh" ? "saint 不存在、已禁用或已死亡。" : "saint is absent, disabled, or dead.",
       role_updates: [],
     });
   }
@@ -879,17 +1013,18 @@ function summarizeRound(
   votes: RoleVote[],
   event: RoundEvent | null,
 ) {
+  const language = getLanguageConfig();
   const parts = [
-    `${participantNames.join(", ")} completed one batch progression`,
-    `produced ${output.length} delivered messages`,
-    `${votes.length} votes`,
+    language === "zh" ? `${participantNames.join(", ")} 完成了一个批次的进展` : `${participantNames.join(", ")} completed one batch progression`,
+    language === "zh" ? `生产了 ${output.length} 条已发送消息` : `produced ${output.length} delivered messages`,
+    language === "zh" ? `${votes.length} 张选票` : `${votes.length} votes`,
   ];
 
   if (event) {
-    parts.push(`event: ${event.title}`);
+    parts.push(`${language === "zh" ? "事件" : "event"}: ${event.title}`);
   }
 
-  return `${parts.join(", ")}.`;
+  return `${parts.join(", ")}。`;
 }
 
 export async function advanceGroundRound(
@@ -918,9 +1053,7 @@ export async function advanceGroundRound(
   for (const role of batchRoles) {
     const freshRole = nextGround.role.find((candidate) => candidate.id === role.id);
 
-    if (!freshRole) {
-      continue;
-    }
+    if (!freshRole) { continue; }
 
     const actionRecord = await executeRole(nextGround, freshRole, {
       ...options,

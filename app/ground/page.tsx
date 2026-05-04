@@ -27,7 +27,7 @@ import {
   RoundRecord,
 } from "@/app/lib/sim/types";
 
-import { EventConfig, getEventsConfig } from "@/app/lib/config";
+import { EventConfig } from "@/app/lib/types";
 
 import ExportMenu from "@/app/components/ExportMenu";
 
@@ -73,8 +73,8 @@ function createDraftRole(ground: GroundFile, position?: { x: number; y: number }
   return {
     id: createRoleId(`role-${ground.role.length + 1}`),
     kind: "role",
-    name: `Role ${ground.role.length + 1}`,
-    description: "Character role agent",
+    name: `角色 ${ground.role.length + 1}`,
+    description: "角色智能体",
     use_prompt: "",
     system_prompt: "",
     canvas_position: defaultPosition,
@@ -130,29 +130,29 @@ function RoleNode({
   selected,
 }: NodeProps<Node<RoleNodeData>>) {
   const [expanded, setExpanded] = useState(false);
-  const badge = data.kind === "saint" ? "SAINT" : data.enabled ? "ROLE" : "PAUSED";
+  const badge = data.kind === "saint" ? "SAINT" : data.enabled ? "角色" : "已暂停";
   const runtimeFacts = [
-    { label: "status", value: data.status },
-    { label: "kind", value: data.kind },
-    { label: "enabled", value: data.enabled ? "yes" : "no" },
-    { label: "model", value: data.model || "unset" },
-    { label: "temp", value: String(data.temperature) },
-    { label: "red", value: String(data.redundancy) },
+    { label: "状态", value: data.status === "active" ? "活跃" : data.status === "silent" ? "沉默" : "死亡" },
+    { label: "类型", value: data.kind },
+    { label: "已启用", value: data.enabled ? "是" : "否" },
+    { label: "模型", value: data.model || "未设置" },
+    { label: "温度", value: String(data.temperature) },
+    { label: "冗余", value: String(data.redundancy) },
   ];
 
   const relationFacts = [
-    { label: "blocked", value: String(data.blocked_role_names.length) },
-    { label: "unknown", value: String(data.unknown_role_names.length) },
-    { label: "inbox", value: String(data.inbox.length) },
-    { label: "private", value: String(data.knowledge_private.length) },
-    { label: "public", value: String(data.knowledge_public.length) },
+    { label: "屏蔽", value: String(data.blocked_role_names.length) },
+    { label: "未知", value: String(data.unknown_role_names.length) },
+    { label: "收件箱", value: String(data.inbox.length) },
+    { label: "私有", value: String(data.knowledge_private.length) },
+    { label: "公共", value: String(data.knowledge_public.length) },
   ];
 
   return (
     <div
       className={`role-node ${selected ? "selected" : ""} ${data.enabled ? "" : "disabled"} ${data.kind === "saint" ? "saint" : ""}`}
       onDoubleClick={() => data.onEdit(id)}
-      title="Double-click to edit role"
+      title="双击编辑角色"
     >
       <Handle type="target" position={Position.Top} className="handle" />
       <div className="role-header">
@@ -169,16 +169,16 @@ function RoleNode({
       </div>
 
       <div className="role-content">
-        <div className="role-name">{data.name || "Unnamed Role"}</div>
-        <div className="role-desc">{data.description || "No description yet."}</div>
+        <div className="role-name">{data.name || "未命名角色"}</div>
+        <div className="role-desc">{data.description || "暂无描述。"}</div>
       </div>
 
       <div className="role-meta role-meta-primary">
-        <span className={`status-pill ${getStatusClass(data.status)}`}>{data.status}</span>
+        <span className={`status-pill ${getStatusClass(data.status)}`}>{data.status === "active" ? "活跃" : data.status === "silent" ? "沉默" : "死亡"}</span>
         <span>{data.kind}</span>
-        <span>red {data.redundancy}</span>
-        <span>inbox {data.inbox.length}</span>
-        <span>{data.enabled ? "enabled" : "disabled"}</span>
+        <span>冗余 {data.redundancy}</span>
+        <span>收件箱 {data.inbox.length}</span>
+        <span>{data.enabled ? "已启用" : "已禁用"}</span>
       </div>
 
       <div className="role-fact-grid">
@@ -206,15 +206,15 @@ function RoleNode({
             setExpanded((previous) => !previous);
           }}
         >
-          {expanded ? "Hide Details" : "Show Details"}
+          {expanded ? "隐藏详情" : "显示详情"}
         </button>
-        <span className="edit-hint">Double-click to edit</span>
+        <span className="edit-hint">双击编辑</span>
       </div>
 
       {expanded ? (
         <div className="role-details nodrag">
           <details className="detail-group" open>
-            <summary>Runtime</summary>
+            <summary>运行时</summary>
             <div className="detail-body">
               <div className="detail-grid">
                 {runtimeFacts.map((fact) => (
@@ -224,91 +224,91 @@ function RoleNode({
                   </div>
                 ))}
                 <div className="detail-grid-item">
-                  <span className="detail-grid-label">url</span>
-                  <span className="detail-grid-value">{data.url || "unset"}</span>
+                  <span className="detail-grid-label">URL</span>
+                  <span className="detail-grid-value">{data.url || "未设置"}</span>
                 </div>
                 <div className="detail-grid-item">
-                  <span className="detail-grid-label">api key</span>
-                  <span className="detail-grid-value">{data.key ? "configured" : "empty"}</span>
+                  <span className="detail-grid-label">API 密钥</span>
+                  <span className="detail-grid-value">{data.key ? "已配置" : "未设置"}</span>
                 </div>
               </div>
             </div>
           </details>
 
           <details className="detail-group">
-            <summary>Prompts</summary>
+            <summary>提示词</summary>
             <div className="detail-body">
               <div className="detail-block">
-                <div className="detail-label">Use Prompt</div>
-                <pre className="detail-pre">{data.use_prompt || "empty"}</pre>
+                <div className="detail-label">使用提示词</div>
+                <pre className="detail-pre">{data.use_prompt || "无"}</pre>
               </div>
               <div className="detail-block">
-                <div className="detail-label">System Prompt</div>
-                <pre className="detail-pre">{data.system_prompt || "empty"}</pre>
+                <div className="detail-label">系统提示词</div>
+                <pre className="detail-pre">{data.system_prompt || "无"}</pre>
               </div>
             </div>
           </details>
 
           <details className="detail-group">
-            <summary>Knowledge</summary>
+            <summary>知识</summary>
             <div className="detail-body">
               <div className="detail-block">
-                <div className="detail-label">Private Knowledge</div>
+                <div className="detail-label">私有知识</div>
                 <pre className="detail-pre">
                   {data.knowledge_private.length > 0
                     ? data.knowledge_private.join("\n")
-                    : "empty"}
+                    : "无"}
                 </pre>
               </div>
               <div className="detail-block">
-                <div className="detail-label">Public Knowledge</div>
+                <div className="detail-label">公共知识</div>
                 <pre className="detail-pre">
                   {data.knowledge_public.length > 0
                     ? data.knowledge_public.join("\n")
-                    : "empty"}
+                    : "无"}
                 </pre>
               </div>
             </div>
           </details>
 
           <details className="detail-group">
-            <summary>Relations</summary>
+            <summary>关系</summary>
             <div className="detail-body">
               <div className="detail-block">
-                <div className="detail-label">Blocked Role Names</div>
+                <div className="detail-label">屏蔽角色</div>
                 <pre className="detail-pre">
                   {data.blocked_role_names.length > 0
                     ? data.blocked_role_names.join("\n")
-                    : "empty"}
+                    : "无"}
                 </pre>
               </div>
               <div className="detail-block">
-                <div className="detail-label">Unknown Role Names</div>
+                <div className="detail-label">未知角色</div>
                 <pre className="detail-pre">
                   {data.unknown_role_names.length > 0
                     ? data.unknown_role_names.join("\n")
-                    : "empty"}
+                    : "无"}
                 </pre>
               </div>
             </div>
           </details>
 
           <details className="detail-group">
-            <summary>Inbox and Trace</summary>
+            <summary>收件箱和追踪</summary>
             <div className="detail-body">
               <div className="detail-block">
-                <div className="detail-label">Inbox</div>
+                <div className="detail-label">收件箱</div>
                 <pre className="detail-pre">
-                  {data.inbox.length > 0 ? data.inbox.join("\n") : "empty"}
+                  {data.inbox.length > 0 ? data.inbox.join("\n") : "无"}
                 </pre>
               </div>
               <div className="detail-block">
-                <div className="detail-label">Last Think</div>
-                <pre className="detail-pre">{data.last_think || "empty"}</pre>
+                <div className="detail-label">上次思考</div>
+                <pre className="detail-pre">{data.last_think || "无"}</pre>
               </div>
               <div className="detail-block">
-                <div className="detail-label">Last Error</div>
-                <pre className="detail-pre">{data.last_error || "empty"}</pre>
+                <div className="detail-label">上次错误</div>
+                <pre className="detail-pre">{data.last_error || "无"}</pre>
               </div>
             </div>
           </details>
@@ -374,11 +374,11 @@ function RoleEditModal({ role, presets, onClose, onSave, onDelete }: RoleEditMod
               </svg>
             </div>
             <div>
-              <h3>{isSaint ? "Edit saint" : "Edit Role"}</h3>
+              <h3>{isSaint ? "编辑 Saint" : "编辑角色"}</h3>
               <div className="modal-subtitle">
                 {isSaint
-                  ? "saint is the special adjudicator and cannot be deleted."
-                  : "Configure behavior, visibility rules, and local state."}
+                  ? "Saint 是特殊的裁决者，无法被删除。"
+                  : "配置行为、可见性规则和本地状态。"}
               </div>
             </div>
           </div>
@@ -391,10 +391,10 @@ function RoleEditModal({ role, presets, onClose, onSave, onDelete }: RoleEditMod
 
         <div className="modal-tabs">
           {[
-            { key: "basic", label: "Basic" },
-            { key: "prompt", label: "Prompt" },
+            { key: "basic", label: "基本" },
+            { key: "prompt", label: "提示词" },
             { key: "api", label: "API" },
-            { key: "relations", label: "Relations" },
+            { key: "relations", label: "关系" },
           ].map((tab) => (
             <button
               key={tab.key}
@@ -412,12 +412,12 @@ function RoleEditModal({ role, presets, onClose, onSave, onDelete }: RoleEditMod
               <div className="grid-two">
                 <div className="form-group">
                   <label>
-                    <span className="label-text">Name</span>
+                    <span className="label-text">名称</span>
                     <input
                       className="form-input"
                       value={formData.name}
                       onChange={(event) => updateField("name", event.target.value)}
-                      placeholder="Role name"
+                      placeholder="角色名称"
                       disabled={isSaint}
                     />
                   </label>
@@ -425,7 +425,7 @@ function RoleEditModal({ role, presets, onClose, onSave, onDelete }: RoleEditMod
 
                 <div className="form-group">
                   <label>
-                    <span className="label-text">Status</span>
+                    <span className="label-text">状态</span>
                     <select
                       className="form-input"
                       value={formData.status}
@@ -433,9 +433,9 @@ function RoleEditModal({ role, presets, onClose, onSave, onDelete }: RoleEditMod
                         updateField("status", event.target.value as RoleConfig["status"])
                       }
                     >
-                      <option value="active">active</option>
-                      <option value="silent">silent</option>
-                      <option value="dead">dead</option>
+                      <option value="active">活跃</option>
+                      <option value="silent">沉默</option>
+                      <option value="dead">死亡</option>
                     </select>
                   </label>
                 </div>
@@ -443,13 +443,13 @@ function RoleEditModal({ role, presets, onClose, onSave, onDelete }: RoleEditMod
 
               <div className="form-group">
                 <label>
-                  <span className="label-text">Description</span>
+                  <span className="label-text">描述</span>
                   <textarea
                     className="form-textarea"
                     rows={3}
                     value={formData.description}
                     onChange={(event) => updateField("description", event.target.value)}
-                    placeholder="Describe this role"
+                    placeholder="描述此角色"
                   />
                 </label>
               </div>
@@ -457,7 +457,7 @@ function RoleEditModal({ role, presets, onClose, onSave, onDelete }: RoleEditMod
               <div className="grid-two">
                 <div className="form-group">
                   <label>
-                    <span className="label-text">Redundancy</span>
+                    <span className="label-text">冗余度</span>
                     <input
                       className="form-input"
                       type="number"
@@ -472,7 +472,7 @@ function RoleEditModal({ role, presets, onClose, onSave, onDelete }: RoleEditMod
 
                 <div className="form-group">
                   <label>
-                    <span className="label-text">Temperature</span>
+                    <span className="label-text">温度</span>
                     <input
                       className="form-input"
                       type="number"
@@ -494,7 +494,7 @@ function RoleEditModal({ role, presets, onClose, onSave, onDelete }: RoleEditMod
                   checked={formData.enabled}
                   onChange={(event) => updateField("enabled", event.target.checked)}
                 />
-                <span>Enable this role to participate in advance</span>
+                <span>启用此角色参与推进</span>
               </label>
             </div>
           ) : null}
@@ -503,26 +503,26 @@ function RoleEditModal({ role, presets, onClose, onSave, onDelete }: RoleEditMod
             <div className="tab-content">
               <div className="form-group">
                 <label>
-                  <span className="label-text">Use Prompt</span>
+                  <span className="label-text">使用提示词</span>
                   <textarea
                     className="form-textarea"
                     rows={5}
                     value={formData.use_prompt}
                     onChange={(event) => updateField("use_prompt", event.target.value)}
-                    placeholder="User-facing prompt"
+                    placeholder="面向用户的提示词"
                   />
                 </label>
               </div>
 
               <div className="form-group">
                 <label>
-                  <span className="label-text">System Prompt</span>
+                  <span className="label-text">系统提示词</span>
                   <textarea
                     className="form-textarea"
                     rows={8}
                     value={formData.system_prompt}
                     onChange={(event) => updateField("system_prompt", event.target.value)}
-                    placeholder="System prompt for the role"
+                    placeholder="角色的系统提示词"
                   />
                 </label>
               </div>
@@ -534,14 +534,14 @@ function RoleEditModal({ role, presets, onClose, onSave, onDelete }: RoleEditMod
               <div className="grid-two">
                 <div className="form-group">
                   <label>
-                    <span className="label-text">Base URL</span>
+                    <span className="label-text">API URL</span>
                     <div className="input-with-select">
                       <select
                         className="form-select"
                         value={presets.urls.find(u => u.value === formData.url) ? formData.url : ""}
                         onChange={(event) => updateField("url", event.target.value)}
                       >
-                        <option value="">Custom...</option>
+                        <option value="">自定义...</option>
                         {presets.urls.map((url) => (
                           <option key={url.value} value={url.value}>
                             {url.label}
@@ -560,7 +560,7 @@ function RoleEditModal({ role, presets, onClose, onSave, onDelete }: RoleEditMod
 
                 <div className="form-group">
                   <label>
-                    <span className="label-text">Model</span>
+                    <span className="label-text">模型</span>
                     <div className="input-with-select">
                       <select
                         className="form-select"
@@ -587,13 +587,13 @@ function RoleEditModal({ role, presets, onClose, onSave, onDelete }: RoleEditMod
 
               <div className="form-group">
                 <label>
-                  <span className="label-text">API Key</span>
+                  <span className="label-text">API 密钥</span>
                   <input
                     className="form-input"
                     type="password"
                     value={formData.key}
                     onChange={(event) => updateField("key", event.target.value)}
-                    placeholder="Role-level key"
+                    placeholder="角色级别密钥"
                   />
                 </label>
               </div>
@@ -605,7 +605,7 @@ function RoleEditModal({ role, presets, onClose, onSave, onDelete }: RoleEditMod
               <div className="grid-two">
                 <div className="form-group">
                   <label>
-                    <span className="label-text">Private Knowledge</span>
+                    <span className="label-text">私有知识</span>
                     <textarea
                       className="form-textarea"
                       rows={6}
@@ -613,14 +613,14 @@ function RoleEditModal({ role, presets, onClose, onSave, onDelete }: RoleEditMod
                       onChange={(event) =>
                         updateField("knowledge_private", textToList(event.target.value))
                       }
-                      placeholder="One item per line"
+                      placeholder="每行一条"
                     />
                   </label>
                 </div>
 
                 <div className="form-group">
                   <label>
-                    <span className="label-text">Public Knowledge</span>
+                    <span className="label-text">公共知识</span>
                     <textarea
                       className="form-textarea"
                       rows={6}
@@ -628,7 +628,7 @@ function RoleEditModal({ role, presets, onClose, onSave, onDelete }: RoleEditMod
                       onChange={(event) =>
                         updateField("knowledge_public", textToList(event.target.value))
                       }
-                      placeholder="One item per line"
+                      placeholder="每行一条"
                     />
                   </label>
                 </div>
@@ -637,7 +637,7 @@ function RoleEditModal({ role, presets, onClose, onSave, onDelete }: RoleEditMod
               <div className="grid-two">
                 <div className="form-group">
                   <label>
-                    <span className="label-text">Blocked Role Names</span>
+                    <span className="label-text">屏蔽角色</span>
                     <textarea
                       className="form-textarea"
                       rows={5}
@@ -645,14 +645,14 @@ function RoleEditModal({ role, presets, onClose, onSave, onDelete }: RoleEditMod
                       onChange={(event) =>
                         updateField("blocked_role_names", textToList(event.target.value))
                       }
-                      placeholder="Roles that cannot receive this role's messages"
+                      placeholder="无法接收此角色消息的角色"
                     />
                   </label>
                 </div>
 
                 <div className="form-group">
                   <label>
-                    <span className="label-text">Unknown Role Names</span>
+                    <span className="label-text">未知角色</span>
                     <textarea
                       className="form-textarea"
                       rows={5}
@@ -660,7 +660,7 @@ function RoleEditModal({ role, presets, onClose, onSave, onDelete }: RoleEditMod
                       onChange={(event) =>
                         updateField("unknown_role_names", textToList(event.target.value))
                       }
-                      placeholder="Roles that this role does not know exist"
+                      placeholder="此角色不知道存在的角色"
                     />
                   </label>
                 </div>
@@ -668,28 +668,28 @@ function RoleEditModal({ role, presets, onClose, onSave, onDelete }: RoleEditMod
 
               <div className="form-group">
                 <label>
-                  <span className="label-text">Inbox</span>
+                  <span className="label-text">收件箱</span>
                   <textarea
                     className="form-textarea"
                     rows={7}
                     value={listToText(formData.inbox)}
                     onChange={(event) => updateField("inbox", textToList(event.target.value))}
-                    placeholder="One inbox entry per line"
+                    placeholder="每行一条收件箱条目"
                   />
                 </label>
               </div>
 
               <div className="grid-two">
                 <div className="info-card">
-                  <div className="info-title">Last Think</div>
+                  <div className="info-title">上次思考</div>
                   <div className="info-body">
-                    {formData.last_think || "This role has not executed a round yet."}
+                    {formData.last_think || "此角色尚未执行任何回合。"}
                   </div>
                 </div>
 
                 <div className="info-card">
-                  <div className="info-title">Last Error</div>
-                  <div className="info-body">{formData.last_error || "No error recorded."}</div>
+                  <div className="info-title">上次错误</div>
+                  <div className="info-body">{formData.last_error || "无错误记录。"}</div>
                 </div>
               </div>
             </div>
@@ -697,19 +697,21 @@ function RoleEditModal({ role, presets, onClose, onSave, onDelete }: RoleEditMod
         </div>
 
         <div className="modal-footer">
-          <button className="btn btn-danger" onClick={onDelete}>
-            Delete
-          </button>
+          {!isSaint && (
+            <button className="btn btn-danger" onClick={onDelete}>
+              删除
+            </button>
+          )}
           <div className="footer-spacer" />
           <button className="btn btn-secondary" onClick={onClose}>
-            Cancel
+            取消
           </button>
           <button
             className="btn btn-primary"
             onClick={() => onSave(formData)}
             disabled={!formData.name.trim()}
           >
-            Save Changes
+            保存修改
           </button>
         </div>
       </div>
@@ -764,9 +766,9 @@ function GroundSettingsModal({ ground, presets, onClose, onSave }: GroundSetting
               </svg>
             </div>
             <div>
-              <h3>Ground Settings</h3>
+              <h3>工作空间设置</h3>
               <div className="modal-subtitle">
-                Edit world rules, default model settings, and batch configuration.
+                编辑世界规则、默认模型设置和批次配置。
               </div>
             </div>
           </div>
@@ -782,21 +784,21 @@ function GroundSettingsModal({ ground, presets, onClose, onSave }: GroundSetting
             <div className="grid-two">
               <div className="form-group">
                 <label>
-                  <span className="label-text">Ground Name</span>
+                  <span className="label-text">工作空间名称</span>
                   <input className="form-input" value={name} onChange={(event) => setName(event.target.value)} />
                 </label>
               </div>
 
               <div className="form-group">
                 <label>
-                  <span className="label-text">Default Model</span>
+                  <span className="label-text">默认模型</span>
                   <div className="input-with-select">
                     <select
                       className="form-select"
                       value={presets.models.find(m => m.value === defaultModel) ? defaultModel : ""}
                       onChange={(event) => setDefaultModel(event.target.value)}
                     >
-                      <option value="">Custom...</option>
+                      <option value="">自定义...</option>
                       {presets.models.map((model) => (
                         <option key={model.value} value={model.value}>
                           {model.label}
@@ -807,7 +809,7 @@ function GroundSettingsModal({ ground, presets, onClose, onSave }: GroundSetting
                       className="form-input"
                       value={defaultModel}
                       onChange={(event) => setDefaultModel(event.target.value)}
-                      placeholder="Enter or select model"
+                      placeholder="输入或选择模型"
                     />
                   </div>
                 </label>
@@ -816,7 +818,7 @@ function GroundSettingsModal({ ground, presets, onClose, onSave }: GroundSetting
 
             <div className="form-group">
               <label>
-                <span className="label-text">Description</span>
+                <span className="label-text">描述</span>
                 <textarea
                   className="form-textarea"
                   rows={3}
@@ -829,14 +831,14 @@ function GroundSettingsModal({ ground, presets, onClose, onSave }: GroundSetting
             <div className="grid-two">
               <div className="form-group">
                 <label>
-                  <span className="label-text">Default URL</span>
+                  <span className="label-text">默认 URL</span>
                   <div className="input-with-select">
                     <select
                       className="form-select"
                       value={presets.urls.find(u => u.value === defaultUrl) ? defaultUrl : ""}
                       onChange={(event) => setDefaultUrl(event.target.value)}
                     >
-                      <option value="">Custom...</option>
+                      <option value="">自定义...</option>
                       {presets.urls.map((url) => (
                         <option key={url.value} value={url.value}>
                           {url.label}
@@ -847,7 +849,7 @@ function GroundSettingsModal({ ground, presets, onClose, onSave }: GroundSetting
                       className="form-input"
                       value={defaultUrl}
                       onChange={(event) => setDefaultUrl(event.target.value)}
-                      placeholder="Enter or select URL"
+                      placeholder="输入或选择 URL"
                     />
                   </div>
                 </label>
@@ -855,13 +857,13 @@ function GroundSettingsModal({ ground, presets, onClose, onSave }: GroundSetting
 
               <div className="form-group">
                 <label>
-                  <span className="label-text">Default Key</span>
+                  <span className="label-text">默认密钥</span>
                   <input
                     className="form-input"
                     type="password"
                     value={defaultKey}
                     onChange={(event) => setDefaultKey(event.target.value)}
-                    placeholder="API Key"
+                    placeholder="API 密钥"
                   />
                 </label>
               </div>
@@ -870,7 +872,7 @@ function GroundSettingsModal({ ground, presets, onClose, onSave }: GroundSetting
             <div className="grid-two">
               <div className="form-group">
                 <label>
-                  <span className="label-text">Batch Size</span>
+                  <span className="label-text">批次大小</span>
                   <input
                     className="form-input"
                     type="number"
@@ -884,7 +886,7 @@ function GroundSettingsModal({ ground, presets, onClose, onSave }: GroundSetting
 
               <div className="form-group">
                 <label>
-                  <span className="label-text">Mode</span>
+                  <span className="label-text">模式</span>
                   <select
                     className="form-input"
                     value={mode}
@@ -892,9 +894,9 @@ function GroundSettingsModal({ ground, presets, onClose, onSave }: GroundSetting
                       setMode(event.target.value as GroundFile["simulation"]["mode"])
                     }
                   >
-                    <option value="auto">auto</option>
-                    <option value="live">live</option>
-                    <option value="mock">mock</option>
+                    <option value="auto">自动</option>
+                    <option value="live">实时</option>
+                    <option value="mock">模拟</option>
                   </select>
                 </label>
               </div>
@@ -902,7 +904,7 @@ function GroundSettingsModal({ ground, presets, onClose, onSave }: GroundSetting
 
             <div className="form-group">
               <label>
-                <span className="label-text">Round Goal</span>
+                <span className="label-text">回合目标</span>
                 <textarea
                   className="form-textarea"
                   rows={3}
@@ -915,26 +917,26 @@ function GroundSettingsModal({ ground, presets, onClose, onSave }: GroundSetting
             <div className="grid-two">
               <div className="form-group">
                 <label>
-                  <span className="label-text">Rules</span>
+                  <span className="label-text">规则</span>
                   <textarea
                     className="form-textarea"
                     rows={8}
                     value={rules}
                     onChange={(event) => setRules(event.target.value)}
-                    placeholder="One rule per line"
+                    placeholder="每行一条规则"
                   />
                 </label>
               </div>
 
               <div className="form-group">
                 <label>
-                  <span className="label-text">Public Knowledge</span>
+                  <span className="label-text">公共知识</span>
                   <textarea
                     className="form-textarea"
                     rows={8}
                     value={knowledge}
                     onChange={(event) => setKnowledge(event.target.value)}
-                    placeholder="One item per line"
+                    placeholder="每行一条"
                   />
                 </label>
               </div>
@@ -945,7 +947,7 @@ function GroundSettingsModal({ ground, presets, onClose, onSave }: GroundSetting
         <div className="modal-footer">
           <div className="footer-spacer" />
           <button className="btn btn-secondary" onClick={onClose}>
-            Cancel
+            取消
           </button>
           <button
             className="btn btn-primary"
@@ -967,7 +969,7 @@ function GroundSettingsModal({ ground, presets, onClose, onSave }: GroundSetting
               })
             }
           >
-            Save Ground Settings
+            保存设置
           </button>
         </div>
       </div>
@@ -1397,8 +1399,8 @@ function GroundPageContent() {
     if (!ground || rounds.length === 0) {
       return (
         <div className="vote-results-card">
-          <div className="vote-results-title">Recent Vote Results</div>
-          <div className="vote-results-empty">No vote history found.</div>
+          <div className="vote-results-title">最近投票结果</div>
+          <div className="vote-results-empty">未找到投票历史。</div>
         </div>
       );
     }
@@ -1409,8 +1411,8 @@ function GroundPageContent() {
     if (!recentRoundWithVotes) {
       return (
         <div className="vote-results-card">
-          <div className="vote-results-title">Recent Vote Results</div>
-          <div className="vote-results-empty">No votes found in any round.</div>
+          <div className="vote-results-title">最近投票结果</div>
+          <div className="vote-results-empty">在任何回合中均未找到投票。</div>
         </div>
       );
     }
@@ -1606,7 +1608,7 @@ function GroundPageContent() {
   if (isLoading) {
     return (
       <div className="ground-loading">
-        <div className="loading-card">Loading ground...</div>
+        <div className="loading-card">正在加载工作空间...</div>
       </div>
     );
   }
@@ -1615,9 +1617,9 @@ function GroundPageContent() {
     return (
       <div className="ground-loading">
         <div className="error-card">
-          <div>{error || "Failed to load ground."}</div>
+          <div>{error || "加载工作空间失败。"}</div>
           <Link href="/manage" className="back-link">
-            Back to Manage
+            返回管理页面
           </Link>
         </div>
       </div>
@@ -1629,7 +1631,7 @@ function GroundPageContent() {
       <div className="top-bar">
         <div className="brand-block">
           <Link href="/manage" className="crumb">
-            Grounds
+            工作空间
           </Link>
           <span className="crumb-separator">/</span>
           <span className="crumb current">{ground.name}</span>
@@ -1637,14 +1639,14 @@ function GroundPageContent() {
 
         <div className="top-actions">
           <span className={`sync-badge ${dirty ? "dirty" : "clean"}`}>
-            {dirty ? "Unsaved Changes" : "Synced"}
+            {dirty ? "未保存的更改" : "已同步"}
           </span>
           <button
             onClick={() => void toggleSaintRole()}
             className={`btn ${saintRole ? "btn-warning" : "btn-success"}`}
             disabled={isSaving || isAdvancing}
           >
-            {saintRole ? "Remove Saint Host" : "Add Saint Host"}
+            {saintRole ? "移除 Saint 主机" : "添加 Saint 主机"}
           </button>
           {saintRole ? (
             <button
@@ -1652,7 +1654,7 @@ function GroundPageContent() {
               className="btn btn-secondary"
               disabled={isSaving || isAdvancing}
             >
-              Inspect Saint
+              查看 Saint
             </button>
           ) : null}
           <button
@@ -1660,7 +1662,7 @@ function GroundPageContent() {
             className="btn btn-secondary"
             disabled={isSaving || isAdvancing}
           >
-            Ground Settings
+            工作空间设置
           </button>
           <ExportMenu
             groundId={ground.id}
@@ -1683,12 +1685,12 @@ function GroundPageContent() {
                   }),
                 });
                 if (response.ok) {
-                  alert("Successfully exported to Market!");
+                  alert("成功导出到市场！");
                 } else {
-                  alert("Failed to export to Market");
+                  alert("导出到市场失败");
                 }
               } catch {
-                alert("Failed to export to Market");
+                alert("导出到市场失败");
               }
             }}
           />
@@ -1697,15 +1699,15 @@ function GroundPageContent() {
             className="btn btn-secondary"
             disabled={isSaving || isAdvancing}
           >
-            {isSaving ? "Saving..." : "Save"}
+            {isSaving ? "保存中..." : "保存"}
           </button>
           <button
             onClick={handleUndoRound}
             className="btn btn-secondary"
             disabled={isSaving || isAdvancing || !ground || ground.round.length === 0}
-            title="Undo last round"
+            title="撤销上一回合"
           >
-            ↩ Undo Round
+            ↩ 撤销回合
           </button>
         </div>
       </div>
@@ -1718,7 +1720,7 @@ function GroundPageContent() {
           </div>
 
           <div className="sidebar-content">
-            <div className="section-title">Components</div>
+            <div className="section-title">组件</div>
 
             <div
               className="draggable-item"
@@ -1735,16 +1737,16 @@ function GroundPageContent() {
                 </svg>
               </div>
               <div className="item-info">
-                <span className="item-label">Role</span>
-                <span className="item-desc">Drag to canvas to create a normal role node.</span>
+                <span className="item-label">角色</span>
+                <span className="item-desc">拖到画布创建角色节点。</span>
               </div>
             </div>
 
             <button className="sidebar-add" onClick={() => addRole()}>
-              Add Role Without Drag
+              直接添加角色
             </button>
 
-            <div className="section-title section-space">Role Order</div>
+            <div className="section-title section-space">角色顺序</div>
             <div className="role-list">
               {ground.role.map((role, index) => (
                 <div
@@ -1791,7 +1793,7 @@ function GroundPageContent() {
           </div>
 
           <div className="sidebar-footer">
-            <p className="hint-text">Drag a role into the canvas, then double-click it to edit.</p>
+            <p className="hint-text">将角色拖入画布，双击可编辑。</p>
           </div>
         </aside>
 
@@ -1836,34 +1838,34 @@ function GroundPageContent() {
 
         <aside className="history-sidebar">
           <div className="history-header">
-            <h3>Advance and History</h3>
+            <h3>推进与历史</h3>
             <span className="round-count">{rounds.length}</span>
           </div>
 
           <div className="history-content">
             <div className="advance-card">
               <div className="advance-title">
-                Advance Control
-                <button
-                  onClick={() => setShowVoteResults(!showVoteResults)}
-                  className="vote-results-toggle"
-                >
-                  {showVoteResults ? "Hide Votes" : "Show Votes"}
-                </button>
-              </div>
+                  推进控制
+                  <button
+                    onClick={() => setShowVoteResults(!showVoteResults)}
+                    className="vote-results-toggle"
+                  >
+                    {showVoteResults ? "隐藏投票" : "显示投票"}
+                  </button>
+                </div>
 
               <div className="mode-toggle">
                 <button
                   className={`mode-btn ${manualMode === "auto" ? "active" : ""}`}
                   onClick={() => setManualMode("auto")}
                 >
-                  Auto (Saint)
+                  自动 (Saint)
                 </button>
                 <button
                   className={`mode-btn ${manualMode === "manual" ? "active" : ""}`}
                   onClick={() => setManualMode("manual")}
                 >
-                  Manual
+                  手动
                 </button>
               </div>
 
@@ -1872,23 +1874,23 @@ function GroundPageContent() {
               {manualMode === "manual" ? (
                 <div className="manual-advance-panel">
                   <div className="manual-section">
-                    <div className="manual-section-title">Manual Advance</div>
+                    <div className="manual-section-title">手动推进</div>
                     <div className="manual-section-desc">
-                      Upcoming participants:{" "}
+                      参与者:{" "}
                       {upcomingParticipants.length > 0
                         ? upcomingParticipants.map((role) => role.name).join(", ")
-                        : "none"}
+                        : "无"}
                     </div>
                     <textarea
                       className="advance-input"
                       rows={3}
                       value={roundInstruction}
                       onChange={(event) => setRoundInstruction(event.target.value)}
-                      placeholder="Optional instruction for the next advance"
+                      placeholder="为下一步输入可选指令"
                     />
                     <div className="advance-meta">
-                      <span>Mode: {ground.simulation.mode}</span>
-                      <span>Batch Size: {ground.simulation.batch_size}</span>
+                      <span>模式: {ground.simulation.mode}</span>
+                      <span>批次大小: {ground.simulation.batch_size}</span>
                     </div>
                     <button
                       onClick={() => void advanceRound()}
@@ -1897,19 +1899,19 @@ function GroundPageContent() {
                         isSaving || isAdvancing || upcomingParticipants.length === 0
                       }
                     >
-                      {isAdvancing ? "Advancing..." : "Advance"}
+                      {isAdvancing ? "推进中..." : "推进"}
                     </button>
                   </div>
 
                   <div className="manual-section">
-                    <div className="manual-section-title">Event Injection</div>
+                    <div className="manual-section-title">注入事件</div>
                     <div className="manual-section-desc">
-                      Select an event to inject into the next advance.
+                      选择一个事件注入到下一步中。
                     </div>
                     <div className="event-card-grid">
                       {eventsConfig.length === 0 ? (
                         <div className="event-empty-hint">
-                          No events configured. Add events in config.json.
+                          未配置事件。请在 config.json 中添加。
                         </div>
                       ) : (
                         eventsConfig.map((evt) => (
@@ -1940,7 +1942,7 @@ function GroundPageContent() {
                         <input
                           type="text"
                           className="advance-input"
-                          placeholder="Event title (optional)"
+                          placeholder="事件标题（可选）"
                           value={eventTitle}
                           onChange={(e) => setEventTitle(e.target.value)}
                         />
@@ -1949,7 +1951,7 @@ function GroundPageContent() {
                           rows={3}
                           value={eventPrompt}
                           onChange={(e) => setEventPrompt(e.target.value)}
-                          placeholder="Event prompt"
+                          placeholder="事件提示词"
                         />
                         <button
                           className="clear-event-btn"
@@ -1959,16 +1961,16 @@ function GroundPageContent() {
                             setEventPrompt("");
                           }}
                         >
-                          Clear Event
+                        清除事件
                         </button>
                       </div>
                     )}
                   </div>
 
                   <div className="manual-section">
-                    <div className="manual-section-title">Exclude From Next Advance</div>
+                    <div className="manual-section-title">从下一步中排除</div>
                     <div className="manual-section-desc">
-                      Excluded roles will not participate.
+                      被排除的角色将不参与。
                     </div>
                     <div className="exclude-list">
                       {ground.role
@@ -2005,40 +2007,40 @@ function GroundPageContent() {
                 <>
                   <div className="advance-subtitle">
                     {saintRole
-                      ? "saint proposes the next moderator step, and every proposal requires your approval before it executes."
-                      : "Add saint if you want a host role to replace manual operator input."}
+                      ? "Saint 会提议下一步主持人操作，每个提案在执行前需要您批准。"
+                      : "添加 saint 让 LLM 主机替换手动操作输入。"}
                   </div>
 
                   {!saintRole ? (
                     <div className="host-empty-card">
-                      <div className="host-empty-title">No saint host present</div>
+                      <div className="host-empty-title">没有 Saint 主机</div>
                       <div className="host-empty-body">
-                        Add saint to let the LLM host choose instructions, events, acting roles, and post-round state changes.
+                        添加 saint 让 LLM 主机选择指令、事件、行动角色和回合后状态变更。
                       </div>
                       <button
                         onClick={() => void toggleSaintRole()}
                         className="advance-button"
                         disabled={isSaving || isAdvancing}
                       >
-                        Add Saint Host
+                        添加 Saint 主机
                       </button>
                     </div>
                   ) : null}
 
                   {saintRole && !pendingPlan ? (
                     <div className="host-empty-card">
-                      <div className="host-empty-title">No pending host plan</div>
+                      <div className="host-empty-title">没有待处理的主机计划</div>
                       <div className="host-empty-body">
-                        saint will inspect the current scene and propose the next step for your approval.
+                        Saint 将检查当前场景并提出下一步骤供您批准。
                       </div>
                       <div className="event-option-grid">
                         <div className="event-option-card active custom">
-                          <span className="event-option-title">Default Batch</span>
+                          <span className="event-option-title">默认批次</span>
                           <span className="event-option-desc">
-                            If saint needs a fallback, the default next batch is{" "}
+                            如果 saint 需要后备，默认下一批次是{" "}
                             {defaultUpcomingBatch.map((role) => role.name).join(", ") ||
-                              "none"}
-                            .
+                              "无"}
+                            。
                           </span>
                         </div>
                       </div>
@@ -2047,7 +2049,7 @@ function GroundPageContent() {
                         className="advance-button"
                         disabled={isSaving || isAdvancing}
                       >
-                        {isAdvancing ? "Thinking..." : "Ask Saint For Next Step"}
+                        {isAdvancing ? "思考中..." : "请求 Saint 下一步操作"}
                       </button>
                     </div>
                   ) : null}
@@ -2072,22 +2074,22 @@ function GroundPageContent() {
                   </div>
 
                   <div className="event-preview-body">
-                    {pendingPlan.reasoning || "No reasoning provided."}
+                    {pendingPlan.reasoning || "未提供推理。"}
                   </div>
 
                   <div className="detail-block">
-                    <div className="detail-label">Moderator Instruction</div>
+                    <div className="detail-label">主持人指令</div>
                     <textarea
                       className="detail-textarea"
                       rows={2}
                       defaultValue={pendingPlan.instructions || ""}
                       onChange={(e) => setEditablePlanInstructions(e.target.value)}
-                      placeholder="Enter moderator instruction..."
+                      placeholder="输入主持人指令..."
                     />
                   </div>
 
                   <div className="detail-block">
-                    <div className="detail-label">Selected Roles</div>
+                    <div className="detail-label">选择角色</div>
                     <div className="batch-role-grid">
                       {ground.role
                         .filter(role => role.kind !== "saint" && role.enabled && role.status !== "dead")
@@ -2111,27 +2113,27 @@ function GroundPageContent() {
                   </div>
 
                   <div className="detail-block">
-                    <div className="detail-label">Message Scope</div>
+                    <div className="detail-label">消息范围</div>
                     <div className="message-scope-toggle">
                       <button
                         type="button"
                         className={`scope-btn ${editablePlanMessageScope === "public" ? "active" : ""}`}
                         onClick={() => setEditablePlanMessageScope("public")}
                       >
-                        Public
+                        公开
                       </button>
                       <button
                         type="button"
                         className={`scope-btn ${editablePlanMessageScope === "batch_only" ? "active" : ""}`}
                         onClick={() => setEditablePlanMessageScope("batch_only")}
                       >
-                        Batch Only
+                        仅批次
                       </button>
                     </div>
                   </div>
 
                   <div className="detail-block">
-                    <div className="detail-label">Event</div>
+                    <div className="detail-label">事件</div>
                     <select
                       className="detail-select"
                       value={editablePlanEvent?.type || ""}
@@ -2154,7 +2156,7 @@ function GroundPageContent() {
                         <input
                           type="text"
                           className="detail-input"
-                          placeholder="Event title"
+                          placeholder="事件标题"
                           defaultValue={editablePlanEvent.title}
                           onChange={(e) => setEditablePlanEvent({ ...editablePlanEvent, title: e.target.value })}
                           style={{ marginTop: 8 }}
@@ -2162,7 +2164,7 @@ function GroundPageContent() {
                         <textarea
                           className="detail-textarea"
                           rows={2}
-                          placeholder="Event prompt"
+                          placeholder="事件提示词"
                           defaultValue={editablePlanEvent.prompt}
                           onChange={(e) => setEditablePlanEvent({ ...editablePlanEvent, prompt: e.target.value })}
                           style={{ marginTop: 8 }}
@@ -2177,14 +2179,14 @@ function GroundPageContent() {
                       className="btn btn-secondary"
                       disabled={isSaving || isAdvancing}
                     >
-                      Reject Plan
+                      拒绝计划
                     </button>
                     <button
                       onClick={() => void runSaintWorkflowAction("approve_plan")}
                       className="btn btn-primary"
                       disabled={isSaving || isAdvancing}
                     >
-                      Approve And Execute
+                      批准并执行
                     </button>
                   </div>
                 </div>
@@ -2192,13 +2194,13 @@ function GroundPageContent() {
 
               {pendingJudgement && manualMode === "auto" ? (
                 <div className="latest-event-card">
-                  <div className="latest-event-title">Pending Saint Judgement</div>
+                  <div className="latest-event-title">待处理Saint裁决</div>
                   <div className="latest-event-line">
-                    Round {pendingJudgement.round} -{" "}
-                    {pendingJudgement.summary || "No summary"}
+                    回合 {pendingJudgement.round} -{" "}
+                    {pendingJudgement.summary || "无摘要"}
                   </div>
                   <div className="latest-event-line subtle">
-                    {pendingJudgement.reasoning || "No reasoning provided."}
+                    {pendingJudgement.reasoning || "未提供推理。"}
                   </div>
 
                   <div className="judgement-list">
@@ -2239,14 +2241,14 @@ function GroundPageContent() {
                       className="btn btn-secondary"
                       disabled={isSaving || isAdvancing}
                     >
-                      Reject Judgement
+                      拒绝裁决
                     </button>
                     <button
                       onClick={() => void runSaintWorkflowAction("approve_judgement")}
                       className="btn btn-primary"
                       disabled={isSaving || isAdvancing}
                     >
-                      Approve Changes
+                      批准更改
                     </button>
                   </div>
                 </div>
@@ -2254,11 +2256,11 @@ function GroundPageContent() {
             </div>
 
             <div className="world-card">
-              <div className="advance-title">World Summary</div>
-              <div className="world-line">Rules: {ground.rule.length}</div>
-              <div className="world-line">Public Knowledge: {ground.knowledge.length}</div>
+              <div className="advance-title">世界摘要</div>
+              <div className="world-line">规则: {ground.rule.length}</div>
+              <div className="world-line">公共知识: {ground.knowledge.length}</div>
               <div className="world-line">
-                Enabled Roles: {ground.role.filter((role) => role.enabled).length} / {ground.role.length}
+                启用角色: {ground.role.filter((role) => role.enabled).length} / {ground.role.length}
               </div>
             </div>
 
@@ -2266,15 +2268,15 @@ function GroundPageContent() {
               [...rounds].reverse().map((round) => (
                 <div key={`${round.round}-${round.createdAt}`} className="round-item">
                   <div className="round-header">
-                    <span className="round-number">Round {round.round}</span>
+                    <span className="round-number">回合 {round.round}</span>
                     <span className="round-time">{formatRoundTime(round.createdAt)}</span>
                   </div>
                   {round.event ? (
                     <div className="round-event">
-                      Event: {round.event.type} / {round.event.title}
+                      事件: {round.event.type} / {round.event.title}
                     </div>
                   ) : null}
-                  <div className="round-summary">{round.summary || "No summary yet."}</div>
+                  <div className="round-summary">{round.summary || "暂无摘要。"}</div>
                   <div className="round-output">
                     {round.output.length > 0 ? (
                       round.output.slice(0, 3).map((message, index) => (
@@ -2286,14 +2288,14 @@ function GroundPageContent() {
                         </div>
                       ))
                     ) : (
-                      <div className="message empty">No delivered messages in this round.</div>
+                      <div className="message empty">本回合无投递消息。</div>
                     )}
                   </div>
                 </div>
               ))
             ) : (
               <div className="empty-history">
-                <p>No round history yet.</p>
+                <p>暂无回合历史。</p>
               </div>
             )}
           </div>

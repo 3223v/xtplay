@@ -83,8 +83,10 @@ export default function Home() {
         </Link>
         <nav className="hidden md:flex items-center gap-8">
           {[
+            { label: "首页", href: "/" },
+            { label: "管理", href: "/manage" },
             { label: "文档", href: "/docs" },
-            { label: "Market", href: "/market" },
+            { label: "市场", href: "/market" },
           ].map((item) => (
             <a
               key={item.label}
@@ -96,23 +98,23 @@ export default function Home() {
           ))}
         </nav>
         <button className="px-5 py-2.5 text-sm font-medium text-white bg-gradient-to-r from-blue-500 to-indigo-500 rounded-full hover:from-blue-400 hover:to-indigo-400 transition-all duration-300 shadow-lg shadow-blue-500/20">
-          <Link href="/manage">Get Started</Link>
+          <Link href="/manage">开始使用</Link>
         </button>
       </header>
 
       <main className="relative z-10 flex flex-col items-center justify-center min-h-[calc(100vh-100px)] pt-24 pb-16 px-6 text-center">
         <div className="inline-flex items-center gap-2 px-4 py-2 mb-8 rounded-full bg-white border border-[#e2e8f0] backdrop-blur-sm shadow-sm">
           <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
-          <span className="text-xs text-[#64748b] tracking-wide uppercase">Current Build</span>
+          <span className="text-xs text-[#64748b] tracking-wide uppercase">当前版本</span>
         </div>
 
         <h1 className="text-5xl md:text-7xl lg:text-8xl font-bold tracking-tight mb-6">
           <span className="bg-gradient-to-r from-[#1e293b] via-[#334155] to-[#475569] bg-clip-text text-transparent">
-            Multi-Character
+            多角色
           </span>
           <br />
           <span className="bg-gradient-to-r from-blue-500 via-indigo-500 to-blue-400 bg-clip-text text-transparent">
-            World Simulation
+            世界模拟
           </span>
         </h1>
 
@@ -127,14 +129,14 @@ export default function Home() {
             <span className="absolute inset-0 bg-gradient-to-r from-blue-500 to-indigo-500 group-hover:from-blue-400 group-hover:to-indigo-400" />
             <span className="absolute inset-0 bg-gradient-to-r from-blue-500 to-indigo-500 blur-xl opacity-40 group-hover:opacity-60 transition-opacity" />
             <span className="relative flex items-center gap-2">
-              <Link href="/manage">Start Building</Link>
+              <Link href="/manage">开始构建</Link>
               <svg className="w-4 h-4 transition-transform group-hover:translate-x-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" />
               </svg>
             </span>
           </button>
           <button className="px-8 py-4 text-base font-medium text-[#475569] rounded-full border border-[#e2e8f0] bg-white hover:bg-[#f8fafc] hover:border-[#cbd5e1] transition-all duration-300 shadow-sm">
-            <Link href="/market">打开 Market</Link>
+            <Link href="/market">打开市场</Link>
           </button>
         </div>
 
@@ -146,8 +148,8 @@ export default function Home() {
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
                 </svg>
               ),
-              title: "Multi-Agent System",
-              desc: "Deploy multiple characters with unique personalities and behaviors",
+              title: "多智能体系统",
+              desc: "部署具有独特个性和行为的多个角色",
             },
             {
               icon: (
@@ -155,8 +157,8 @@ export default function Home() {
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
               ),
-              title: "Persistent Worlds",
-              desc: "Characters remember and evolve across sessions",
+              title: "持久化世界",
+              desc: "角色在会话中记忆和演化",
             },
             {
               icon: (
@@ -164,8 +166,8 @@ export default function Home() {
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" />
                 </svg>
               ),
-              title: "Developer-First",
-              desc: "Powerful APIs and seamless integration tools",
+              title: "开发者优先",
+              desc: "强大的 API 和无缝集成工具",
             },
           ].map((feature, i) => (
             <div
