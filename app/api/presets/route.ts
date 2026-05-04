@@ -14,7 +14,7 @@ export async function GET() {
     return NextResponse.json(
       {
         success: false,
-        message: "Failed to load presets config",
+        message: "加载预设配置失败",
       },
       { status: 500 }
     );

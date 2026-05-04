@@ -1,4 +1,4 @@
-import { existsSync, readFileSync } from "fs";
+import { existsSync, readFileSync, writeFileSync } from "fs";
 
 import type { AuthConfig, EventConfig, PresetItem, PresetsConfig, Language } from "./types";
 
@@ -84,4 +84,22 @@ export function getEventsConfig(): EventConfig[] {
 
 export function getAllEventsConfig(): Record<Language, EventConfig[]> {
   return getConfig().events;
+}
+
+export async function setLanguageConfig(language: Language): Promise<void> {
+  cachedConfig = null;
+
+  if (!existsSync(CONFIG_PATH)) {
+    return;
+  }
+
+  try {
+    const content = readFileSync(CONFIG_PATH, "utf-8");
+    const parsed = JSON.parse(content);
+    parsed.language = language;
+    writeFileSync(CONFIG_PATH, JSON.stringify(parsed, null, 2), "utf-8");
+    cachedConfig = null;
+  } catch {
+    throw new Error("Failed to write language config");
+  }
 }

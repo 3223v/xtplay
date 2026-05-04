@@ -21,7 +21,7 @@ export async function GET(request: Request) {
       return NextResponse.json(
         {
           success: false,
-          message: "Ground not found",
+          message: "工作空间不存在",
         },
         { status: 404 },
       );
@@ -39,13 +39,13 @@ export async function GET(request: Request) {
     return NextResponse.json(
       {
         success: false,
-        message: "Failed to read rounds",
+        message: "读取回合列表失败",
       },
       { status: 500 },
     );
   }
 }
-//create round
+
 export async function POST(request: Request) {
   try {
     const groundId = resolveGroundId(request);
@@ -65,7 +65,7 @@ export async function POST(request: Request) {
       return NextResponse.json(
         {
           success: false,
-          message: "Ground not found",
+          message: "工作空间不存在",
         },
         { status: 404 },
       );
@@ -113,7 +113,7 @@ export async function POST(request: Request) {
     return NextResponse.json(
       {
         success: false,
-        message: error instanceof Error ? error.message : "Failed to create round",
+        message: error instanceof Error ? error.message : "创建回合失败",
       },
       { status: 500 },
     );

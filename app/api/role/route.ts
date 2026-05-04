@@ -24,7 +24,7 @@ function resolveRoleDefaults(role: Partial<RoleConfig>, groundId: string) {
   return roleSchema.parse({
     id: role.id || createRoleId(role.name || "role"),
     kind: normalizeRoleKind(role.kind, role.name),
-    name: role.name || "New Role",
+    name: role.name || "新角色",
     description: role.description || "",
     use_prompt: role.use_prompt || "",
     system_prompt: role.system_prompt || "",
@@ -54,7 +54,7 @@ export async function GET(request: Request) {
       return NextResponse.json(
         {
           success: false,
-          message: "Ground not found",
+          message: "工作空间不存在",
         },
         { status: 404 },
       );
@@ -71,7 +71,7 @@ export async function GET(request: Request) {
     return NextResponse.json(
       {
         success: false,
-        message: "Failed to read roles",
+        message: "读取角色列表失败",
       },
       { status: 500 },
     );
@@ -87,7 +87,7 @@ export async function POST(request: Request) {
       return NextResponse.json(
         {
           success: false,
-          message: "Ground not found",
+          message: "工作空间不存在",
         },
         { status: 404 },
       );
@@ -110,7 +110,7 @@ export async function POST(request: Request) {
     return NextResponse.json(
       {
         success: false,
-        message: "Failed to create role",
+        message: "创建角色失败",
       },
       { status: 500 },
     );
@@ -126,7 +126,7 @@ export async function PUT(request: Request) {
       return NextResponse.json(
         {
           success: false,
-          message: "Ground not found",
+          message: "工作空间不存在",
         },
         { status: 404 },
       );
@@ -136,7 +136,7 @@ export async function PUT(request: Request) {
       return NextResponse.json(
         {
           success: false,
-          message: "Role ID is required",
+          message: "缺少角色 ID",
         },
         { status: 400 },
       );
@@ -165,7 +165,7 @@ export async function PUT(request: Request) {
     return NextResponse.json(
       {
         success: false,
-        message: "Failed to update role",
+        message: "更新角色失败",
       },
       { status: 500 },
     );
@@ -182,7 +182,7 @@ export async function DELETE(request: Request) {
       return NextResponse.json(
         {
           success: false,
-          message: "Ground not found",
+          message: "工作空间不存在",
         },
         { status: 404 },
       );
@@ -192,7 +192,7 @@ export async function DELETE(request: Request) {
       return NextResponse.json(
         {
           success: false,
-          message: "Role ID is required",
+          message: "缺少角色 ID",
         },
         { status: 400 },
       );
@@ -206,14 +206,14 @@ export async function DELETE(request: Request) {
 
     return NextResponse.json({
       success: true,
-      message: `Role ${id} deleted`,
+      message: `角色 ${id} 已删除`,
       ground,
     });
   } catch {
     return NextResponse.json(
       {
         success: false,
-        message: "Failed to delete role",
+        message: "删除角色失败",
       },
       { status: 500 },
     );

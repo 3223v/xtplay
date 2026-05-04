@@ -225,7 +225,7 @@ export default function Market() {
         setArticles(result.data);
       }
     } catch (error) {
-      console.error("Failed to fetch articles:", error);
+      console.error("获取文章列表失败:", error);
     } finally {
       setIsLoading(false);
     }

@@ -1100,7 +1100,7 @@ function GroundPageContent() {
         const result = await response.json();
 
         if (!response.ok || !result.success) {
-          throw new Error(result.message || "Failed to load ground");
+          throw new Error(result.message || "加载工作空间失败");
         }
 
         const nextGround = result.data as GroundFile;
@@ -1110,7 +1110,7 @@ function GroundPageContent() {
         applyGround(nextGround, { dirty: false });
         setSelectedRoleId(nextGround.role[0]?.id ?? null);
       } catch (loadError) {
-        setError(loadError instanceof Error ? loadError.message : "Failed to load ground");
+        setError(loadError instanceof Error ? loadError.message : "加载工作空间失败");
       } finally {
         setIsLoading(false);
       }
@@ -1171,7 +1171,7 @@ function GroundPageContent() {
         }
       }
     } catch (error) {
-      console.error("Failed to undo round:", error);
+      console.error("撤销回合失败:", error);
     }
   }, [applyGround, ground, groundId]);
 
@@ -1256,10 +1256,10 @@ function GroundPageContent() {
         groundRef.current = updatedGround;
         applyGround(updatedGround, { dirty: false });
       } else {
-        setError(result.message || "Failed to toggle saint role");
+        setError(result.message || "切换 Saint 角色失败");
       }
     } catch (error) {
-      setError(error instanceof Error ? error.message : "Failed to toggle saint role");
+      setError(error instanceof Error ? error.message : "切换 Saint 角色失败");
     }
   }
 
@@ -1310,7 +1310,7 @@ function GroundPageContent() {
       const result = await response.json();
 
       if (!response.ok || !result.success) {
-        throw new Error(result.message || "Failed to advance round");
+        throw new Error(result.message || "推进回合失败");
       }
 
       const nextGround = result.ground as GroundFile;
@@ -1324,7 +1324,7 @@ function GroundPageContent() {
       setSelectedEventType("");
     } catch (advanceError) {
       setError(
-        advanceError instanceof Error ? advanceError.message : "Failed to advance round",
+        advanceError instanceof Error ? advanceError.message : "推进回合失败",
       );
     } finally {
       setIsAdvancing(false);
@@ -1378,7 +1378,7 @@ function GroundPageContent() {
       const result = await response.json();
 
       if (!response.ok || !result.success) {
-        throw new Error(result.message || "Failed to process saint action");
+        throw new Error(result.message || "处理 Saint 操作失败");
       }
 
       const updatedGround = result.ground as GroundFile;
@@ -1388,7 +1388,7 @@ function GroundPageContent() {
       applyGround(updatedGround, { dirty: false });
     } catch (saintError) {
       setError(
-        saintError instanceof Error ? saintError.message : "Failed to process saint action",
+        saintError instanceof Error ? saintError.message : "处理 Saint 操作失败",
       );
     } finally {
       setIsAdvancing(false);
@@ -1472,7 +1472,7 @@ function GroundPageContent() {
       const result = await response.json();
 
       if (!response.ok || !result.success) {
-        throw new Error(result.message || "Failed to save ground");
+        throw new Error(result.message || "保存工作空间失败");
       }
 
       const persistedGround = result.data as GroundFile;
@@ -1488,7 +1488,7 @@ function GroundPageContent() {
 
       return persistedGround;
     } catch (saveError) {
-      setError(saveError instanceof Error ? saveError.message : "Failed to save ground");
+      setError(saveError instanceof Error ? saveError.message : "保存工作空间失败");
       setDirty(true);
       return null;
     } finally {

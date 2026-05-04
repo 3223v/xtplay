@@ -11,12 +11,12 @@ export async function POST(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
     const groundId = searchParams.get("groundId");
-    
+
     if (!groundId) {
       return NextResponse.json(
         {
           success: false,
-          message: "Ground ID is required",
+          message: "缺少工作空间 ID",
         },
         { status: 400 }
       );
@@ -26,7 +26,7 @@ export async function POST(request: Request) {
       return NextResponse.json(
         {
           success: false,
-          message: "Ground not found",
+          message: "工作空间不存在",
         },
         { status: 404 }
       );
@@ -34,10 +34,9 @@ export async function POST(request: Request) {
 
     const ground = readGroundData(groundId);
     const existingSaint = ground.role.find((role) => isSaintRole(role));
-    
+
     let updatedGround;
     if (existingSaint) {
-      // Remove saint role
       updatedGround = {
         ...ground,
         role: ground.role.filter((role) => !isSaintRole(role)),
@@ -48,7 +47,6 @@ export async function POST(request: Request) {
         },
       };
     } else {
-      // Add saint role
       const saint = createDefaultSaintRole({
         default_url: ground.default_url,
         default_key: ground.default_key,
@@ -66,7 +64,7 @@ export async function POST(request: Request) {
     }
 
     const result = writeGroundData(groundId, updatedGround);
-    
+
     return NextResponse.json({
       success: true,
       data: result,
@@ -76,7 +74,7 @@ export async function POST(request: Request) {
     return NextResponse.json(
       {
         success: false,
-        message: error instanceof Error ? error.message : "Failed to toggle saint role",
+        message: error instanceof Error ? error.message : "切换 Saint 角色失败",
       },
       { status: 500 }
     );

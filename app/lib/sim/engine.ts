@@ -799,7 +799,7 @@ async function runLiveRole(
   const model = role.model || ground.default_model;
 
   if (!model) {
-    throw new Error(`Role ${role.name} missing model configuration`);
+    throw new Error(`角色 ${role.name} 缺少模型配置`);
   }
 
   const client = new OpenAI({
@@ -821,7 +821,7 @@ async function runLiveRole(
   const content = completion.choices[0]?.message?.content;
 
   if (!content) {
-    throw new Error(`Role ${role.name} returned empty content`);
+    throw new Error(`角色 ${role.name} 返回了空内容`);
   }
 
   return roleActionSchema.parse(JSON.parse(extractJsonPayload(content)));
@@ -834,7 +834,7 @@ async function runLiveSaintPlan(
   const model = saint.model || ground.default_model;
 
   if (!model) {
-    throw new Error("saint missing model configuration");
+    throw new Error("saint 缺少模型配置");
   }
 
   const client = new OpenAI({
@@ -852,7 +852,7 @@ async function runLiveSaintPlan(
   const content = completion.choices[0]?.message?.content;
 
   if (!content) {
-    throw new Error("saint returned empty content");
+    throw new Error("saint 返回了空内容");
   }
 
   return saintPlanSchema.parse(JSON.parse(extractJsonPayload(content)));
@@ -866,7 +866,7 @@ async function runLiveSaintJudgement(
   const model = saint.model || ground.default_model;
 
   if (!model) {
-    throw new Error("saint missing model configuration");
+    throw new Error("saint 缺少模型配置");
   }
 
   const client = new OpenAI({
@@ -884,7 +884,7 @@ async function runLiveSaintJudgement(
   const content = completion.choices[0]?.message?.content;
 
   if (!content) {
-    throw new Error("saint returned empty content");
+    throw new Error("saint 返回了空内容");
   }
 
   return saintJudgementSchema.parse(JSON.parse(extractJsonPayload(content)));
@@ -953,7 +953,7 @@ export async function proposeSaintPlan(
   const saint = getSaintRole(ground);
 
   if (!saint || !saint.enabled || saint.status === "dead") {
-    throw new Error("Active saint host is required");
+    throw new Error("需要活跃的 saint 主机");
   }
 
   if (options.dryRun || ground.simulation.mode === "mock") {
@@ -1036,7 +1036,7 @@ export async function advanceGroundRound(
   const batchRoles = getBatchRoles(currentGround, options.batchRoleIds, excludedRoleIds);
 
   if (batchRoles.length === 0) {
-    throw new Error("No participating roles available for the next advance");
+    throw new Error("没有可参与下一步的角色");
   }
 
   const nextGround = structuredClone(currentGround) as GroundFile;

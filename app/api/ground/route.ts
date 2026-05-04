@@ -36,7 +36,7 @@ export async function GET(request: Request) {
         return NextResponse.json(
           {
             success: false,
-            message: "Ground not found",
+            message: "工作空间不存在",
           },
           { status: 404 },
         );
@@ -63,11 +63,11 @@ export async function GET(request: Request) {
       data: listGroundSummaries(),
     });
   } catch (error) {
-    console.error("GET /api/ground failed:", error);
+    console.error("读取工作空间列表失败:", error);
     return NextResponse.json(
       {
         success: false,
-        message: "Failed to read grounds",
+        message: "读取工作空间列表失败",
       },
       { status: 500 },
     );
@@ -94,14 +94,14 @@ export async function POST(request: Request) {
       success: true,
       data: toGroundSummary(ground),
       ground,
-      message: "Ground created successfully",
+      message: "工作空间创建成功",
     });
   } catch (error) {
-    console.error("POST /api/ground failed:", error);
+    console.error("创建工作空间失败:", error);
     return NextResponse.json(
       {
         success: false,
-        message: "Failed to create ground",
+        message: "创建工作空间失败",
       },
       { status: 500 },
     );
@@ -116,7 +116,7 @@ export async function PUT(request: Request) {
       return NextResponse.json(
         {
           success: false,
-          message: "Ground ID is required",
+          message: "缺少工作空间 ID",
         },
         { status: 400 },
       );
@@ -126,7 +126,7 @@ export async function PUT(request: Request) {
       return NextResponse.json(
         {
           success: false,
-          message: "Ground not found",
+          message: "工作空间不存在",
         },
         { status: 404 },
       );
@@ -150,14 +150,14 @@ export async function PUT(request: Request) {
       success: true,
       data: ground,
       summary: toGroundSummary(ground),
-      message: "Ground updated successfully",
+      message: "工作空间更新成功",
     });
   } catch (error) {
-    console.error("PUT /api/ground failed:", error);
+    console.error("更新工作空间失败:", error);
     return NextResponse.json(
       {
         success: false,
-        message: "Failed to update ground",
+        message: "更新工作空间失败",
       },
       { status: 500 },
     );
@@ -173,7 +173,7 @@ export async function DELETE(request: Request) {
       return NextResponse.json(
         {
           success: false,
-          message: "Ground ID is required",
+          message: "缺少工作空间 ID",
         },
         { status: 400 },
       );
@@ -183,7 +183,7 @@ export async function DELETE(request: Request) {
       return NextResponse.json(
         {
           success: false,
-          message: "Ground not found",
+          message: "工作空间不存在",
         },
         { status: 404 },
       );
@@ -193,14 +193,14 @@ export async function DELETE(request: Request) {
 
     return NextResponse.json({
       success: true,
-      message: `Ground ${id} deleted successfully`,
+      message: `工作空间 ${id} 已删除`,
     });
   } catch (error) {
-    console.error("DELETE /api/ground failed:", error);
+    console.error("删除工作空间失败:", error);
     return NextResponse.json(
       {
         success: false,
-        message: "Failed to delete ground",
+        message: "删除工作空间失败",
       },
       { status: 500 },
     );
@@ -217,7 +217,7 @@ export async function PATCH(request: Request) {
       return NextResponse.json(
         {
           success: false,
-          message: "Ground ID is required",
+          message: "缺少工作空间 ID",
         },
         { status: 400 },
       );
@@ -227,7 +227,7 @@ export async function PATCH(request: Request) {
       return NextResponse.json(
         {
           success: false,
-          message: "Ground not found",
+          message: "工作空间不存在",
         },
         { status: 404 },
       );
@@ -239,23 +239,23 @@ export async function PATCH(request: Request) {
         success: true,
         data: ground,
         summary: toGroundSummary(ground),
-        message: "Last round undone successfully",
+        message: "上一回合已撤销",
       });
     }
 
     return NextResponse.json(
       {
         success: false,
-        message: "Invalid action",
+        message: "无效的操作",
       },
       { status: 400 },
     );
   } catch (error) {
-    console.error("PATCH /api/ground failed:", error);
+    console.error("执行操作失败:", error);
     return NextResponse.json(
       {
         success: false,
-        message: "Failed to perform action",
+        message: "执行操作失败",
       },
       { status: 500 },
     );

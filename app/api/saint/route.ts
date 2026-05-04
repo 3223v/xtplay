@@ -67,7 +67,7 @@ export async function POST(request: Request) {
       return NextResponse.json(
         {
           success: false,
-          message: "Ground not found",
+          message: "工作空间不存在",
         },
         { status: 404 },
       );
@@ -79,7 +79,7 @@ export async function POST(request: Request) {
       return NextResponse.json(
         {
           success: false,
-          message: "Saint action is required",
+          message: "缺少 Saint 操作类型",
         },
         { status: 400 },
       );
@@ -91,7 +91,7 @@ export async function POST(request: Request) {
       return NextResponse.json(
         {
           success: false,
-          message: "No saint host exists in this ground",
+          message: "此工作空间中不存在 Saint 主机",
         },
         { status: 400 },
       );
@@ -141,7 +141,7 @@ export async function POST(request: Request) {
         return NextResponse.json(
           {
             success: false,
-            message: "No pending saint plan to approve",
+            message: "没有待批准的 Saint 计划",
           },
           { status: 400 },
         );
@@ -207,7 +207,7 @@ export async function POST(request: Request) {
         return NextResponse.json(
           {
             success: false,
-            message: "No pending saint judgement to approve",
+            message: "没有待批准的 Saint 裁决",
           },
           { status: 400 },
         );
@@ -244,7 +244,7 @@ export async function POST(request: Request) {
     return NextResponse.json(
       {
         success: false,
-        message: "Unsupported saint action",
+        message: "不支持的 Saint 操作",
       },
       { status: 400 },
     );
@@ -252,7 +252,7 @@ export async function POST(request: Request) {
     return NextResponse.json(
       {
         success: false,
-        message: error instanceof Error ? error.message : "Failed to process saint action",
+        message: error instanceof Error ? error.message : "处理 Saint 操作失败",
       },
       { status: 500 },
     );

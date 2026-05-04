@@ -263,10 +263,6 @@ export function todayStamp() {
   return new Date().toISOString().slice(0, 10);
 }
 
-export function getRoundEventTemplate(type: string) {
-  return null;
-}
-
 export function buildRoundEventDraft(type: string, prompt: string, title?: string) {
   const normalizedPrompt = prompt.trim();
 

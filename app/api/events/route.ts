@@ -14,7 +14,7 @@ export async function GET() {
     return NextResponse.json(
       {
         success: false,
-        message: "Failed to load events config",
+        message: "加载事件配置失败",
       },
       { status: 500 }
     );

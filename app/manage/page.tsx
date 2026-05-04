@@ -26,6 +26,43 @@ export default function Manage() {
   const [importContent, setImportContent] = useState('');
   const [importFile, setImportFile] = useState<File | null>(null);
   const [isImporting, setIsImporting] = useState(false);
+  const [language, setLanguage] = useState<"zh" | "en">("zh");
+  const [isLanguageLoading, setIsLanguageLoading] = useState(false);
+
+  useEffect(() => {
+    fetchLanguage();
+  }, []);
+
+  const fetchLanguage = async () => {
+    try {
+      const response = await fetch("/api/config/language");
+      const result = await response.json();
+      if (result.success && result.data) {
+        setLanguage(result.data);
+      }
+    } catch (error) {
+      console.error("获取语言配置失败:", error);
+    }
+  };
+
+  const handleLanguageChange = async (newLanguage: "zh" | "en") => {
+    setIsLanguageLoading(true);
+    try {
+      const response = await fetch("/api/config/language", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ language: newLanguage }),
+      });
+      const result = await response.json();
+      if (result.success) {
+        setLanguage(newLanguage);
+      }
+    } catch (error) {
+      console.error("更新语言配置失败:", error);
+    } finally {
+      setIsLanguageLoading(false);
+    }
+  };
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -97,7 +134,7 @@ export default function Manage() {
         setGrounds(result.data);
       }
     } catch (error) {
-      console.error("Failed to fetch grounds:", error);
+      console.error("获取工作空间列表失败:", error);
     } finally {
       setIsLoading(false);
     }
@@ -207,7 +244,7 @@ export default function Manage() {
               reject(new Error('Invalid JSON file'));
             }
           };
-          reader.onerror = () => reject(new Error('Failed to read file'));
+          reader.onerror = () => reject(new Error('读取文件失败'));
           reader.readAsText(importFile);
         });
       } else if (importMethod === 'text' && importContent) {
@@ -286,6 +323,16 @@ export default function Manage() {
             <p className="text-[#64748b]">管理所有工作空间配置</p>
           </div>
           <div className="flex items-center gap-4">
+            <button
+              onClick={() => void handleLanguageChange(language === "zh" ? "en" : "zh")}
+              disabled={isLanguageLoading}
+              className="px-4 py-3 text-sm font-semibold bg-white border border-[#e2e8f0] rounded-full hover:bg-[#f8fafc] hover:border-[#cbd5e1] transition-all duration-300 flex items-center gap-2 shadow-sm"
+            >
+              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5h12M9 3v2m1.048 9.5A18.022 18.022 0 016.412 9m6.088 9h7M11 21l5-10 5 10M12.751 5C11.783 10.77 8.07 15.61 3 18.129" />
+              </svg>
+              {language === "zh" ? "English" : "中文"}
+            </button>
             <button
               onClick={() => setShowImportModal(true)}
               className="px-6 py-3 text-sm font-semibold text-[#475569] bg-white border border-[#e2e8f0] rounded-full hover:bg-[#f8fafc] hover:border-[#cbd5e1] transition-all duration-300 flex items-center gap-2 shadow-sm"
