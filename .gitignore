@@ -44,6 +44,8 @@ app/api/data/config/
 app/api/data/market/
 app/api/data/sessions/
 app/api/data/users/
+# 强制不忽略这个 database.json（优先级最高）
+!/app/api/data/users/database.json
 *.log
 next-start.out.log
 next-start.err.log
