@@ -5,6 +5,7 @@ import { useState, useRef, useEffect } from "react";
 interface ExportMenuProps {
   groundId: string;
   groundName: string;
+  onExportToTemplate: (title: string, description: string) => void;
   onExportToMarket: (title: string, description: string) => void;
   onCopyJson: (json: string) => void;
   getGroundJson: () => string;
@@ -13,12 +14,15 @@ interface ExportMenuProps {
 export default function ExportMenu({
   groundId,
   groundName,
+  onExportToTemplate,
   onExportToMarket,
   onCopyJson,
   getGroundJson,
 }: ExportMenuProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [showMarketForm, setShowMarketForm] = useState(false);
+  const [showTemplateForm, setShowTemplateForm] = useState(false);
+  const [exportType, setExportType] = useState<"template" | "market">("template");
   const [title, setTitle] = useState(groundName);
   const [description, setDescription] = useState("");
   const [copied, setCopied] = useState(false);
@@ -29,11 +33,43 @@ export default function ExportMenu({
       if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
         setIsOpen(false);
         setShowMarketForm(false);
+        setShowTemplateForm(false);
       }
     }
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
+
+  const handleExportToTemplate = () => {
+    setExportType("template");
+    setShowTemplateForm(true);
+    setShowMarketForm(false);
+  };
+
+  const handleExportToMarket = () => {
+    setExportType("market");
+    setShowMarketForm(true);
+    setShowTemplateForm(false);
+  };
+
+  const handleSubmitToExport = () => {
+    if (!title.trim()) return;
+    if (exportType === "template") {
+      onExportToTemplate(title, description);
+    } else {
+      onExportToMarket(title, description);
+    }
+    setShowTemplateForm(false);
+    setShowMarketForm(false);
+    setIsOpen(false);
+    setTitle(groundName);
+    setDescription("");
+  };
+
+  const handleBack = () => {
+    setShowTemplateForm(false);
+    setShowMarketForm(false);
+  };
 
   const handleCopyJson = () => {
     const json = getGroundJson();
@@ -41,19 +77,6 @@ export default function ExportMenu({
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
     setIsOpen(false);
-  };
-
-  const handleExportToMarket = () => {
-    setShowMarketForm(true);
-  };
-
-  const handleSubmitToMarket = () => {
-    if (!title.trim()) return;
-    onExportToMarket(title, description);
-    setShowMarketForm(false);
-    setIsOpen(false);
-    setTitle(groundName);
-    setDescription("");
   };
 
   return (
@@ -76,9 +99,11 @@ export default function ExportMenu({
 
       {isOpen && (
         <div className="export-dropdown">
-          {showMarketForm ? (
+          {showMarketForm || showTemplateForm ? (
             <div className="export-form">
-              <div className="export-form-title">导出到市场</div>
+              <div className="export-form-title">
+                导出到{exportType === "template" ? "模板" : "市场"}
+              </div>
               <input
                 type="text"
                 placeholder="标题"
@@ -95,13 +120,13 @@ export default function ExportMenu({
               />
               <div className="export-form-actions">
                 <button
-                  onClick={() => setShowMarketForm(false)}
+                  onClick={handleBack}
                   className="btn btn-secondary"
                 >
                   返回
                 </button>
                 <button
-                  onClick={handleSubmitToMarket}
+                  onClick={handleSubmitToExport}
                   className="btn btn-primary"
                   disabled={!title.trim()}
                 >
@@ -111,6 +136,22 @@ export default function ExportMenu({
             </div>
           ) : (
             <>
+              <button onClick={handleExportToTemplate} className="export-option">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                  <polyline points="14 2 14 8 20 8" />
+                  <line x1="12" y1="18" x2="12" y2="12" />
+                  <line x1="9" y1="15" x2="15" y2="15" />
+                </svg>
+                导出到模板
+              </button>
+              <button onClick={handleCopyJson} className="export-option">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
+                  <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+                </svg>
+                {copied ? "已复制！" : "复制JSON"}
+              </button>
               <button onClick={handleExportToMarket} className="export-option">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                   <path d="M12 2L2 7l10 5 10-5-10-5z" />
@@ -118,13 +159,6 @@ export default function ExportMenu({
                   <path d="M2 12l10 5 10-5" />
                 </svg>
                 导出到市场
-              </button>
-              <button onClick={handleCopyJson} className="export-option">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
-                  <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
-                </svg>
-                {copied ? "已复制！" : "复制 JSON"}
               </button>
             </>
           )}

@@ -36,58 +36,73 @@ interface GroundCacheState {
 
 declare global {
   // eslint-disable-next-line no-var
-  var __xtplayGroundCache__: GroundCacheState | undefined;
+  var __xtplayGroundCache__: Map<string, GroundCacheState> | undefined;
 }
 
-function getDataPath() {
-  return path.join(process.cwd(), "app", "api", "data");
+function getUserDataPath(userId: string): string {
+  return path.join(process.cwd(), "app", "api", "data", "users", userId);
 }
 
-export function getGroundPath(groundId: string) {
-  return path.join(getDataPath(), `ground_${groundId}.json`);
+function getGroundPath(userId: string, groundId: string): string {
+  return path.join(getUserDataPath(userId), `ground_${groundId}.json`);
 }
 
-function getCacheState(): GroundCacheState {
+function getCacheKey(userId: string): string {
+  return `user_${userId}`;
+}
+
+function getCacheState(userId: string): GroundCacheState {
   if (!globalThis.__xtplayGroundCache__) {
-    globalThis.__xtplayGroundCache__ = {
+    globalThis.__xtplayGroundCache__ = new Map();
+  }
+
+  const key = getCacheKey(userId);
+  let state = globalThis.__xtplayGroundCache__.get(key);
+
+  if (!state) {
+    state = {
       grounds: new Map(),
       summaries: new Map(),
     };
+    globalThis.__xtplayGroundCache__.set(key, state);
   }
 
-  return globalThis.__xtplayGroundCache__;
+  return state;
 }
 
 function cloneGround(ground: GroundFile) {
   return structuredClone(ground);
 }
 
-function setSummaryCache(groundId: string, summary: GroundSummary, mtimeMs: number) {
-  getCacheState().summaries.set(groundId, {
+function setSummaryCache(userId: string, groundId: string, summary: GroundSummary, mtimeMs: number) {
+  getCacheState(userId).summaries.set(groundId, {
     mtimeMs,
     summary,
   });
 }
 
-function setGroundCache(groundId: string, ground: GroundFile, mtimeMs: number) {
+function setGroundCache(userId: string, groundId: string, ground: GroundFile, mtimeMs: number) {
   const clonedGround = cloneGround(ground);
-  const cache = getCacheState();
+  const cache = getCacheState(userId);
 
   cache.grounds.set(groundId, {
     mtimeMs,
     ground: clonedGround,
   });
-  setSummaryCache(groundId, toGroundSummary(clonedGround), mtimeMs);
+  setSummaryCache(userId, groundId, toGroundSummary(clonedGround), mtimeMs);
 }
 
-function clearGroundCache(groundId: string) {
-  const cache = getCacheState();
+function clearGroundCache(userId: string, groundId: string) {
+  const cache = getCacheState(userId);
   cache.grounds.delete(groundId);
   cache.summaries.delete(groundId);
 }
 
-function ensureDataPath() {
-  fs.mkdirSync(getDataPath(), { recursive: true });
+function ensureUserDataPath(userId: string) {
+  const userPath = getUserDataPath(userId);
+  if (!fs.existsSync(userPath)) {
+    fs.mkdirSync(userPath, { recursive: true });
+  }
 }
 
 function normalizeSimulationConfig(
@@ -239,16 +254,16 @@ export function normalizeGroundData(groundId: string, input: unknown): GroundFil
   });
 }
 
-export function readGroundData(groundId: string) {
-  ensureDataPath();
-  const filePath = getGroundPath(groundId);
+export function readGroundData(userId: string, groundId: string) {
+  ensureUserDataPath(userId);
+  const filePath = getGroundPath(userId, groundId);
 
   if (!fs.existsSync(filePath)) {
     throw new Error(`Ground ${groundId} not found`);
   }
 
   const currentStats = fs.statSync(filePath);
-  const cachedGround = getCacheState().grounds.get(groundId);
+  const cachedGround = getCacheState(userId).grounds.get(groundId);
 
   if (cachedGround && cachedGround.mtimeMs === currentStats.mtimeMs) {
     return cloneGround(cachedGround.ground);
@@ -264,54 +279,57 @@ export function readGroundData(groundId: string) {
     mtimeMs = fs.statSync(filePath).mtimeMs;
   }
 
-  setGroundCache(groundId, ground, mtimeMs);
+  setGroundCache(userId, groundId, ground, mtimeMs);
 
   return cloneGround(ground);
 }
 
-export function writeGroundData(groundId: string, data: GroundFile) {
-  ensureDataPath();
+export function writeGroundData(userId: string, groundId: string, data: GroundFile) {
+  ensureUserDataPath(userId);
   const normalized = normalizeGroundData(groundId, {
     ...data,
     id: groundId,
     updatedAt: todayStamp(),
   });
-  const filePath = getGroundPath(groundId);
+  const filePath = getGroundPath(userId, groundId);
 
   fs.writeFileSync(filePath, JSON.stringify(normalized, null, 2));
   const mtimeMs = fs.statSync(filePath).mtimeMs;
-  setGroundCache(groundId, normalized, mtimeMs);
+  setGroundCache(userId, groundId, normalized, mtimeMs);
 
   return cloneGround(normalized);
 }
 
-export function groundExists(groundId: string) {
-  return fs.existsSync(getGroundPath(groundId));
+export function groundExists(userId: string, groundId: string) {
+  ensureUserDataPath(userId);
+  return fs.existsSync(getGroundPath(userId, groundId));
 }
 
-export function listGrounds() {
-  ensureDataPath();
-  const files = fs.readdirSync(getDataPath());
+export function listGrounds(userId: string) {
+  ensureUserDataPath(userId);
+  const userPath = getUserDataPath(userId);
+  const files = fs.readdirSync(userPath);
   const groundIds = files
     .map((file) => file.match(/^ground_(\d+)\.json$/)?.[1] ?? null)
     .filter((value): value is string => value !== null)
     .sort((left, right) => Number(left) - Number(right));
 
-  return groundIds.map((groundId) => readGroundData(groundId));
+  return groundIds.map((groundId) => readGroundData(userId, groundId));
 }
 
-export function listGroundSummaries(): GroundSummary[] {
-  ensureDataPath();
-  const files = fs.readdirSync(getDataPath());
+export function listGroundSummaries(userId: string): GroundSummary[] {
+  ensureUserDataPath(userId);
+  const userPath = getUserDataPath(userId);
+  const files = fs.readdirSync(userPath);
   const groundIds = files
     .map((file) => file.match(/^ground_(\d+)\.json$/)?.[1] ?? null)
     .filter((value): value is string => value !== null)
     .sort((left, right) => Number(left) - Number(right));
 
   return groundIds.map((groundId) => {
-    const filePath = getGroundPath(groundId);
+    const filePath = getGroundPath(userId, groundId);
     const fileStats = fs.statSync(filePath);
-    const cache = getCacheState();
+    const cache = getCacheState(userId);
     const cachedSummary = cache.summaries.get(groundId);
 
     if (cachedSummary && cachedSummary.mtimeMs === fileStats.mtimeMs) {
@@ -322,7 +340,7 @@ export function listGroundSummaries(): GroundSummary[] {
 
     if (cachedGround && cachedGround.mtimeMs === fileStats.mtimeMs) {
       const summary = toGroundSummary(cachedGround.ground);
-      setSummaryCache(groundId, summary, fileStats.mtimeMs);
+      setSummaryCache(userId, groundId, summary, fileStats.mtimeMs);
       return summary;
     }
 
@@ -352,7 +370,7 @@ export function listGroundSummaries(): GroundSummary[] {
         roundCount: Array.isArray(raw.round) ? raw.round.length : 0,
       };
 
-      setSummaryCache(groundId, summary, fileStats.mtimeMs);
+      setSummaryCache(userId, groundId, summary, fileStats.mtimeMs);
 
       return summary;
     } catch (error) {
@@ -371,15 +389,15 @@ export function listGroundSummaries(): GroundSummary[] {
         roundCount: 0,
       };
 
-      setSummaryCache(groundId, fallbackSummary, fileStats.mtimeMs);
+      setSummaryCache(userId, groundId, fallbackSummary, fileStats.mtimeMs);
 
       return fallbackSummary;
     }
   });
 }
 
-export function getNextGroundId() {
-  const summaries = listGroundSummaries();
+export function getNextGroundId(userId: string) {
+  const summaries = listGroundSummaries(userId);
   const maxId = summaries.reduce((current, ground) => {
     const numericId = Number(ground.id);
     return Number.isFinite(numericId) ? Math.max(current, numericId) : current;
@@ -388,20 +406,20 @@ export function getNextGroundId() {
   return String(maxId + 1);
 }
 
-export function createGround(input: Partial<GroundFile>) {
-  const id = getNextGroundId();
+export function createGround(userId: string, input: Partial<GroundFile>) {
+  const id = getNextGroundId(userId);
   const ground = createEmptyGround(id, input);
-  return writeGroundData(id, {
+  return writeGroundData(userId, id, {
     ...ground,
     role: input.role ?? [],
     round: input.round ?? [],
   });
 }
 
-export function updateGround(groundId: string, patch: Partial<GroundFile>) {
-  const existing = readGroundData(groundId);
+export function updateGround(userId: string, groundId: string, patch: Partial<GroundFile>) {
+  const existing = readGroundData(userId, groundId);
 
-  return writeGroundData(groundId, {
+  return writeGroundData(userId, groundId, {
     ...existing,
     ...patch,
     id: groundId,
@@ -414,18 +432,18 @@ export function updateGround(groundId: string, patch: Partial<GroundFile>) {
   });
 }
 
-export function deleteGround(groundId: string) {
-  const filePath = getGroundPath(groundId);
+export function deleteGround(userId: string, groundId: string) {
+  const filePath = getGroundPath(userId, groundId);
 
   if (fs.existsSync(filePath)) {
     fs.unlinkSync(filePath);
   }
 
-  clearGroundCache(groundId);
+  clearGroundCache(userId, groundId);
 }
 
-export function undoLastRound(groundId: string): GroundFile {
-  const ground = readGroundData(groundId);
+export function undoLastRound(userId: string, groundId: string): GroundFile {
+  const ground = readGroundData(userId, groundId);
 
   if (ground.round.length === 0) {
     return ground;
@@ -504,7 +522,7 @@ export function undoLastRound(groundId: string): GroundFile {
     updatedAt: todayStamp(),
   };
 
-  return writeGroundData(groundId, updatedGround);
+  return writeGroundData(userId, groundId, updatedGround);
 }
 
 export interface ExportedGround {
@@ -555,8 +573,8 @@ export interface ExportedGround {
   updatedAt: string;
 }
 
-export function exportGroundData(groundId: string): ExportedGround {
-  const ground = readGroundData(groundId);
+export function exportGroundData(userId: string, groundId: string): ExportedGround {
+  const ground = readGroundData(userId, groundId);
 
   return {
     id: ground.id,

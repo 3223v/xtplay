@@ -7,6 +7,7 @@ import {
   writeGroundData,
 } from "@/app/lib/sim/storage";
 import { GroundFile, RoundEvent, roundSchema } from "@/app/lib/sim/types";
+import { getUserIdFromRequest } from "@/app/lib/auth/utils";
 
 function resolveGroundId(request: Request) {
   const { searchParams } = new URL(request.url);
@@ -15,9 +16,17 @@ function resolveGroundId(request: Request) {
 
 export async function GET(request: Request) {
   try {
+    const userId = getUserIdFromRequest(request);
+    if (!userId) {
+      return NextResponse.json(
+        { success: false, message: "未登录" },
+        { status: 401 }
+      );
+    }
+
     const groundId = resolveGroundId(request);
 
-    if (!groundExists(groundId)) {
+    if (!groundExists(userId, groundId)) {
       return NextResponse.json(
         {
           success: false,
@@ -27,7 +36,7 @@ export async function GET(request: Request) {
       );
     }
 
-    const data = readGroundData(groundId);
+    const data = readGroundData(userId, groundId);
 
     return NextResponse.json({
       success: true,
@@ -48,6 +57,14 @@ export async function GET(request: Request) {
 
 export async function POST(request: Request) {
   try {
+    const userId = getUserIdFromRequest(request);
+    if (!userId) {
+      return NextResponse.json(
+        { success: false, message: "未登录" },
+        { status: 401 }
+      );
+    }
+
     const groundId = resolveGroundId(request);
     const body = (await request.json().catch(() => ({}))) as {
       before?: unknown;
@@ -61,7 +78,7 @@ export async function POST(request: Request) {
       persist?: boolean;
     };
 
-    if (!groundExists(groundId)) {
+    if (!groundExists(userId, groundId)) {
       return NextResponse.json(
         {
           success: false,
@@ -71,7 +88,7 @@ export async function POST(request: Request) {
       );
     }
 
-    const data = readGroundData(groundId);
+    const data = readGroundData(userId, groundId);
 
     if (body.before || body.after || body.output) {
       const manualRound = roundSchema.parse({
@@ -81,7 +98,7 @@ export async function POST(request: Request) {
         after: body.after || {},
         output: body.output || [],
       });
-      const ground = writeGroundData(groundId, {
+      const ground = writeGroundData(userId, groundId, {
         ...data,
         round: [...data.round, manualRound],
       });
@@ -102,7 +119,7 @@ export async function POST(request: Request) {
     });
 
     const persistedGround =
-      body.persist === false ? ground : writeGroundData(groundId, ground as GroundFile);
+      body.persist === false ? ground : writeGroundData(userId, groundId, ground as GroundFile);
 
     return NextResponse.json({
       success: true,

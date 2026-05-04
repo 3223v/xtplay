@@ -40,5 +40,10 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 # data
-/app/api/data/*.json
-/app/api/data/market/*.json
+app/api/data/config/
+app/api/data/market/
+app/api/data/sessions/
+app/api/data/users/
+*.log
+next-start.out.log
+next-start.err.log

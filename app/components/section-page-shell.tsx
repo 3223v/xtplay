@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { ReactNode } from "react";
 import { useEffect, useMemo, useRef, useState } from "react";
+import UserMenu from "./UserMenu";
 
 export interface SectionPageItem {
   id: string;
@@ -114,7 +115,8 @@ export function SectionPageShell({
             { name: "首页", href: "/" },
             { name: "管理", href: "/manage" },
             { name: "文档", href: "/docs" },
-            { name: "市场", href: "/market" },
+            { name: "模板", href: "/market" },
+            { name: "市场", href: "/public/market" },
           ].map((item) => (
             <Link
               key={item.name}
@@ -130,6 +132,7 @@ export function SectionPageShell({
             </Link>
           ))}
         </nav>
+        <UserMenu />
       </header>
 
       <div className="relative z-10 flex min-h-screen">

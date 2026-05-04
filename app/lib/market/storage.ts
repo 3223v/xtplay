@@ -6,20 +6,27 @@ import {
   MarketArticle,
 } from "./types";
 
-function getDataPath() {
-  return path.join(process.cwd(), "app", "api", "data");
+function getUserDataPath(userId: string): string {
+  return path.join(process.cwd(), "app", "api", "data", "users", userId);
 }
 
-function getMarketPath() {
-  return path.join(getDataPath(), "market");
+function getMarketPath(userId: string): string {
+  return path.join(getUserDataPath(userId), "market");
 }
 
-function getDatabasePath() {
-  return path.join(getMarketPath(), "database.json");
+function getDatabasePath(userId: string): string {
+  return path.join(getMarketPath(userId), "database.json");
 }
 
-function ensureMarketDir() {
-  const dir = getMarketPath();
+function ensureMarketDir(userId: string) {
+  const dir = getMarketPath(userId);
+  if (!fs.existsSync(dir)) {
+    fs.mkdirSync(dir, { recursive: true });
+  }
+}
+
+function ensureUserDataDir(userId: string) {
+  const dir = getUserDataPath(userId);
   if (!fs.existsSync(dir)) {
     fs.mkdirSync(dir, { recursive: true });
   }
@@ -29,9 +36,10 @@ interface DatabaseContent {
   articles: MarketArticle[];
 }
 
-function loadDatabase(): DatabaseContent {
-  ensureMarketDir();
-  const dbPath = getDatabasePath();
+function loadDatabase(userId: string): DatabaseContent {
+  ensureUserDataDir(userId);
+  ensureMarketDir(userId);
+  const dbPath = getDatabasePath(userId);
 
   if (!fs.existsSync(dbPath)) {
     return { articles: [] };
@@ -45,14 +53,15 @@ function loadDatabase(): DatabaseContent {
   }
 }
 
-function saveDatabase(data: DatabaseContent): void {
-  ensureMarketDir();
-  const dbPath = getDatabasePath();
+function saveDatabase(userId: string, data: DatabaseContent): void {
+  ensureUserDataDir(userId);
+  ensureMarketDir(userId);
+  const dbPath = getDatabasePath(userId);
   fs.writeFileSync(dbPath, JSON.stringify(data, null, 2));
 }
 
-export function readArticleData(articleId: string): MarketArticle {
-  const db = loadDatabase();
+export function readArticleData(userId: string, articleId: string): MarketArticle {
+  const db = loadDatabase(userId);
   const article = db.articles.find((a) => a.id === articleId);
 
   if (!article) {
@@ -62,8 +71,8 @@ export function readArticleData(articleId: string): MarketArticle {
   return marketArticleSchema.parse(article);
 }
 
-export function writeArticleData(articleId: string, data: MarketArticle): MarketArticle {
-  const db = loadDatabase();
+export function writeArticleData(userId: string, articleId: string, data: MarketArticle): MarketArticle {
+  const db = loadDatabase(userId);
   const normalized = marketArticleSchema.parse({
     ...data,
     id: articleId,
@@ -77,12 +86,12 @@ export function writeArticleData(articleId: string, data: MarketArticle): Market
     db.articles.push(normalized);
   }
 
-  saveDatabase(db);
+  saveDatabase(userId, db);
   return normalized;
 }
 
-export function deleteArticleData(articleId: string): void {
-  const db = loadDatabase();
+export function deleteArticleData(userId: string, articleId: string): void {
+  const db = loadDatabase(userId);
   const filtered = db.articles.filter((a) => a.id !== articleId);
 
   if (filtered.length === db.articles.length) {
@@ -90,24 +99,24 @@ export function deleteArticleData(articleId: string): void {
   }
 
   db.articles = filtered;
-  saveDatabase(db);
+  saveDatabase(userId, db);
 }
 
-export function listArticles(): MarketArticle[] {
-  const db = loadDatabase();
+export function listArticles(userId: string): MarketArticle[] {
+  const db = loadDatabase(userId);
   return db.articles.map((article) => marketArticleSchema.parse(article));
 }
 
-export function generateUniqueArticleId(): string {
+export function generateUniqueArticleId(userId: string): string {
   const chars = "abcdefghijklmnopqrstuvwxyz0123456789";
   let id = "";
   for (let i = 0; i < 8; i++) {
     id += chars[Math.floor(Math.random() * chars.length)];
   }
 
-  const db = loadDatabase();
+  const db = loadDatabase(userId);
   if (db.articles.some((a) => a.id === id)) {
-    return generateUniqueArticleId();
+    return generateUniqueArticleId(userId);
   }
 
   return id;

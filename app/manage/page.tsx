@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
+import UserMenu from "../components/UserMenu";
 
 interface Ground {
   id: string;
@@ -28,6 +29,14 @@ export default function Manage() {
   const [isImporting, setIsImporting] = useState(false);
   const [language, setLanguage] = useState<"zh" | "en">("zh");
   const [isLanguageLoading, setIsLanguageLoading] = useState(false);
+  const [showExportModal, setShowExportModal] = useState(false);
+  const [selectedGroundForExport, setSelectedGroundForExport] = useState<Ground | null>(null);
+  const [exportType, setExportType] = useState<'template' | 'market'>('template');
+  const [exportForm, setExportForm] = useState({
+    title: '',
+    description: '',
+    tags: '',
+  });
 
   useEffect(() => {
     fetchLanguage();
@@ -140,6 +149,19 @@ export default function Manage() {
     }
   };
 
+  const fetchGroundData = async (id: string) => {
+    try {
+      const response = await fetch(`/api/ground?id=${id}&export=true`);
+      const result = await response.json();
+      if (result.success) {
+        return result.data;
+      }
+    } catch (error) {
+      console.error("获取工作空间数据失败:", error);
+    }
+    return null;
+  };
+
   const handleDelete = async (id: string) => {
     if (!confirm("确定要删除这个工作空间吗？")) return;
     
@@ -182,8 +204,7 @@ export default function Manage() {
       
       if (result.success) {
         setGrounds(grounds.map((g) => (g.id === selectedGround.id ? result.data : g)));
-        setIsEditing(false);
-        setSelectedGround(null);
+        setIsEditing(false); setSelectedGround(null);
         setEditForm({});
         alert("工作空间更新成功！");
       } else {
@@ -196,8 +217,7 @@ export default function Manage() {
   };
 
   const handleCancel = () => {
-    setIsEditing(false);
-    setSelectedGround(null);
+    setIsEditing(false); setSelectedGround(null);
     setEditForm({});
   };
 
@@ -224,6 +244,55 @@ export default function Manage() {
     } catch (error) {
       console.error("创建工作空间失败:", error);
       alert("创建工作空间失败，请重试。");
+    }
+  };
+
+  const handleExport = async (ground: Ground) => {
+    setSelectedGroundForExport(ground);
+    setExportForm({
+      title: ground.name,
+      description: ground.description,
+      tags: '',
+    });
+    setShowExportModal(true);
+  };
+
+  const handleSaveExport = async () => {
+    if (!selectedGroundForExport) return;
+
+    try {
+      const groundData = await fetchGroundData(selectedGroundForExport.id);
+      if (!groundData) {
+        alert("获取工作空间数据失败");
+        return;
+      }
+
+      const articleData = {
+        title: exportForm.title,
+        description: exportForm.description,
+        tags: exportForm.tags.split(',').map((t) => t.trim()).filter(Boolean),
+        text: selectedGroundForExport.description,
+        jsonContent: JSON.stringify(groundData, null, 2),
+      };
+
+      const apiUrl = exportType === 'market' ? '/api/public/market' : '/api/market';
+      const response = await fetch(apiUrl, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(articleData),
+      });
+      const result = await response.json();
+
+      if (result.success) {
+        setShowExportModal(false);
+        setSelectedGroundForExport(null);
+        alert(`已成功导出到${exportType === 'market' ? '市场' : '模板'}！`);
+      } else {
+        alert(`导出失败: ${result.message}`);
+      }
+    } catch (error) {
+      console.error("导出失败:", error);
+      alert("导出失败，请重试。");
     }
   };
 
@@ -287,7 +356,7 @@ export default function Manage() {
   return (
     <div className="relative min-h-screen overflow-hidden bg-[#f1f5f9]">
       <canvas ref={canvasRef} className="absolute inset-0 w-full h-full pointer-events-none" />
-      <div className="absolute inset-0 bg-gradient-to-br from-blue-50 via-transparent to-indigo-50 pointer-events-none" />
+      <div className="absolute inset-0 bg-gradient-to-br from-blue-5 via-transparent to-indigo-50 pointer-events-none" />
       <div className="absolute top-0 left-1/4 w-[500px] h-[500px] bg-blue-200/30 rounded-full blur-[120px] pointer-events-none" />
       <div className="absolute bottom-0 right-1/4 w-[600px] h-[600px] bg-indigo-200/30 rounded-full blur-[150px] pointer-events-none" />
 
@@ -301,7 +370,8 @@ export default function Manage() {
             { name: "首页", href: "/" },
             { name: "管理", href: "/manage" },
             { name: "文档", href: "/docs" },
-            { name: "市场", href: "/market" },
+            { name: "模板", href: "/market" },
+            { name: "市场", href: "/public/market" },
           ].map((item) => (
             <Link
               key={item.name}
@@ -314,6 +384,7 @@ export default function Manage() {
             </Link>
           ))}
         </nav>
+        <UserMenu />
       </header>
 
       <main className="relative z-10 px-12 pt-32 pb-8">
@@ -358,20 +429,14 @@ export default function Manage() {
           <div className="relative max-w-md">
             <svg
               className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-[#94a3b8]"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
+              fill="none" viewBox="0 0 24 24" stroke="currentColor"
             >
               <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
-              />
+                strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
             </svg>
             <input
-              type="text"
-              placeholder="搜索工作空间..."
+              type="text" placeholder="搜索工作空间..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="w-full pl-12 pr-4 py-3 bg-white border border-[#e2e8f0] rounded-xl text-[#1e293b] placeholder-[#94a3b8] focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/10 transition-all duration-300"
@@ -401,11 +466,8 @@ export default function Manage() {
                       <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-blue-100 to-indigo-100 flex items-center justify-center">
                         <svg className="w-6 h-6 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                           <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={1.5}
-                            d="M9 6.75V15m6-6v8.25m.503 3.498l4.875-2.437c.381-.19.622-.58.622-1.006V4.82c0-.836-.88-1.38-1.628-1.006l-3.869 1.934c-.317.159-.69.159-1.006 0L9.503 3.252a1.125 1.125 0 00-1.006 0L3.622 5.689C3.24 5.88 3 6.27 3 6.695V19.18c0 .836.88 1.38 1.628 1.006l3.869-1.934c.317-.159.69-.159 1.006 0l4.994 2.497c.317.158.69.158 1.006 0z"
-                          />
+                            strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5}
+                            d="M9 6.75V15m6-6v8.25m.503 3.498l4.875-2.437c.381-.19.622-.58.622-1.006V4.82c0-.836-.88-1.38-1.628-1.006l-3.869 1.934c-.317.159-.69.159-1.006 0L9.503 3.252a1.125 1.125 0 00-1.006 0L3.622 5.689C3.24 5.88 3 6.27 3 6.695V19.18c0 .836.88 1.38 1.628 1.006l3.869-1.934c.317.159.69.159 1.006 0l4.994 2.497c.317.158.69.158 1.006 0z" />
                         </svg>
                       </div>
                       <div>
@@ -419,17 +481,28 @@ export default function Manage() {
                       <button
                         onClick={(e) => {
                           e.stopPropagation();
+                          handleExport(ground);
+                        }}
+                        className="p-2 text-[#64748b] hover:text-green-500 hover:bg-green-50 rounded-lg transition-all"
+                        title="导出到模板"
+                      >
+                        <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path
+                            strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                            d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" />
+                        </svg>
+                      </button>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
                           handleEdit(ground);
                         }}
                         className="p-2 text-[#64748b] hover:text-[#1e293b] hover:bg-[#f8fafc] rounded-lg transition-all"
                       >
                         <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                           <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={2}
-                            d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
-                          />
+                            strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                            d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
                         </svg>
                       </button>
                       <button
@@ -441,11 +514,8 @@ export default function Manage() {
                       >
                         <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                           <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={2}
-                            d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
-                          />
+                            strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                            d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                         </svg>
                       </button>
                     </div>
@@ -472,16 +542,11 @@ export default function Manage() {
                 <div className="text-center py-12">
                   <svg
                     className="w-16 h-16 mx-auto text-[#94a3b8] mb-4"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
+                    fill="none" viewBox="0 0 24 24" stroke="currentColor"
                   >
                     <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={1}
-                      d="M9 6.75V15m6-6v8.25m.503 3.498l4.875-2.437c.381-.19.622-.58.622-1.006V4.82c0-.836-.88-1.38-1.628-1.006l-3.869 1.934c-.317.159-.69.159-1.006 0L9.503 3.252a1.125 1.125 0 00-1.006 0L3.622 5.689C3.24 5.88 3 6.27 3 6.695V19.18c0 .836.88 1.38 1.628 1.006l3.869-1.934c.317-.159.69-.159 1.006 0l4.994 2.497c.317.158.69.158 1.006 0z"
-                    />
+                      strokeLinecap="round" strokeLinejoin="round" strokeWidth={1}
+                      d="M9 6.75V15m6-6v8.25m.503 3.498l4.875-2.437c.381-.19.622-.58.622-1.006V4.82c0-.836-.88-1.38-1.628-1.006l-3.869 1.934c-.317.159-.69.159-1.006 0L9.503 3.252a1.125 1.125 0 00-1.006 0L3.622 5.689C3.24 5.88 3 6.27 3 6.695V19.18c0 .836.88 1.38 1.628 1.006l3.869-1.934c.317.159.69.159 1.006 0l4.994 2.497c.317.158.69.158 1.006 0z" />
                   </svg>
                   <p className="text-[#64748b]">没有找到匹配的工作空间</p>
                 </div>
@@ -493,11 +558,8 @@ export default function Manage() {
                 <h3 className="text-xl font-semibold text-[#1e293b] mb-6 flex items-center gap-3">
                   <svg className="w-6 h-6 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={1.5}
-                      d="M9 6.75V15m6-6v8.25m.503 3.498l4.875-2.437c.381-.19.622-.58.622-1.006V4.82c0-.836-.88-1.38-1.628-1.006l-3.869 1.934c-.317.159-.69.159-1.006 0L9.503 3.252a1.125 1.125 0 00-1.006 0L3.622 5.689C3.24 5.88 3 6.27 3 6.695V19.18c0 .836.88 1.38 1.628 1.006l3.869-1.934c.317-.159.69-.159 1.006 0l4.994 2.497c.317.158.69.158 1.006 0z"
-                    />
+                      strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5}
+                      d="M9 6.75V15m6-6v8.25m.503 3.498l4.875-2.437c.381-.19.622-.58.622-1.006V4.82c0-.836-.88-1.38-1.628-1.006l-3.869 1.934c-.317.159-.69.159-1.006 0L9.503 3.252a1.125 1.125 0 00-1.006 0L3.622 5.689C3.24 5.88 3 6.27 3 6.695V19.18c0 .836.88 1.38 1.628 1.006l3.869-1.934c.317.159.69.159 1.006 0l4.994 2.497c.317.158.69.158 1.006 0z" />
                   </svg>
                   编辑工作空间
                 </h3>
@@ -506,8 +568,7 @@ export default function Manage() {
                   <div>
                     <label className="block text-sm font-medium text-[#374151] mb-2">名称</label>
                     <input
-                      type="text"
-                      value={editForm.name || ""}
+                      type="text" value={editForm.name || ""}
                       onChange={(e) => setEditForm({ ...editForm, name: e.target.value })}
                       className="w-full px-4 py-3 bg-white border border-[#e2e8f0] rounded-xl text-[#1e293b] placeholder-[#94a3b8] focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/10 transition-all duration-300"
                       placeholder="工作空间名称"
@@ -528,8 +589,7 @@ export default function Manage() {
                   <div>
                     <label className="block text-sm font-medium text-[#374151] mb-2">默认 URL</label>
                     <input
-                      type="text"
-                      value={editForm.default_url || ""}
+                      type="text" value={editForm.default_url || ""}
                       onChange={(e) => setEditForm({ ...editForm, default_url: e.target.value })}
                       className="w-full px-4 py-3 bg-white border border-[#e2e8f0] rounded-xl text-[#1e293b] placeholder-[#94a3b8] focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/10 transition-all duration-300"
                       placeholder="https://api.example.com/chat"
@@ -539,8 +599,7 @@ export default function Manage() {
                   <div>
                     <label className="block text-sm font-medium text-[#374151] mb-2">默认密钥</label>
                     <input
-                      type="text"
-                      value={editForm.default_key || ""}
+                      type="text" value={editForm.default_key || ""}
                       onChange={(e) => setEditForm({ ...editForm, default_key: e.target.value })}
                       className="w-full px-4 py-3 bg-white border border-[#e2e8f0] rounded-xl text-[#1e293b] placeholder-[#94a3b8] focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/10 transition-all duration-300"
                       placeholder="default_role"
@@ -556,7 +615,7 @@ export default function Manage() {
                     </button>
                     <button
                       onClick={handleCancel}
-                      className="px-6 py-3 text-sm font-medium text-[#64748b] bg-white border border-[#e2e8f0] rounded-xl hover:bg-[#f8fafc] hover:border-[#cbd5e1] transition-all duration-300"
+                      className="px-6 py-3 text-sm font-semibold text-[#64748b] bg-white border border-[#e2e8f0] rounded-xl hover:bg-[#f8fafc] hover:border-[#cbd5e1] transition-all duration-300"
                     >
                       取消
                     </button>
@@ -570,17 +629,12 @@ export default function Manage() {
                 <div className="sticky top-28 p-6 rounded-2xl bg-white border border-[#e2e8f0] text-center">
                   <svg
                     className="w-16 h-16 mx-auto text-[#94a3b8] mb-4"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
+                    fill="none" viewBox="0 0 24 24" stroke="currentColor"
                   >
                     <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={1}
-                      d="M9 6.75V15m6-6v8.25m.503 3.498l4.875-2.437c.381-.19.622-.58.622-1.006V4.82c0-.836-.88-1.38-1.628-1.006l-3.869 1.934c-.317.159-.69.159-1.006 0L9.503 3.252a1.125 1.125 0 00-1.006 0L3.622 5.689C3.24 5.88 3 6.27 3 6.695V19.18c0 .836.88 1.38 1.628 1.006l3.869-1.934c.317-.159.69-.159 1.006 0l4.994 2.497c.317.158.69.158 1.006 0z"
-                    />
-                  </svg>
+                      strokeLinecap="round" strokeLinejoin="round" strokeWidth={1}
+                      d="M9 6.75V15m6-6v8.25m.503 3.498l4.875-2.437c.381-.19.622-.58.622-1.006V4.82c0-.836-.88-1.38-1.628-1.006l-3.869 1.934c-.317.159-.69.159-1.006 0L9.503 3.252a1.125 1.125 0 00-1.006 0L3.622 5.689C3.24 5.88 3 6.27 3 6.695V19.18c0 .836.88 1.38 1.628 1.006l3.869-1.934c.317.159.69.159 1.006 0l4.994 2.497c.317.158.69.158 1.006 0z" />
+                    </svg>
                   <p className="text-[#64748b] mb-2">选择一个工作空间进行编辑</p>
                   <p className="text-sm text-[#94a3b8]">或者点击右上角按钮创建新工作空间</p>
                 </div>
@@ -650,8 +704,7 @@ export default function Manage() {
                   ) : (
                     <label className="cursor-pointer">
                       <input
-                        type="file"
-                        accept=".json"
+                        type="file" accept=".json"
                         onChange={(e) => e.target.files && setImportFile(e.target.files[0])}
                         className="hidden"
                       />
@@ -678,10 +731,8 @@ export default function Manage() {
             <div className="flex items-center justify-end gap-4">
               <button
                 onClick={() => {
-                  setShowImportModal(false);
-                  setImportContent('');
-                  setImportFile(null);
-                  setImportMethod('file');
+                  setShowImportModal(false); setImportContent('');
+                  setImportFile(null); setImportMethod('file');
                 }}
                 className="px-6 py-3 text-sm font-semibold text-[#64748b] bg-white border border-[#e2e8f0] rounded-lg hover:bg-[#f8fafc] hover:border-[#cbd5e1] transition-all"
               >
@@ -698,10 +749,98 @@ export default function Manage() {
                   </svg>
                 ) : (
                   <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 0 01-2 2z" />
                   </svg>
                 )}
                 {isImporting ? '导入中...' : '导入'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Export Modal */}
+      {showExportModal && selectedGroundForExport && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={() => setShowExportModal(false)} />
+          <div className="relative w-full max-w-md bg-white border border-[#e2e8f0] rounded-2xl p-6 shadow-xl max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between mb-6">
+              <h3 className="text-xl font-bold text-[#1e293b]">导出工作空间</h3>
+              <button
+                onClick={() => setShowExportModal(false)}
+                className="text-[#64748b] hover:text-[#1e293b] transition-colors"
+              >
+                <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+
+            <div className="mb-6">
+              <div className="flex items-center gap-4 mb-6">
+                <button
+                  onClick={() => setExportType('template')}
+                  className={`flex-1 py-3 px-4 rounded-lg border transition-all ${exportType === 'template' ? 'border-blue-400 bg-blue-50 text-[#3b82f6]' : 'border-[#e2e8f0] bg-white text-[#64748b]'}`}
+                >
+                  <span className={`text-sm font-medium ${exportType === 'template' ? 'text-blue-600' : 'text-[#64748b]'}`}>
+                    导出到模板
+                  </span>
+                </button>
+                <button
+                  onClick={() => setExportType('market')}
+                  className={`flex-1 py-3 px-4 rounded-lg border transition-all ${exportType === 'market' ? 'border-green-400 bg-green-50 text-[#16a34a]' : 'border-[#e2e8f0] bg-white text-[#64748b]'}`}
+                >
+                  <span className={`text-sm font-medium ${exportType === 'market' ? 'text-green-600' : 'text-[#64748b]'}`}>
+                    导出到市场
+                  </span>
+                </button>
+              </div>
+
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-[#374151] mb-2">标题</label>
+                  <input
+                    type="text" value={exportForm.title}
+                    onChange={(e) => setExportForm({ ...exportForm, title: e.target.value })}
+                    className="w-full px-4 py-3 bg-white border border-[#e2e8f0] rounded-xl text-[#1e293b] placeholder-[#94a3b8] focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/10 transition-all duration-300"
+                    placeholder="模板标题"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-[#374151] mb-2">描述</label>
+                  <input
+                    type="text" value={exportForm.description}
+                    onChange={(e) => setExportForm({ ...exportForm, description: e.target.value })}
+                    className="w-full px-4 py-3 bg-white border border-[#e2e8f0] rounded-xl text-[#1e293b] placeholder-[#94a3b8] focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/10 transition-all duration-300"
+                    placeholder="模板描述"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-[#374151] mb-2">标签（用逗号分隔）</label>
+                  <input
+                    type="text" value={exportForm.tags}
+                    onChange={(e) => setExportForm({ ...exportForm, tags: e.target.value })}
+                    className="w-full px-4 py-3 bg-white border border-[#e2e8f0] rounded-xl text-[#1e293b] placeholder-[#94a3b8] focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/10 transition-all duration-300"
+                    placeholder="狼人杀, 角色扮演, 推理"
+                  />
+                </div>
+              </div>
+            </div>
+
+            <div className="flex items-center justify-end gap-4">
+              <button
+                onClick={() => setShowExportModal(false)}
+                className="px-6 py-3 text-sm font-semibold text-[#64748b] bg-white border border-[#e2e8f0] rounded-lg hover:bg-[#f8fafc] hover:border-[#cbd5e1] transition-all"
+              >
+                取消
+              </button>
+              <button
+                onClick={handleSaveExport}
+                className="px-6 py-3 text-sm font-semibold text-white bg-gradient-to-r from-blue-500 to-indigo-500 rounded-lg hover:from-blue-400 hover:to-indigo-400 transition-all duration-300"
+              >
+                导出
               </button>
             </div>
           </div>

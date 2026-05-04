@@ -1,41 +1,61 @@
 import { NextResponse } from "next/server";
-import type { NextRequest } from "next/server";
 
-const AUTH_COOKIE_NAME = "ground_auth";
+import { getSession, getUserById } from "@/app/lib/auth/server-storage";
 
-function isAuthEnabled(): boolean {
-  return process.env.NEXT_PUBLIC_AUTH_ENABLED === "true";
-}
+export async function GET(request: Request) {
+  try {
+    const cookies = request.headers.get("cookie");
+    const userDataMatch = cookies?.match(/user_data=([^;]+)/);
+    const sessionIdMatch = cookies?.match(/session_id=([^;]+)/);
 
-function getAuthPassword(): string {
-  return process.env.AUTH_PASSWORD || "";
-}
+    let userId: string | null = null;
 
-export async function GET(request: NextRequest) {
-  if (!isAuthEnabled()) {
+    if (userDataMatch) {
+      try {
+        const urlDecoded = decodeURIComponent(userDataMatch[1]);
+        const userData = JSON.parse(atob(urlDecoded));
+        userId = userData.id || null;
+      } catch {
+        userId = null;
+      }
+    }
+
+    if (!userId && sessionIdMatch) {
+      const session = getSession(sessionIdMatch[1]);
+      userId = session?.user_id || null;
+    }
+
+    if (!userId) {
+      return NextResponse.json(
+        { success: false, message: "未登录" },
+        { status: 401 }
+      );
+    }
+
+    const user = getUserById(userId);
+
+    if (!user) {
+      return NextResponse.json(
+        { success: false, message: "用户不存在" },
+        { status: 401 }
+      );
+    }
+
+    return NextResponse.json({
+      success: true,
+      data: {
+        user: {
+          id: user.id,
+          username: user.username,
+          email: user.email,
+        },
+      },
+    });
+  } catch (error) {
+    console.error("验证失败:", error);
     return NextResponse.json(
-      { success: false, message: "认证未启用" },
-      { status: 403 }
+      { success: false, message: "验证失败" },
+      { status: 500 }
     );
   }
-
-  const { searchParams } = new URL(request.url);
-  const password = searchParams.get("password");
-  const correctPassword = getAuthPassword();
-
-  if (password === correctPassword) {
-    const response = NextResponse.json({ success: true, message: "验证成功" });
-    response.cookies.set(AUTH_COOKIE_NAME, correctPassword, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: "lax",
-      maxAge: 60 * 60 * 24,
-    });
-    return response;
-  }
-
-  return NextResponse.json(
-    { success: false, message: "密码错误" },
-    { status: 401 }
-  );
 }

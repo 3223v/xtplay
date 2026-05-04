@@ -12,14 +12,15 @@ import {
   RoleConfig,
   roleSchema,
 } from "@/app/lib/sim/types";
+import { getUserIdFromRequest } from "@/app/lib/auth/utils";
 
 function resolveGroundId(request: Request) {
   const { searchParams } = new URL(request.url);
   return searchParams.get("groundId") || "1";
 }
 
-function resolveRoleDefaults(role: Partial<RoleConfig>, groundId: string) {
-  const ground = readGroundData(groundId);
+function resolveRoleDefaults(userId: string, role: Partial<RoleConfig>, groundId: string) {
+  const ground = readGroundData(userId, groundId);
 
   return roleSchema.parse({
     id: role.id || createRoleId(role.name || "role"),
@@ -48,9 +49,17 @@ function resolveRoleDefaults(role: Partial<RoleConfig>, groundId: string) {
 
 export async function GET(request: Request) {
   try {
+    const userId = getUserIdFromRequest(request);
+    if (!userId) {
+      return NextResponse.json(
+        { success: false, message: "未登录" },
+        { status: 401 }
+      );
+    }
+
     const groundId = resolveGroundId(request);
 
-    if (!groundExists(groundId)) {
+    if (!groundExists(userId, groundId)) {
       return NextResponse.json(
         {
           success: false,
@@ -60,7 +69,7 @@ export async function GET(request: Request) {
       );
     }
 
-    const data = readGroundData(groundId);
+    const data = readGroundData(userId, groundId);
 
     return NextResponse.json({
       success: true,
@@ -80,10 +89,18 @@ export async function GET(request: Request) {
 
 export async function POST(request: Request) {
   try {
+    const userId = getUserIdFromRequest(request);
+    if (!userId) {
+      return NextResponse.json(
+        { success: false, message: "未登录" },
+        { status: 401 }
+      );
+    }
+
     const groundId = resolveGroundId(request);
     const body = (await request.json()) as Partial<RoleConfig>;
 
-    if (!groundExists(groundId)) {
+    if (!groundExists(userId, groundId)) {
       return NextResponse.json(
         {
           success: false,
@@ -93,10 +110,10 @@ export async function POST(request: Request) {
       );
     }
 
-    const data = readGroundData(groundId);
-    const newRole = resolveRoleDefaults(body, groundId);
+    const data = readGroundData(userId, groundId);
+    const newRole = resolveRoleDefaults(userId, body, groundId);
 
-    const ground = writeGroundData(groundId, {
+    const ground = writeGroundData(userId, groundId, {
       ...data,
       role: [...data.role, newRole],
     });
@@ -119,10 +136,18 @@ export async function POST(request: Request) {
 
 export async function PUT(request: Request) {
   try {
+    const userId = getUserIdFromRequest(request);
+    if (!userId) {
+      return NextResponse.json(
+        { success: false, message: "未登录" },
+        { status: 401 }
+      );
+    }
+
     const groundId = resolveGroundId(request);
     const body = (await request.json()) as Partial<RoleConfig> & { id?: string };
 
-    if (!groundExists(groundId)) {
+    if (!groundExists(userId, groundId)) {
       return NextResponse.json(
         {
           success: false,
@@ -142,13 +167,13 @@ export async function PUT(request: Request) {
       );
     }
 
-    const data = readGroundData(groundId);
+    const data = readGroundData(userId, groundId);
     const nextRoles = data.role.map((role) =>
       role.id === body.id || role.name === body.id
-        ? resolveRoleDefaults({ ...role, ...body }, groundId)
+        ? resolveRoleDefaults(userId, { ...role, ...body }, groundId)
         : role,
     );
-    const updatedGround = writeGroundData(groundId, {
+    const updatedGround = writeGroundData(userId, groundId, {
       ...data,
       role: nextRoles,
     });
@@ -174,11 +199,19 @@ export async function PUT(request: Request) {
 
 export async function DELETE(request: Request) {
   try {
+    const userId = getUserIdFromRequest(request);
+    if (!userId) {
+      return NextResponse.json(
+        { success: false, message: "未登录" },
+        { status: 401 }
+      );
+    }
+
     const { searchParams } = new URL(request.url);
     const groundId = searchParams.get("groundId") || "1";
     const id = searchParams.get("id");
 
-    if (!groundExists(groundId)) {
+    if (!groundExists(userId, groundId)) {
       return NextResponse.json(
         {
           success: false,
@@ -198,8 +231,8 @@ export async function DELETE(request: Request) {
       );
     }
 
-    const data = readGroundData(groundId);
-    const ground = writeGroundData(groundId, {
+    const data = readGroundData(userId, groundId);
+    const ground = writeGroundData(userId, groundId, {
       ...data,
       role: data.role.filter((role) => role.id !== id && role.name !== id),
     });

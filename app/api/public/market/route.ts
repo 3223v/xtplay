@@ -1,37 +1,33 @@
 import { NextResponse } from "next/server";
 
 import {
-  listArticles,
-  readArticleData,
-  writeArticleData,
-  deleteArticleData,
-  generateUniqueArticleId,
-} from "@/app/lib/market/storage";
-import { marketArticleSchema, MarketArticle } from "@/app/lib/market/types";
-import { getUserIdFromRequest } from "@/app/lib/auth/utils";
+  getAllArticles,
+  getArticleById,
+  createArticle,
+  updateArticle,
+  deleteArticle,
+} from "@/app/lib/market/public-storage";
 
 export async function GET(request: Request) {
   try {
-    const userId = getUserIdFromRequest(request);
-    if (!userId) {
-      return NextResponse.json(
-        { success: false, message: "未登录" },
-        { status: 401 }
-      );
-    }
-
     const { searchParams } = new URL(request.url);
     const articleId = searchParams.get("id");
 
     if (articleId) {
-      const article = readArticleData(userId, articleId);
+      const article = getArticleById(articleId);
+      if (!article) {
+        return NextResponse.json(
+          { success: false, message: "文章不存在" },
+          { status: 404 }
+        );
+      }
       return NextResponse.json({
         success: true,
         data: article,
       });
     }
 
-    const articles = listArticles(userId);
+    const articles = getAllArticles();
     return NextResponse.json({
       success: true,
       data: articles,
@@ -49,24 +45,8 @@ export async function GET(request: Request) {
 
 export async function POST(request: Request) {
   try {
-    const userId = getUserIdFromRequest(request);
-    if (!userId) {
-      return NextResponse.json(
-        { success: false, message: "未登录" },
-        { status: 401 }
-      );
-    }
-
-    const body = (await request.json().catch(() => ({}))) as Partial<MarketArticle>;
-    const articleId = generateUniqueArticleId(userId);
-
-    const article = writeArticleData(userId, articleId, {
-      ...marketArticleSchema.parse({}),
-      ...body,
-      id: articleId,
-      createdAt: new Date().toISOString().slice(0, 10),
-      updatedAt: new Date().toISOString().slice(0, 10),
-    } as MarketArticle);
+    const body = (await request.json().catch(() => ({}))) as any;
+    const article = createArticle(body);
 
     return NextResponse.json({
       success: true,
@@ -86,14 +66,6 @@ export async function POST(request: Request) {
 
 export async function PUT(request: Request) {
   try {
-    const userId = getUserIdFromRequest(request);
-    if (!userId) {
-      return NextResponse.json(
-        { success: false, message: "未登录" },
-        { status: 401 }
-      );
-    }
-
     const { searchParams } = new URL(request.url);
     const articleId = searchParams.get("id");
 
@@ -107,14 +79,15 @@ export async function PUT(request: Request) {
       );
     }
 
-    const body = (await request.json().catch(() => ({}))) as Partial<MarketArticle>;
-    const existingArticle = readArticleData(userId, articleId);
+    const body = (await request.json().catch(() => ({}))) as any;
+    const updatedArticle = updateArticle(articleId, body);
 
-    const updatedArticle = writeArticleData(userId, articleId, {
-      ...existingArticle,
-      ...body,
-      id: articleId,
-    } as MarketArticle);
+    if (!updatedArticle) {
+      return NextResponse.json(
+        { success: false, message: "文章不存在" },
+        { status: 404 }
+      );
+    }
 
     return NextResponse.json({
       success: true,
@@ -134,14 +107,6 @@ export async function PUT(request: Request) {
 
 export async function DELETE(request: Request) {
   try {
-    const userId = getUserIdFromRequest(request);
-    if (!userId) {
-      return NextResponse.json(
-        { success: false, message: "未登录" },
-        { status: 401 }
-      );
-    }
-
     const { searchParams } = new URL(request.url);
     const articleId = searchParams.get("id");
 
@@ -155,7 +120,14 @@ export async function DELETE(request: Request) {
       );
     }
 
-    deleteArticleData(userId, articleId);
+    const success = deleteArticle(articleId);
+
+    if (!success) {
+      return NextResponse.json(
+        { success: false, message: "文章不存在" },
+        { status: 404 }
+      );
+    }
 
     return NextResponse.json({
       success: true,

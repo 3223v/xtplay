@@ -3,6 +3,7 @@
 import Link from "next/link";
 
 import { useEffect, useRef } from "react";
+import UserMenu from "./components/UserMenu";
 
 export default function Home() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -97,9 +98,7 @@ export default function Home() {
             </a>
           ))}
         </nav>
-        <button className="px-5 py-2.5 text-sm font-medium text-white bg-gradient-to-r from-blue-500 to-indigo-500 rounded-full hover:from-blue-400 hover:to-indigo-400 transition-all duration-300 shadow-lg shadow-blue-500/20">
-          <Link href="/manage">开始使用</Link>
-        </button>
+        <UserMenu />
       </header>
 
       <main className="relative z-10 flex flex-col items-center justify-center min-h-[calc(100vh-100px)] pt-24 pb-16 px-6 text-center">

@@ -1671,9 +1671,31 @@ function GroundPageContent() {
             onCopyJson={(json) => {
               navigator.clipboard.writeText(json);
             }}
-            onExportToMarket={async (title, description) => {
+            onExportToTemplate={async (title, description) => {
               try {
                 const response = await fetch("/api/market", {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({
+                    title,
+                    description,
+                    text: `XTPlay Ground 场景: ${ground.name}`,
+                    jsonContent: JSON.stringify(ground, null, 2),
+                    tags: ["ground", "场景"],
+                  }),
+                });
+                if (response.ok) {
+                  alert("成功导出到模板！");
+                } else {
+                  alert("导出到模板失败");
+                }
+              } catch {
+                alert("导出到模板失败");
+              }
+            }}
+            onExportToMarket={async (title, description) => {
+              try {
+                const response = await fetch("/api/public/market", {
                   method: "POST",
                   headers: { "Content-Type": "application/json" },
                   body: JSON.stringify({

@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 
+import { getUserIdFromRequest } from "@/app/lib/auth/utils";
 import {
   groundExists,
   readGroundData,
@@ -9,6 +10,14 @@ import { createDefaultSaintRole, isSaintRole } from "@/app/lib/sim/types";
 
 export async function POST(request: Request) {
   try {
+    const userId = getUserIdFromRequest(request);
+    if (!userId) {
+      return NextResponse.json(
+        { success: false, message: "未登录" },
+        { status: 401 }
+      );
+    }
+
     const { searchParams } = new URL(request.url);
     const groundId = searchParams.get("groundId");
 
@@ -22,7 +31,7 @@ export async function POST(request: Request) {
       );
     }
 
-    if (!groundExists(groundId)) {
+    if (!groundExists(userId, groundId)) {
       return NextResponse.json(
         {
           success: false,
@@ -32,7 +41,7 @@ export async function POST(request: Request) {
       );
     }
 
-    const ground = readGroundData(groundId);
+    const ground = readGroundData(userId, groundId);
     const existingSaint = ground.role.find((role) => isSaintRole(role));
 
     let updatedGround;
@@ -63,7 +72,7 @@ export async function POST(request: Request) {
       };
     }
 
-    const result = writeGroundData(groundId, updatedGround);
+    const result = writeGroundData(userId, groundId, updatedGround);
 
     return NextResponse.json({
       success: true,

@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import fs from "fs";
+import path from "path";
 
 import {
   defaultWorkflowState,
@@ -9,35 +10,34 @@ import {
 import {
   readGroundData,
   writeGroundData,
-  getGroundPath,
+  getNextGroundId,
 } from "@/app/lib/sim/storage";
+import { getUserIdFromRequest } from "@/app/lib/auth/utils";
 
 export async function POST(request: Request) {
   try {
+    const userId = getUserIdFromRequest(request);
+    if (!userId) {
+      return NextResponse.json(
+        { success: false, message: "未登录" },
+        { status: 401 }
+      );
+    }
+
     const body = (await request.json().catch(() => ({}))) as GroundFile;
 
     if (!body.name) {
       return NextResponse.json(
         {
           success: false,
-          message: "Ground name is required",
+          message: "需要工作空间名称",
         },
         { status: 400 }
       );
     }
 
-    // Generate a new ground ID
-    const generateUniqueId = () => {
-      let id = Math.floor(Math.random() * 10000).toString();
-      while (fs.existsSync(getGroundPath(id))) {
-        id = Math.floor(Math.random() * 10000).toString();
-      }
-      return id;
-    };
+    const groundId = getNextGroundId(userId);
 
-    const groundId = generateUniqueId();
-
-    // Normalize the ground data
     const normalizedGround: GroundFile = {
       id: groundId,
       name: body.name,
@@ -61,21 +61,19 @@ export async function POST(request: Request) {
       updatedAt: new Date().toISOString().split('T')[0],
     };
 
-    // Validate the ground data
     try {
       groundSchema.parse(normalizedGround);
     } catch (error) {
       return NextResponse.json(
         {
           success: false,
-          message: `Invalid ground data: ${error instanceof Error ? error.message : 'Unknown validation error'}`,
+          message: `工作空间数据无效: ${error instanceof Error ? error.message : '未知验证错误'}`,
         },
         { status: 400 }
       );
     }
 
-    // Write the ground data to file
-    const result = writeGroundData(groundId, normalizedGround);
+    const result = writeGroundData(userId, groundId, normalizedGround);
 
     return NextResponse.json({
       success: true,
@@ -88,13 +86,13 @@ export async function POST(request: Request) {
         createdAt: result.createdAt,
         updatedAt: result.updatedAt,
       },
-      message: "Ground imported successfully",
+      message: "工作空间导入成功",
     });
   } catch (error) {
     return NextResponse.json(
       {
         success: false,
-        message: error instanceof Error ? error.message : "Failed to import ground",
+        message: error instanceof Error ? error.message : "导入工作空间失败",
       },
       { status: 500 }
     );

@@ -18,6 +18,7 @@ import {
   SaintJudgement,
   SaintPlan,
 } from "@/app/lib/sim/types";
+import { getUserIdFromRequest } from "@/app/lib/auth/utils";
 
 type SaintAction =
   | "propose_plan"
@@ -51,6 +52,14 @@ function resolvePlanBatchRoleIds(ground: GroundFile, plan: SaintPlan) {
 
 export async function POST(request: Request) {
   try {
+    const userId = getUserIdFromRequest(request);
+    if (!userId) {
+      return NextResponse.json(
+        { success: false, message: "未登录" },
+        { status: 401 }
+      );
+    }
+
     const groundId = resolveGroundId(request);
     const body = (await request.json().catch(() => ({}))) as {
       action?: SaintAction;
@@ -63,7 +72,7 @@ export async function POST(request: Request) {
       };
     };
 
-    if (!groundExists(groundId)) {
+    if (!groundExists(userId, groundId)) {
       return NextResponse.json(
         {
           success: false,
@@ -85,7 +94,7 @@ export async function POST(request: Request) {
       );
     }
 
-    const ground = readGroundData(groundId);
+    const ground = readGroundData(userId, groundId);
 
     if (!getSaintRole(ground)) {
       return NextResponse.json(
@@ -101,7 +110,7 @@ export async function POST(request: Request) {
       const plan = await proposeSaintPlan(ground, {
         dryRun: body.dryRun,
       });
-      const updatedGround = writeGroundData(groundId, {
+      const updatedGround = writeGroundData(userId, groundId, {
         ...ground,
         workflow: {
           ...ground.workflow,
@@ -119,7 +128,7 @@ export async function POST(request: Request) {
     }
 
     if (action === "reject_plan") {
-      const updatedGround = writeGroundData(groundId, {
+      const updatedGround = writeGroundData(userId, groundId, {
         ...ground,
         workflow: {
           ...ground.workflow,
@@ -152,7 +161,7 @@ export async function POST(request: Request) {
       const messageScope = body.editedPlan?.messageScope ?? pendingPlan.message_scope;
       const batchRoleIds = body.editedPlan?.batchRoleIds ?? resolvePlanBatchRoleIds(ground, pendingPlan);
 
-      const cleanedGround = writeGroundData(groundId, {
+      const cleanedGround = writeGroundData(userId, groundId, {
         ...ground,
         workflow: {
           ...ground.workflow,
@@ -169,7 +178,7 @@ export async function POST(request: Request) {
         dryRun: body.dryRun,
       });
 
-      let persistedGround = writeGroundData(groundId, {
+      let persistedGround = writeGroundData(userId, groundId, {
         ...executedGround,
         workflow: {
           ...executedGround.workflow,
@@ -182,7 +191,7 @@ export async function POST(request: Request) {
         dryRun: body.dryRun,
       });
 
-      persistedGround = writeGroundData(groundId, {
+      persistedGround = writeGroundData(userId, groundId, {
         ...persistedGround,
         workflow: {
           ...persistedGround.workflow,
@@ -214,6 +223,7 @@ export async function POST(request: Request) {
       }
 
       const updatedGround = writeGroundData(
+        userId,
         groundId,
         applySaintJudgementToGround(ground, pendingJudgement),
       );
@@ -226,7 +236,7 @@ export async function POST(request: Request) {
     }
 
     if (action === "reject_judgement") {
-      const updatedGround = writeGroundData(groundId, {
+      const updatedGround = writeGroundData(userId, groundId, {
         ...ground,
         workflow: {
           ...ground.workflow,

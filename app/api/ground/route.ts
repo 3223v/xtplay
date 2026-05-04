@@ -11,6 +11,7 @@ import {
   updateGround,
 } from "@/app/lib/sim/storage";
 import { GroundFile, toGroundSummary } from "@/app/lib/sim/types";
+import { getUserIdFromRequest } from "@/app/lib/auth/utils";
 
 export interface GroundListItem {
   id: string;
@@ -27,12 +28,25 @@ export interface GroundListItem {
 
 export async function GET(request: Request) {
   try {
+    const cookies = request.headers.get("cookie");
+    console.log("[DEBUG] GET /api/ground cookies:", cookies);
+
+    const userId = getUserIdFromRequest(request);
+    console.log("[DEBUG] GET /api/ground userId:", userId);
+
+    if (!userId) {
+      return NextResponse.json(
+        { success: false, message: "未登录" },
+        { status: 401 }
+      );
+    }
+
     const { searchParams } = new URL(request.url);
     const id = searchParams.get("id");
     const exportMode = searchParams.get("export") === "true";
 
     if (id) {
-      if (!groundExists(id)) {
+      if (!groundExists(userId, id)) {
         return NextResponse.json(
           {
             success: false,
@@ -43,14 +57,14 @@ export async function GET(request: Request) {
       }
 
       if (exportMode) {
-        const exportedGround = exportGroundData(id);
+        const exportedGround = exportGroundData(userId, id);
         return NextResponse.json({
           success: true,
           data: exportedGround,
         });
       }
 
-      const ground = readGroundData(id);
+      const ground = readGroundData(userId, id);
 
       return NextResponse.json({
         success: true,
@@ -60,7 +74,7 @@ export async function GET(request: Request) {
 
     return NextResponse.json({
       success: true,
-      data: listGroundSummaries(),
+      data: listGroundSummaries(userId),
     });
   } catch (error) {
     console.error("读取工作空间列表失败:", error);
@@ -76,8 +90,21 @@ export async function GET(request: Request) {
 
 export async function POST(request: Request) {
   try {
+    const cookies = request.headers.get("cookie");
+    console.log("[DEBUG] POST /api/ground cookies:", cookies);
+
+    const userId = getUserIdFromRequest(request);
+    console.log("[DEBUG] POST /api/ground userId:", userId);
+
+    if (!userId) {
+      return NextResponse.json(
+        { success: false, message: "未登录" },
+        { status: 401 }
+      );
+    }
+
     const body = (await request.json()) as Partial<GroundFile>;
-    const ground = createGround({
+    const ground = createGround(userId, {
       name: body.name,
       description: body.description,
       default_url: body.default_url,
@@ -110,6 +137,14 @@ export async function POST(request: Request) {
 
 export async function PUT(request: Request) {
   try {
+    const userId = getUserIdFromRequest(request);
+    if (!userId) {
+      return NextResponse.json(
+        { success: false, message: "未登录" },
+        { status: 401 }
+      );
+    }
+
     const body = (await request.json()) as Partial<GroundFile>;
 
     if (!body.id) {
@@ -122,7 +157,7 @@ export async function PUT(request: Request) {
       );
     }
 
-    if (!groundExists(body.id)) {
+    if (!groundExists(userId, body.id)) {
       return NextResponse.json(
         {
           success: false,
@@ -132,7 +167,7 @@ export async function PUT(request: Request) {
       );
     }
 
-    const ground = updateGround(body.id, {
+    const ground = updateGround(userId, body.id, {
       name: body.name,
       description: body.description,
       default_url: body.default_url,
@@ -166,6 +201,14 @@ export async function PUT(request: Request) {
 
 export async function DELETE(request: Request) {
   try {
+    const userId = getUserIdFromRequest(request);
+    if (!userId) {
+      return NextResponse.json(
+        { success: false, message: "未登录" },
+        { status: 401 }
+      );
+    }
+
     const { searchParams } = new URL(request.url);
     const id = searchParams.get("id");
 
@@ -179,7 +222,7 @@ export async function DELETE(request: Request) {
       );
     }
 
-    if (!groundExists(id)) {
+    if (!groundExists(userId, id)) {
       return NextResponse.json(
         {
           success: false,
@@ -189,7 +232,7 @@ export async function DELETE(request: Request) {
       );
     }
 
-    deleteGround(id);
+    deleteGround(userId, id);
 
     return NextResponse.json({
       success: true,
@@ -209,6 +252,14 @@ export async function DELETE(request: Request) {
 
 export async function PATCH(request: Request) {
   try {
+    const userId = getUserIdFromRequest(request);
+    if (!userId) {
+      return NextResponse.json(
+        { success: false, message: "未登录" },
+        { status: 401 }
+      );
+    }
+
     const { searchParams } = new URL(request.url);
     const id = searchParams.get("id");
     const action = searchParams.get("action");
@@ -223,7 +274,7 @@ export async function PATCH(request: Request) {
       );
     }
 
-    if (!groundExists(id)) {
+    if (!groundExists(userId, id)) {
       return NextResponse.json(
         {
           success: false,
@@ -234,7 +285,7 @@ export async function PATCH(request: Request) {
     }
 
     if (action === "undo") {
-      const ground = undoLastRound(id);
+      const ground = undoLastRound(userId, id);
       return NextResponse.json({
         success: true,
         data: ground,
