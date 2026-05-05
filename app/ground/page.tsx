@@ -1006,7 +1006,15 @@ function GroundPageContent() {
   const [eventPrompt, setEventPrompt] = useState("");
   const [excludedRoleIds, setExcludedRoleIds] = useState<string[]>([]);
   const [manualMode, setManualMode] = useState<"auto" | "manual" | "full-auto-saint" | "full-auto-blank">("auto");
-  const [autoAdvanceTimer, setAutoAdvanceTimer] = useState<NodeJS.Timeout | null>(null);
+  const manualModeRef = useRef<typeof manualMode>(manualMode);
+  
+  const setManualModeAndRef = (newMode: typeof manualMode) => {
+    setManualMode(newMode);
+    manualModeRef.current = newMode;
+  };
+  
+  const autoAdvanceTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const [autoAdvanceState, setAutoAdvanceState] = useState<"idle" | "waiting" | "executing">("idle");
   const [isHistoryCollapsed, setIsHistoryCollapsed] = useState(false);
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [savedRoundInstruction, setSavedRoundInstruction] = useState("");
@@ -1272,11 +1280,12 @@ function GroundPageContent() {
   }
 
   function stopFullAuto() {
-    if (autoAdvanceTimer) {
-      clearTimeout(autoAdvanceTimer);
-      setAutoAdvanceTimer(null);
+    if (autoAdvanceTimerRef.current) {
+      clearTimeout(autoAdvanceTimerRef.current);
+      autoAdvanceTimerRef.current = null;
     }
-    setManualMode("manual");
+    setAutoAdvanceState("idle");
+    setManualModeAndRef("manual");
   }
 
   function startFullAuto(mode: "saint" | "blank") {
@@ -1289,9 +1298,9 @@ function GroundPageContent() {
     
     // 根据模式设置不同的状态
     if (mode === "saint") {
-      setManualMode("full-auto-saint");
+      setManualModeAndRef("full-auto-saint");
     } else {
-      setManualMode("full-auto-blank");
+      setManualModeAndRef("full-auto-blank");
       // 清空当前输入，使用空介入
       setRoundInstruction("");
       setSelectedEventType("");
@@ -1311,6 +1320,7 @@ function GroundPageContent() {
     }
 
     setIsAdvancing(true);
+    setAutoAdvanceState("executing");
     setError(null);
 
     try {
@@ -1321,6 +1331,7 @@ function GroundPageContent() {
 
         if (!persisted) {
           setIsAdvancing(false);
+          setAutoAdvanceState("idle");
           return;
         }
 
@@ -1358,53 +1369,43 @@ function GroundPageContent() {
       localVersionRef.current += 1;
       saveVersionRef.current = localVersionRef.current;
       applyGround(nextGround, { dirty: false });
-      
-      // 如果是全自动模式，处理后续逻辑
-      if (manualMode === "full-auto-saint") {
-        // Saint 模式：自动重置输入
+
+      if (manualModeRef.current === "full-auto-saint") {
         setRoundInstruction("");
         setEventTitle("");
         setEventPrompt("");
         setSelectedEventType("");
-        // 继续自动推进
         scheduleNextAdvance(2000);
-      } else if (manualMode === "full-auto-blank") {
-        // 空介入模式：清空所有输入后继续
+      } else if (manualModeRef.current === "full-auto-blank") {
         setRoundInstruction("");
         setEventTitle("");
         setEventPrompt("");
         setSelectedEventType("");
         setExcludedRoleIds([]);
-        // 继续自动推进（2秒后）
         scheduleNextAdvance(2000);
-      } else if (!manualMode.startsWith("full-auto")) {
-        // 非全自动模式，清空输入
-        setRoundInstruction("");
-        setEventTitle("");
-        setEventPrompt("");
-        setSelectedEventType("");
       }
     } catch (advanceError) {
       setError(
         advanceError instanceof Error ? advanceError.message : "推进回合失败",
       );
-      // 出错时停止全自动模式
-      if (manualMode === "full-auto-saint" || manualMode === "full-auto-blank") {
+      if (manualModeRef.current === "full-auto-saint" || manualModeRef.current === "full-auto-blank") {
         stopFullAuto();
       }
+      setAutoAdvanceState("idle");
     } finally {
       setIsAdvancing(false);
     }
   }
 
   function scheduleNextAdvance(delay: number) {
-    if (autoAdvanceTimer) {
-      clearTimeout(autoAdvanceTimer);
+    if (autoAdvanceTimerRef.current) {
+      clearTimeout(autoAdvanceTimerRef.current);
     }
+    setAutoAdvanceState("waiting");
     const timer = setTimeout(() => {
       void advanceRound();
     }, delay);
-    setAutoAdvanceTimer(timer);
+    autoAdvanceTimerRef.current = timer;
   }
 
   async function runSaintWorkflowAction(
@@ -1968,13 +1969,30 @@ function GroundPageContent() {
                 </div>
 
               <div className="mode-toggle">
+                <div className={`mode-status ${manualMode.startsWith("full-auto") ? "active" : ""} ${autoAdvanceState}`}>
+                  {manualMode === "full-auto-saint" && (
+                    <>
+                      <span className="status-indicator">全自动运行中 (Saint模式)</span>
+                      {autoAdvanceState === "waiting" && <span className="status-detail">等待中...</span>}
+                      {autoAdvanceState === "executing" && <span className="status-detail">执行中...</span>}
+                    </>
+                  )}
+                  {manualMode === "full-auto-blank" && (
+                    <>
+                      <span className="status-indicator">全自动运行中 (空模式)</span>
+                      {autoAdvanceState === "waiting" && <span className="status-detail">等待中...</span>}
+                      {autoAdvanceState === "executing" && <span className="status-detail">执行中...</span>}
+                    </>
+                  )}
+                  {(manualMode === "manual" || manualMode === "auto") && <span className="status-indicator">手动控制</span>}
+                </div>
                 <button
                   className={`mode-btn ${manualMode === "manual" ? "active" : ""}`}
                   onClick={() => {
                     if (manualMode.startsWith("full-auto")) {
                       stopFullAuto();
                     } else {
-                      setManualMode("manual");
+                      setManualModeAndRef("manual");
                     }
                   }}
                 >
@@ -1986,7 +2004,7 @@ function GroundPageContent() {
                     if (manualMode.startsWith("full-auto")) {
                       stopFullAuto();
                     } else {
-                      setManualMode("auto");
+                      setManualModeAndRef("auto");
                     }
                   }}
                 >
@@ -2992,9 +3010,79 @@ function GroundPageContent() {
 
         .mode-toggle {
           display: flex;
+          flex-direction: column;
           gap: 8px;
           margin-top: 12px;
           margin-bottom: 12px;
+        }
+
+        .mode-status {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 8px;
+          padding: 8px 12px;
+          border-radius: 8px;
+          background: #f1f5f9;
+          border: 1px solid #e2e8f0;
+          transition: all 0.2s;
+        }
+
+        .mode-status.active {
+          background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+          border-color: #f59e0b;
+        }
+
+        .mode-status.waiting {
+          animation: waiting-pulse 1.5s ease-in-out infinite;
+        }
+
+        .mode-status.executing {
+          animation: executing-pulse 0.8s ease-in-out infinite;
+        }
+
+        .status-indicator {
+          font-size: 11px;
+          font-weight: 600;
+          color: #64748b;
+        }
+
+        .mode-status.active .status-indicator {
+          color: #d97706;
+        }
+
+        .status-detail {
+          font-size: 11px;
+          font-weight: 500;
+          color: #059669;
+          padding: 2px 6px;
+          background: rgba(5, 150, 105, 0.1);
+          border-radius: 6px;
+        }
+
+        .mode-status.executing .status-detail {
+          color: #dc2626;
+          background: rgba(220, 38, 38, 0.1);
+        }
+
+        @keyframes waiting-pulse {
+          0%, 100% {
+            opacity: 1;
+            transform: scale(1);
+          }
+          50% {
+            opacity: 0.85;
+            transform: scale(1.01);
+          }
+        }
+
+        @keyframes executing-pulse {
+          0%, 100% {
+            opacity: 1;
+          }
+          50% {
+            opacity: 0.6;
+          }
         }
 
         .mode-btn {
