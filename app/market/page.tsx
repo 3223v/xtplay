@@ -181,10 +181,22 @@ export default function MyMarket() {
 
   const handleCopyJson = async (article: MarketArticle) => {
     try {
-      await navigator.clipboard.writeText(article.jsonContent || '');
+      const text = article.jsonContent || '';
+      if (navigator.clipboard && typeof navigator.clipboard.writeText === 'function') {
+        await navigator.clipboard.writeText(text);
+      } else {
+        const textarea = document.createElement('textarea');
+        textarea.value = text;
+        textarea.style.position = 'fixed';
+        textarea.style.left = '-9999px';
+        document.body.appendChild(textarea);
+        textarea.select();
+        document.execCommand('copy');
+        document.body.removeChild(textarea);
+      }
       showNotification('success', 'JSON 已复制到剪贴板');
     } catch {
-      showNotification('error', '复制失败');
+      showNotification('error', '复制失败，请手动复制');
     }
   };
 

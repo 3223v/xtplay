@@ -1,0 +1,17 @@
+{
+  "articles": [
+    {
+      "id": "q5xu8jih",
+      "title": "新工作空间",
+      "description": "",
+      "text": "XTPlay Ground 场景: 新工作空间",
+      "jsonContent": "{\n  \"id\": \"1\",\n  \"name\": \"新工作空间\",\n  \"description\": \"\",\n  \"default_url\": \"\",\n  \"default_key\": \"\",\n  \"default_model\": \"\",\n  \"knowledge\": [],\n  \"rule\": [],\n  \"role\": [],\n  \"round\": [],\n  \"simulation\": {\n    \"batch_size\": 10,\n    \"current_batch_index\": 0,\n    \"max_round_history\": 50,\n    \"mode\": \"auto\",\n    \"round_goal\": \"\"\n  },\n  \"workflow\": {\n    \"pending_plan\": null,\n    \"pending_judgement\": null\n  },\n  \"createdAt\": \"2026-05-05\",\n  \"updatedAt\": \"2026-05-05\"\n}",
+      "tags": [
+        "ground",
+        "场景"
+      ],
+      "createdAt": "2026-05-05",
+      "updatedAt": "2026-05-05"
+    }
+  ]
+}

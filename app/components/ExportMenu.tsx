@@ -7,7 +7,6 @@ interface ExportMenuProps {
   groundName: string;
   onExportToTemplate: (title: string, description: string) => void;
   onExportToMarket: (title: string, description: string) => void;
-  onCopyJson: (json: string) => void;
   getGroundJson: () => string;
 }
 
@@ -16,7 +15,6 @@ export default function ExportMenu({
   groundName,
   onExportToTemplate,
   onExportToMarket,
-  onCopyJson,
   getGroundJson,
 }: ExportMenuProps) {
   const [isOpen, setIsOpen] = useState(false);
@@ -73,8 +71,38 @@ export default function ExportMenu({
 
   const handleCopyJson = () => {
     const json = getGroundJson();
-    onCopyJson(json);
-    setCopied(true);
+    try {
+      if (navigator.clipboard && typeof navigator.clipboard.writeText === 'function') {
+        navigator.clipboard.writeText(json).then(() => {
+          setCopied(true);
+          setTimeout(() => setCopied(false), 2000);
+          setIsOpen(false);
+        }).catch(() => {
+          fallbackCopy(json);
+        });
+      } else {
+        fallbackCopy(json);
+      }
+    } catch {
+      fallbackCopy(json);
+    }
+  };
+
+  const fallbackCopy = (text: string) => {
+    const textarea = document.createElement('textarea');
+    textarea.value = text;
+    textarea.style.position = 'fixed';
+    textarea.style.left = '-9999px';
+    document.body.appendChild(textarea);
+    textarea.select();
+    try {
+      document.execCommand('copy');
+      setCopied(true);
+    } catch {
+      setCopied(false);
+      alert('复制失败，请手动复制');
+    }
+    document.body.removeChild(textarea);
     setTimeout(() => setCopied(false), 2000);
     setIsOpen(false);
   };

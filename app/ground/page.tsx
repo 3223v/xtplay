@@ -1668,9 +1668,6 @@ function GroundPageContent() {
             groundId={ground.id}
             groundName={ground.name}
             getGroundJson={() => JSON.stringify(ground, null, 2)}
-            onCopyJson={(json) => {
-              navigator.clipboard.writeText(json);
-            }}
             onExportToTemplate={async (title, description) => {
               try {
                 const response = await fetch("/api/market", {

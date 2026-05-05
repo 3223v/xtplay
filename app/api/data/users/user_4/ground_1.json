@@ -1,0 +1,25 @@
+{
+  "id": "1",
+  "name": "新工作空间",
+  "description": "",
+  "default_url": "",
+  "default_key": "",
+  "default_model": "",
+  "knowledge": [],
+  "rule": [],
+  "role": [],
+  "round": [],
+  "simulation": {
+    "batch_size": 10,
+    "current_batch_index": 0,
+    "max_round_history": 50,
+    "mode": "auto",
+    "round_goal": ""
+  },
+  "workflow": {
+    "pending_plan": null,
+    "pending_judgement": null
+  },
+  "createdAt": "2026-05-05",
+  "updatedAt": "2026-05-05"
+}

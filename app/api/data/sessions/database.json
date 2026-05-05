@@ -28,5 +28,29 @@
     "user_id": "user_4",
     "expires_at": "2026-05-05T11:16:47.023Z",
     "created_at": "2026-05-04T11:16:47.023Z"
+  },
+  {
+    "session_id": "sess_1777962740849_r89yor7",
+    "user_id": "user_4",
+    "expires_at": "2026-05-06T06:32:20.849Z",
+    "created_at": "2026-05-05T06:32:20.849Z"
+  },
+  {
+    "session_id": "sess_1777962806534_xvr8non",
+    "user_id": "user_4",
+    "expires_at": "2026-05-06T06:33:26.534Z",
+    "created_at": "2026-05-05T06:33:26.534Z"
+  },
+  {
+    "session_id": "sess_1777962910749_cbyablg",
+    "user_id": "user_4",
+    "expires_at": "2026-05-06T06:35:10.749Z",
+    "created_at": "2026-05-05T06:35:10.749Z"
+  },
+  {
+    "session_id": "sess_1777962964083_fn9zpqp",
+    "user_id": "user_4",
+    "expires_at": "2026-05-06T06:36:04.083Z",
+    "created_at": "2026-05-05T06:36:04.083Z"
   }
 ]
