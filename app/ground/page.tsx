@@ -1005,7 +1005,15 @@ function GroundPageContent() {
   const [eventTitle, setEventTitle] = useState("");
   const [eventPrompt, setEventPrompt] = useState("");
   const [excludedRoleIds, setExcludedRoleIds] = useState<string[]>([]);
-  const [manualMode, setManualMode] = useState<"auto" | "manual">("auto");
+  const [manualMode, setManualMode] = useState<"auto" | "manual" | "full-auto-saint" | "full-auto-blank">("auto");
+  const [autoAdvanceTimer, setAutoAdvanceTimer] = useState<NodeJS.Timeout | null>(null);
+  const [isHistoryCollapsed, setIsHistoryCollapsed] = useState(false);
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
+  const [savedRoundInstruction, setSavedRoundInstruction] = useState("");
+  const [savedSelectedEventType, setSavedSelectedEventType] = useState("");
+  const [savedEventTitle, setSavedEventTitle] = useState("");
+  const [savedEventPrompt, setSavedEventPrompt] = useState("");
+  const [savedExcludedRoleIds, setSavedExcludedRoleIds] = useState<string[]>([]);
   const [eventsConfig, setEventsConfig] = useState<EventConfig[]>([]);
   const [presetsConfig, setPresetsConfig] = useState<{ urls: { value: string; label: string }[]; models: { value: string; label: string }[] }>({ urls: [], models: [] });
   const [editablePlanInstructions, setEditablePlanInstructions] = useState("");
@@ -1263,6 +1271,38 @@ function GroundPageContent() {
     }
   }
 
+  function stopFullAuto() {
+    if (autoAdvanceTimer) {
+      clearTimeout(autoAdvanceTimer);
+      setAutoAdvanceTimer(null);
+    }
+    setManualMode("manual");
+  }
+
+  function startFullAuto(mode: "saint" | "blank") {
+    // 保存当前设置
+    setSavedRoundInstruction(roundInstruction);
+    setSavedSelectedEventType(selectedEventType);
+    setSavedEventTitle(eventTitle);
+    setSavedEventPrompt(eventPrompt);
+    setSavedExcludedRoleIds([...excludedRoleIds]);
+    
+    // 根据模式设置不同的状态
+    if (mode === "saint") {
+      setManualMode("full-auto-saint");
+    } else {
+      setManualMode("full-auto-blank");
+      // 清空当前输入，使用空介入
+      setRoundInstruction("");
+      setSelectedEventType("");
+      setEventTitle("");
+      setEventPrompt("");
+      setExcludedRoleIds([]);
+    }
+    // 立即开始推进
+    void advanceRound();
+  }
+
   async function advanceRound() {
     const currentGround = groundRef.current;
 
@@ -1318,17 +1358,53 @@ function GroundPageContent() {
       localVersionRef.current += 1;
       saveVersionRef.current = localVersionRef.current;
       applyGround(nextGround, { dirty: false });
-      setRoundInstruction("");
-      setEventTitle("");
-      setEventPrompt("");
-      setSelectedEventType("");
+      
+      // 如果是全自动模式，处理后续逻辑
+      if (manualMode === "full-auto-saint") {
+        // Saint 模式：自动重置输入
+        setRoundInstruction("");
+        setEventTitle("");
+        setEventPrompt("");
+        setSelectedEventType("");
+        // 继续自动推进
+        scheduleNextAdvance(2000);
+      } else if (manualMode === "full-auto-blank") {
+        // 空介入模式：清空所有输入后继续
+        setRoundInstruction("");
+        setEventTitle("");
+        setEventPrompt("");
+        setSelectedEventType("");
+        setExcludedRoleIds([]);
+        // 继续自动推进（2秒后）
+        scheduleNextAdvance(2000);
+      } else if (!manualMode.startsWith("full-auto")) {
+        // 非全自动模式，清空输入
+        setRoundInstruction("");
+        setEventTitle("");
+        setEventPrompt("");
+        setSelectedEventType("");
+      }
     } catch (advanceError) {
       setError(
         advanceError instanceof Error ? advanceError.message : "推进回合失败",
       );
+      // 出错时停止全自动模式
+      if (manualMode === "full-auto-saint" || manualMode === "full-auto-blank") {
+        stopFullAuto();
+      }
     } finally {
       setIsAdvancing(false);
     }
+  }
+
+  function scheduleNextAdvance(delay: number) {
+    if (autoAdvanceTimer) {
+      clearTimeout(autoAdvanceTimer);
+    }
+    const timer = setTimeout(() => {
+      void advanceRound();
+    }, delay);
+    setAutoAdvanceTimer(timer);
   }
 
   async function runSaintWorkflowAction(
@@ -1528,13 +1604,13 @@ function GroundPageContent() {
       return;
     }
 
-    const nextRoles = currentGround.role.filter((role) => role.id !== roleId);
     mutateGround((current) => ({
       ...current,
       role: current.role.filter((role) => role.id !== roleId),
     }), { persist: "immediate" });
     setEditingRoleId(null);
-    setSelectedRoleId(nextRoles[0]?.id ?? null);
+    const remainingRoles = currentGround.role.filter((role) => role.id !== roleId);
+    setSelectedRoleId(remainingRoles[0]?.id ?? null);
   }
 
   function updateRole(updatedRole: RoleConfig) {
@@ -1638,6 +1714,18 @@ function GroundPageContent() {
         </div>
 
         <div className="top-actions">
+          <button
+            onClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
+            className="btn btn-secondary"
+          >
+            {isSidebarCollapsed ? "展开侧边栏" : "收起侧边栏"}
+          </button>
+          <button
+            onClick={() => setIsHistoryCollapsed(!isHistoryCollapsed)}
+            className="btn btn-secondary"
+          >
+            {isHistoryCollapsed ? "展开历史" : "收起历史"}
+          </button>
           <span className={`sync-badge ${dirty ? "dirty" : "clean"}`}>
             {dirty ? "未保存的更改" : "已同步"}
           </span>
@@ -1732,7 +1820,8 @@ function GroundPageContent() {
       </div>
 
       <div className="flow-container">
-        <aside className="sidebar">
+        <aside className={`sidebar ${isSidebarCollapsed ? "collapsed" : ""}`}>
+          <div className="sidebar-content-wrapper">
           <div className="sidebar-header">
             <h3>{ground.name}</h3>
             <span className="component-count">{ground.role.length}</span>
@@ -1814,6 +1903,7 @@ function GroundPageContent() {
           <div className="sidebar-footer">
             <p className="hint-text">将角色拖入画布，双击可编辑。</p>
           </div>
+          </div>
         </aside>
 
         <div
@@ -1855,15 +1945,19 @@ function GroundPageContent() {
           {error ? <div className="floating-error">{error}</div> : null}
         </div>
 
-        <aside className="history-sidebar">
+        <aside className={`history-sidebar ${isHistoryCollapsed ? "collapsed" : ""}`}>
           <div className="history-header">
             <h3>推进与历史</h3>
-            <span className="round-count">{rounds.length}</span>
+            <div className="header-actions">
+              <span className="round-count">{rounds.length}</span>
+            </div>
           </div>
 
-          <div className="history-content">
-            <div className="advance-card">
-              <div className="advance-title">
+          <div className={`history-content ${isHistoryCollapsed ? "collapsed" : ""}`}>
+            <div className="advance-history-grid">
+              <div className="advance-card">
+                <div className="history-panel">
+                <div className="advance-title">
                   推进控制
                   <button
                     onClick={() => setShowVoteResults(!showVoteResults)}
@@ -1875,16 +1969,52 @@ function GroundPageContent() {
 
               <div className="mode-toggle">
                 <button
-                  className={`mode-btn ${manualMode === "auto" ? "active" : ""}`}
-                  onClick={() => setManualMode("auto")}
-                >
-                  自动 (Saint)
-                </button>
-                <button
                   className={`mode-btn ${manualMode === "manual" ? "active" : ""}`}
-                  onClick={() => setManualMode("manual")}
+                  onClick={() => {
+                    if (manualMode.startsWith("full-auto")) {
+                      stopFullAuto();
+                    } else {
+                      setManualMode("manual");
+                    }
+                  }}
                 >
                   手动
+                </button>
+                <button
+                  className={`mode-btn ${manualMode === "auto" ? "active" : ""}`}
+                  onClick={() => {
+                    if (manualMode.startsWith("full-auto")) {
+                      stopFullAuto();
+                    } else {
+                      setManualMode("auto");
+                    }
+                  }}
+                >
+                  自动
+                </button>
+                <button
+                  className={`mode-btn ${manualMode === "full-auto-saint" ? "active" : ""}`}
+                  onClick={() => {
+                    if (manualMode === "full-auto-saint") {
+                      stopFullAuto();
+                    } else {
+                      startFullAuto("saint");
+                    }
+                  }}
+                >
+                  全自动(Saint)
+                </button>
+                <button
+                  className={`mode-btn ${manualMode === "full-auto-blank" ? "active" : ""}`}
+                  onClick={() => {
+                    if (manualMode === "full-auto-blank") {
+                      stopFullAuto();
+                    } else {
+                      startFullAuto("blank");
+                    }
+                  }}
+                >
+                  全自动(空)
                 </button>
               </div>
 
@@ -2272,51 +2402,66 @@ function GroundPageContent() {
                   </div>
                 </div>
               ) : null}
-            </div>
-
-            <div className="world-card">
-              <div className="advance-title">世界摘要</div>
-              <div className="world-line">规则: {ground.rule.length}</div>
-              <div className="world-line">公共知识: {ground.knowledge.length}</div>
-              <div className="world-line">
-                启用角色: {ground.role.filter((role) => role.enabled).length} / {ground.role.length}
               </div>
-            </div>
+              </div>
 
-            {rounds.length > 0 ? (
-              [...rounds].reverse().map((round) => (
-                <div key={`${round.round}-${round.createdAt}`} className="round-item">
-                  <div className="round-header">
-                    <span className="round-number">回合 {round.round}</span>
-                    <span className="round-time">{formatRoundTime(round.createdAt)}</span>
-                  </div>
-                  {round.event ? (
-                    <div className="round-event">
-                      事件: {round.event.type} / {round.event.title}
-                    </div>
-                  ) : null}
-                  <div className="round-summary">{round.summary || "暂无摘要。"}</div>
-                  <div className="round-output">
-                    {round.output.length > 0 ? (
-                      round.output.slice(0, 3).map((message, index) => (
-                        <div key={`${message.from}-${message.role}-${index}`} className="message">
-                          <span className="message-role">
-                            {message.from} -&gt; {message.role}:
-                          </span>
-                          <span className="message-content">{message.content}</span>
-                        </div>
-                      ))
-                    ) : (
-                      <div className="message empty">本回合无投递消息。</div>
-                    )}
+              <div className="advance-control-wrapper">
+                <div className="world-card world-summary-fixed">
+                  <div className="advance-title">世界摘要</div>
+                  <div className="world-line">规则: {ground.rule.length}</div>
+                  <div className="world-line">公共知识: {ground.knowledge.length}</div>
+                  <div className="world-line">
+                    启用角色: {ground.role.filter((role) => role.enabled).length} / {ground.role.length}
                   </div>
                 </div>
-              ))
-            ) : (
-              <div className="empty-history">
-                <p>暂无回合历史。</p>
+
+                <div className="history-scroll-container">
+                {rounds.length > 0 ? (
+                  [...rounds].reverse().map((round, index) => (
+                    <div
+                      key={`${round.round}-${round.createdAt}`}
+                      className={`round-item ${index === 0 ? "latest" : ""}`}
+                    >
+                      {index === 0 && (
+                        <div className="latest-badge">最新</div>
+                      )}
+                      <div className="round-header">
+                        <span className="round-number">回合 {round.round}</span>
+                        <span className="round-time">{formatRoundTime(round.createdAt)}</span>
+                      </div>
+                      {round.event ? (
+                        <div className="round-event">
+                          事件: {round.event.type} / {round.event.title}
+                        </div>
+                      ) : null}
+                      <div className="round-summary">{round.summary || "暂无摘要。"}</div>
+                      <div className="round-output">
+                        {round.output.length > 0 ? (
+                          round.output.slice(0, 3).map((message, msgIndex) => (
+                            <div
+                              key={`${message.from}-${message.role}-${msgIndex}`}
+                              className="message"
+                            >
+                              <span className="message-role">
+                                {message.from} -&gt; {message.role}:
+                              </span>
+                              <span className="message-content">{message.content}</span>
+                            </div>
+                          ))
+                        ) : (
+                          <div className="message empty">本回合无投递消息。</div>
+                        )}
+                      </div>
+                    </div>
+                  ))
+                ) : (
+                  <div className="empty-history">
+                    <p>暂无回合历史。</p>
+                  </div>
+                )}
+                </div>
               </div>
-            )}
+            </div>
           </div>
         </aside>
       </div>
@@ -2421,6 +2566,7 @@ function GroundPageContent() {
           flex: 1;
           min-height: 0;
           background: #f1f5f9;
+          position: relative;
         }
 
         .sidebar {
@@ -2430,6 +2576,25 @@ function GroundPageContent() {
           border-right: 1px solid #e2e8f0;
           display: flex;
           flex-direction: column;
+          transition: width 0.3s ease, margin-left 0.3s ease;
+          position: relative;
+        }
+
+        .sidebar.collapsed {
+          width: 0;
+          overflow: hidden;
+          border-right: none;
+        }
+
+        .sidebar-content-wrapper {
+          display: flex;
+          flex-direction: column;
+          height: 100%;
+          overflow: hidden;
+        }
+
+        .sidebar.collapsed .sidebar-content-wrapper {
+          display: none;
         }
 
         .sidebar-header,
@@ -2449,8 +2614,7 @@ function GroundPageContent() {
           letter-spacing: 0.5px;
         }
 
-        .component-count,
-        .round-count {
+        .component-count {
           background: #3b82f6;
           color: #fff;
           font-size: 11px;
@@ -2461,6 +2625,11 @@ function GroundPageContent() {
 
         .round-count {
           background: #059669;
+          color: #fff;
+          font-size: 11px;
+          font-weight: 600;
+          padding: 2px 8px;
+          border-radius: 10px;
         }
 
         .sidebar-content {
@@ -2662,21 +2831,125 @@ function GroundPageContent() {
         }
 
         .history-sidebar {
-          width: 360px;
+          width: 33%;
           height: 100%;
           background: #ffffff;
           border-left: 1px solid #e2e8f0;
           display: flex;
           flex-direction: column;
+          transition: width 0.3s ease;
+          overflow: hidden;
+        }
+
+        .history-sidebar.collapsed {
+          width: 60px;
         }
 
         .history-content {
           flex: 1;
           padding: 16px;
+          overflow: hidden;
+          display: flex;
+          gap: 14px;
+        }
+
+        .advance-card,
+        .advance-control-wrapper {
+          flex: 1;
+          min-width: 0;
+          display: flex;
+          flex-direction: column;
+        }
+
+        .history-content.collapsed {
+          display: none;
+        }
+
+        .history-sidebar.collapsed .history-header h3,
+        .history-sidebar.collapsed .header-actions {
+          display: none;
+        }
+
+        .history-sidebar.collapsed .history-header {
+          writing-mode: vertical-rl;
+          text-orientation: mixed;
+          padding: 20px 8px;
+          justify-content: flex-start;
+          height: auto;
+          width: 60px;
+        }
+
+        .history-sidebar:not(.collapsed) .round-item {
+          min-width: 0;
+          width: 100%;
+        }
+
+        .history-sidebar:not(.collapsed) .history-panel,
+        .history-sidebar:not(.collapsed) .advance-card {
+          min-width: 0;
+          width: 100%;
+        }
+
+        .world-summary-fixed {
+          flex-shrink: 0;
+        }
+
+        .history-scroll-container {
+          flex: 1;
           overflow-y: auto;
+          min-height: 0;
+        }
+
+        .header-actions {
+          display: flex;
+          align-items: center;
+          gap: 10px;
+        }
+
+        .collapse-toggle {
+          background: #e2e8f0;
+          color: #64748b;
+          border: none;
+          border-radius: 6px;
+          padding: 4px 10px;
+          font-size: 11px;
+          font-weight: 600;
+          cursor: pointer;
+          transition: all 0.2s;
+        }
+
+        .collapse-toggle:hover {
+          background: #cbd5e1;
+        }
+
+        .advance-history-grid {
+          display: contents;
+        }
+
+        .history-panel {
           display: flex;
           flex-direction: column;
           gap: 14px;
+          overflow-y: auto;
+          transition: all 0.3s ease;
+        }
+
+        .round-item.latest {
+          border-color: #3b82f6;
+          background: linear-gradient(135deg, #eff6ff 0%, #f8fafc 100%);
+          position: relative;
+        }
+
+        .latest-badge {
+          position: absolute;
+          top: -8px;
+          right: 10px;
+          background: linear-gradient(135deg, #3b82f6 0%, #6366f1 100%);
+          color: white;
+          padding: 2px 8px;
+          border-radius: 10px;
+          font-size: 10px;
+          font-weight: 700;
         }
 
         .advance-card,
@@ -2881,21 +3154,6 @@ function GroundPageContent() {
           margin-top: 8px;
           max-height: 160px;
           overflow-y: auto;
-        }
-
-        .exclude-row {
-          display: flex;
-          align-items: center;
-          gap: 10px;
-          color: #1e293b;
-          font-size: 12px;
-          cursor: pointer;
-        }
-
-        .exclude-row input[type="checkbox"] {
-          width: 16px;
-          height: 16px;
-          accent-color: #3b82f6;
         }
 
         .vote-results-card {
