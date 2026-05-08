@@ -1,3 +1,5 @@
+#  main分支，无用户系统，仅汉化
+
 # XTPlay - Multi-Character LLM Simulator
 
 XTPlay 是一个多角色 LLM 模拟平台，允许用户创建和管理多个 AI 角色，模拟它们之间的交互和对话。
