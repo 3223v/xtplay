@@ -1,0 +1,68 @@
+:root {
+  --el-scrollbar-width: 0px;
+  --el-scrollbar-height: 0px;
+  --el-font-size-extra-small: 13px;
+  --el-font-size-small: 14px;
+  --el-font-size-base: 15px;
+  --el-font-size-medium: 16px;
+  --el-font-size-large: 17px;
+  --el-font-size-extra-large: 18px;
+}
+
+*::-webkit-scrollbar {
+  width: 0;
+  height: 0;
+  display: none;
+}
+
+* {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+  scrollbar-color: transparent transparent;
+}
+
+*::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+*::-webkit-scrollbar-thumb {
+  background: transparent;
+  border-radius: 0;
+}
+
+*::-webkit-scrollbar-corner {
+  background: transparent;
+}
+
+html, body {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  font-size: 15px;
+}
+
+/* 全局文本输入框样式优化 */
+:deep(.el-input__wrapper),
+:deep(.el-textarea__inner) {
+  font-size: 15px;
+}
+
+:deep(.el-textarea__inner) {
+  line-height: 1.8;
+  padding: 12px 16px;
+}
+
+:deep(.el-input__inner) {
+  padding: 10px 16px;
+}
+
+/* 确保输入框横向填满 */
+.el-input,
+.el-textarea {
+  width: 100%;
+}
+
+/* 表单标签字体优化 */
+:deep(.el-form-item__label) {
+  font-size: 15px;
+  font-weight: 500;
+}

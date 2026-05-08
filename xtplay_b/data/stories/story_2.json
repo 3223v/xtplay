@@ -1,0 +1,18 @@
+{
+  "title": "新故事",
+  "description": "",
+  "status": "active",
+  "url": "",
+  "api_key": "",
+  "model": "",
+  "tags": [],
+  "preset": {},
+  "lorebook": {},
+  "initial_scene": "",
+  "role1": {},
+  "role2": {},
+  "round": [],
+  "id": 2,
+  "created_at": "2026-05-07T14:27:38.133605+00:00",
+  "updated_at": "2026-05-07T14:27:38.133618+00:00"
+}

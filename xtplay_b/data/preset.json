@@ -1,0 +1,18 @@
+[
+  {
+    "temperature": 0.8,
+    "frequency_penalty": 0.7,
+    "presence_penalty": 0.6,
+    "top_p": 0.95,
+    "top_k": 40,
+    "top_a": 0,
+    "min_p": 0.05,
+    "repetition_penalty": 1.1,
+    "names_in_completion": true,
+    "main_prompt": "",
+    "impersonation_prompt": "",
+    "assistant_prefill": "",
+    "jailbreak_prompt": "",
+    "id": 1
+  }
+]
