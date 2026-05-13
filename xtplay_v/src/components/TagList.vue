@@ -1,27 +1,23 @@
 <template>
   <div class="tag-list">
-    <div class="tag-input-wrapper">
-      <el-input
+    <div class="tag-input-row">
+      <input
         v-model="newTag"
-        placeholder="输入后按回车添加"
-        size="small"
-        @keyup.enter="addTag"
         class="tag-input"
+        placeholder="输入后按回车添加"
+        @keyup.enter="addTag"
       />
     </div>
-    <div class="tags-container">
-      <el-tag
+    <div class="tag-items">
+      <span
         v-for="(tag, index) in modelValue"
         :key="index"
-        closable
-        @close="removeTag(index)"
-        class="tag-item"
+        class="tag-pill"
       >
         {{ tag }}
-      </el-tag>
-      <div v-if="modelValue.length === 0" class="empty-tip">
-        暂无标签，按回车添加
-      </div>
+        <button class="tag-remove" @click="removeTag(index)">&times;</button>
+      </span>
+      <span v-if="modelValue.length === 0" class="tag-empty">暂无标签，按回车添加</span>
     </div>
   </div>
 </template>
@@ -59,28 +55,74 @@ function removeTag(index: number) {
   width: 100%;
 }
 
-.tag-input-wrapper {
-  margin-bottom: 8px;
+.tag-input-row {
+  margin-bottom: 10px;
 }
 
 .tag-input {
   width: 100%;
+  padding: 8px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  font-family: var(--font-sans);
+  font-size: var(--font-sm);
+  color: var(--text-primary);
+  outline: none;
+  transition: border-color var(--transition-fast);
+  box-sizing: border-box;
 }
 
-.tags-container {
+.tag-input:focus {
+  border-color: var(--primary-light);
+}
+
+.tag-input::placeholder {
+  color: var(--text-tertiary);
+}
+
+.tag-items {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
+  gap: 6px;
   min-height: 32px;
 }
 
-.tag-item {
-  margin-bottom: 0;
+.tag-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 10px;
+  background: var(--primary-bg);
+  color: var(--primary);
+  border-radius: 20px;
+  font-size: var(--font-xs);
+  font-weight: 500;
 }
 
-.empty-tip {
-  color: var(--el-text-color-placeholder);
-  font-size: 13px;
+.tag-remove {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  border: none;
+  background: transparent;
+  color: var(--primary);
+  cursor: pointer;
+  font-size: 14px;
+  border-radius: 50%;
+  padding: 0;
+  line-height: 1;
+  transition: background var(--transition-fast);
+}
+
+.tag-remove:hover {
+  background: rgba(79, 70, 229, 0.15);
+}
+
+.tag-empty {
+  font-size: var(--font-xs);
+  color: var(--text-tertiary);
   line-height: 32px;
 }
 </style>

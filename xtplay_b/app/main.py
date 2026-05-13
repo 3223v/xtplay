@@ -1,5 +1,8 @@
 from __future__ import annotations
 
+import logging
+import sys
+
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -9,6 +12,13 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.api.v1.router import router as v1_router
 
+logging.basicConfig(
+    level=logging.WARNING,
+    format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
+    stream=sys.stderr,
+    force=True,
+)
+logging.getLogger("app.tts").setLevel(logging.INFO)
 
 app = FastAPI(title="xtplay_b API", version="1.0.0")
 

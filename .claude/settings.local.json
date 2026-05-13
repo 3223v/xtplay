@@ -1,0 +1,16 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npx vite *)",
+      "Bash(pip list *)",
+      "Bash(python -c ' *)",
+      "Bash(/d/Program/Python/python -c \"import ast; [ast.parse\\(open\\(f'app/{p}',encoding='utf-8'\\).read\\(\\)\\) or print\\(f'OK: app/{p}'\\) for p in ['model/user.py','db/postgres_store.py']]\")",
+      "Bash(/d/Program/Python/python -c \"import ast; ast.parse\\(open\\('app/api/v1/router.py',encoding='utf-8'\\).read\\(\\)\\); print\\('OK: app/api/v1/router.py'\\)\")",
+      "Bash(npx vue-tsc *)",
+      "Bash(python3 *)",
+      "Bash(python *)",
+      "WebFetch(domain:platform.xiaomimimo.com)",
+      "Bash(pip install *)"
+    ]
+  }
+}

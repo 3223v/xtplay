@@ -1,0 +1,5 @@
+xtplay_b是后端项目文件夹
+xtplay_v是采用vue框架构建的前端项目
+xtplay_f是采用next框架构建的前端项目
+xtplay_doc是当前项目的文档
+deploy是部署文件夹

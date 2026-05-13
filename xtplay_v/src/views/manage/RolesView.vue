@@ -13,83 +13,102 @@
     <template #edit>
       <edit-panel
         v-if="store.selectedItem"
-        :title="`编辑角色: ${store.selectedItem.name || '未命名'}`"
+        :title="`${store.selectedItem.name || '未命名角色'}`"
         :subtitle="`ID: ${store.selectedItem.id}`"
         :saving="store.loading"
+        :import-export-data="store.selectedItem"
+        entity-name="role"
         @save="handleSave"
+        @import="handleImport"
       >
-        <el-form :model="formData" label-position="top" class="edit-form">
-          <el-row :gutter="100">
-            <el-col :span="12">
-              <el-form-item label="名称 *">
-                <el-input v-model="formData.name" placeholder="角色名称" />
-              </el-form-item>
-            </el-col>
-            <el-col :span="12">
-              <el-form-item label="规格">
-                <el-input v-model="formData.spec" placeholder="角色规格" />
-              </el-form-item>
-            </el-col>
-          </el-row>
+        <div class="edit-form">
+          <div class="form-row">
+            <div class="form-col">
+              <div class="form-group">
+                <label class="form-label">名称 *</label>
+                <input v-model="formData.name" class="form-input" placeholder="角色名称" />
+              </div>
+            </div>
+            <div class="form-col">
+              <div class="form-group">
+                <label class="form-label">规格</label>
+                <input v-model="formData.spec" class="form-input" placeholder="角色卡规范" />
+              </div>
+            </div>
+          </div>
 
-          <el-form-item label="描述">
-            <el-input v-model="formData.description" type="textarea" :rows="4" placeholder="角色描述" />
-          </el-form-item>
+          <div class="form-group">
+            <label class="form-label">描述</label>
+            <textarea v-model="formData.description" class="form-textarea" rows="3" placeholder="角色描述" />
+          </div>
 
-          <el-form-item label="标签">
-            <el-tag-list v-model="tags" />
-          </el-form-item>
+          <div class="form-group">
+            <label class="form-label">标签</label>
+            <tag-list v-model="tags" />
+          </div>
 
-          <el-divider content-position="left">角色设定</el-divider>
+          <div class="form-divider">角色设定</div>
 
-          <el-form-item label="性格特点">
-            <el-input v-model="formData.personality" type="textarea" :rows="6" placeholder="角色的性格特点，例如：开朗乐观、内向敏感、善良正直、幽默风趣..." />
-          </el-form-item>
+          <div class="form-group">
+            <label class="form-label">性格特点</label>
+            <textarea v-model="formData.personality" class="form-textarea" rows="5" placeholder="角色的性格特点，例如：开朗乐观、内向敏感..." />
+          </div>
 
-          <el-form-item label="默认场景">
-            <el-input v-model="formData.scenario" type="textarea" :rows="4" placeholder="角色所处的默认场景描述..." />
-          </el-form-item>
+          <div class="form-group">
+            <label class="form-label">默认场景</label>
+            <textarea v-model="formData.scenario" class="form-textarea" rows="3" placeholder="角色所处的默认场景描述..." />
+          </div>
 
-          <el-divider content-position="left">对话配置</el-divider>
+          <div class="form-divider">对话配置</div>
 
-          <el-form-item label="开场消息">
-            <el-input v-model="formData.first_mes" type="textarea" :rows="8" placeholder="角色的第一条消息，用于开场..." />
-          </el-form-item>
+          <div class="form-group">
+            <label class="form-label">开场消息</label>
+            <textarea v-model="formData.first_mes" class="form-textarea" rows="5" placeholder="角色的第一条消息，用于开场..." />
+          </div>
 
-          <el-form-item label="备选问候语">
-            <el-tag-list v-model="alternateGreetings" />
-          </el-form-item>
+          <div class="form-group">
+            <label class="form-label">备选问候语</label>
+            <tag-list v-model="alternateGreetings" />
+          </div>
 
-          <el-form-item label="消息示例">
-            <el-input v-model="formData.mes_example" type="textarea" :rows="8" placeholder="角色对话示例，展示角色的说话风格，建议包含多个对话回合..." />
-          </el-form-item>
+          <div class="form-group">
+            <label class="form-label">消息示例</label>
+            <textarea v-model="formData.mes_example" class="form-textarea" rows="5" placeholder="角色对话示例，展示角色的说话风格..." />
+          </div>
 
-          <el-divider content-position="left">系统设置</el-divider>
+          <div class="form-divider">系统设置</div>
 
-          <el-form-item label="系统提示">
-            <el-input v-model="formData.system_prompt" type="textarea" :rows="8" placeholder="系统提示词，定义角色的行为准则和性格设定..." />
-          </el-form-item>
+          <div class="form-group">
+            <label class="form-label">系统提示</label>
+            <textarea v-model="formData.system_prompt" class="form-textarea" rows="5" placeholder="系统提示词，定义角色的行为准则..." />
+          </div>
 
-          <el-form-item label="历史指令">
-            <el-input v-model="formData.post_history_instructions" type="textarea" :rows="4" placeholder="对话历史后的指令..." />
-          </el-form-item>
+          <div class="form-group">
+            <label class="form-label">历史指令</label>
+            <textarea v-model="formData.post_history_instructions" class="form-textarea" rows="3" placeholder="对话历史后的指令..." />
+          </div>
 
-          <el-row :gutter="20">
-            <el-col :span="12">
-              <el-form-item label="头像">
-                <el-input v-model="formData.avatar" placeholder="头像 URL" />
-              </el-form-item>
-            </el-col>
-            <el-col :span="12">
-              <el-form-item label="创建者备注">
-                <el-input v-model="formData.creator_notes" type="textarea" :rows="3" placeholder="备注信息..." />
-              </el-form-item>
-            </el-col>
-          </el-row>
-        </el-form>
+          <div class="form-row">
+            <div class="form-col">
+              <div class="form-group">
+                <label class="form-label">头像</label>
+                <input v-model="formData.avatar" class="form-input" placeholder="头像 URL" />
+              </div>
+            </div>
+            <div class="form-col">
+              <div class="form-group">
+                <label class="form-label">创建者备注</label>
+                <textarea v-model="formData.creator_notes" class="form-textarea" rows="2" placeholder="备注信息..." />
+              </div>
+            </div>
+          </div>
+        </div>
       </edit-panel>
-      <edit-panel v-else title="请选择一个角色" subtitle="从左侧列表选择角色进行编辑">
-        <el-empty description="请选择一个角色" />
+      <edit-panel v-else title="选择一个角色" subtitle="从左侧列表选择角色进行编辑">
+        <div class="empty-state">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1" width="48" height="48"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+          <p>请选择一个角色</p>
+        </div>
       </edit-panel>
     </template>
   </crud-layout>
@@ -143,81 +162,64 @@ watch(() => store.selectedItem, (item) => {
   }
 }, { immediate: true })
 
-onMounted(() => {
-  store.fetchAll()
-})
+onMounted(() => { store.fetchAll() })
 
-function handleSelect(id: number) {
-  store.select(id)
-}
+function handleSelect(id: number) { store.select(id) }
 
 async function handleCreate() {
   try {
     const created = await store.create({ name: '新角色' })
     store.select(created.id)
     ElMessage.success('创建成功')
-  } catch {
-    ElMessage.error('创建失败')
-  }
+  } catch { ElMessage.error('创建失败') }
 }
 
 async function handleDelete(id: number) {
-  try {
-    await store.remove(id)
-    ElMessage.success('删除成功')
-  } catch {
-    ElMessage.error('删除失败')
-  }
+  try { await store.remove(id); ElMessage.success('删除成功') }
+  catch { ElMessage.error('删除失败') }
 }
 
 async function handleSave() {
   if (!store.selectedItem) return
   try {
-    const data = {
-      ...formData,
-      tags: tags.value,
-      alternate_greetings: alternateGreetings.value,
-    }
-    await store.update(store.selectedItem.id, data)
+    await store.update(store.selectedItem.id, { ...formData, tags: tags.value, alternate_greetings: alternateGreetings.value })
     ElMessage.success('保存成功')
-  } catch {
-    ElMessage.error('保存失败')
-  }
+  } catch { ElMessage.error('保存失败') }
+}
+
+async function handleImport(data: unknown) {
+  try {
+    const created = await store.create(data as Partial<Role>)
+    store.select(created.id)
+    ElMessage.success('导入成功')
+  } catch { ElMessage.error('导入失败') }
 }
 </script>
 
 <style scoped>
 .edit-form {
-  max-width: 950px;
-  width: 100%;
+  max-width: 800px;
 }
 
-:deep(.el-textarea__inner) {
-  font-family: inherit;
-  font-size: 15px;
-  line-height: 1.8;
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 80px 0;
+  color: var(--text-tertiary);
 }
 
-:deep(.el-input__inner) {
-  font-size: 15px;
-}
+.empty-state svg { margin-bottom: 12px; opacity: 0.3; }
+.empty-state p { font-size: var(--font-sm); margin: 0; }
 
-/* 角色列表项字体 */
-.item-title {
-  font-size: 15px;
-}
-
-.item-subtitle {
-  font-size: 13px;
-}
-
-/* 标题字体 */
-.list-title,
-.edit-title {
-  font-size: 17px;
-}
-
-.edit-subtitle {
-  font-size: 14px;
-}
+.form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+.form-col { min-width: 0; }
+.form-group { margin-bottom: 20px; }
+.form-label { display: block; font-size: var(--font-sm); font-weight: 500; color: var(--text-secondary); margin-bottom: 6px; }
+.form-input { width: 100%; padding: 8px 12px; border: 1px solid var(--border); border-radius: var(--radius-sm); font-family: var(--font-sans); font-size: var(--font-sm); color: var(--text-primary); outline: none; transition: border-color var(--transition-fast); box-sizing: border-box; }
+.form-input:focus { border-color: var(--primary-light); }
+.form-textarea { width: 100%; padding: 8px 12px; border: 1px solid var(--border); border-radius: var(--radius-sm); font-family: var(--font-sans); font-size: var(--font-sm); line-height: var(--leading-relaxed); color: var(--text-primary); resize: vertical; outline: none; transition: border-color var(--transition-fast); box-sizing: border-box; }
+.form-textarea:focus { border-color: var(--primary-light); }
+.form-divider { font-size: var(--font-sm); font-weight: 600; color: var(--text-secondary); padding: 16px 0 8px; margin-bottom: 16px; border-bottom: 1px solid var(--border); }
 </style>

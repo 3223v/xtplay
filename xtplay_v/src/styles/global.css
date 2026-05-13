@@ -1,68 +1,208 @@
 :root {
-  --el-scrollbar-width: 0px;
-  --el-scrollbar-height: 0px;
-  --el-font-size-extra-small: 13px;
-  --el-font-size-small: 14px;
-  --el-font-size-base: 15px;
-  --el-font-size-medium: 16px;
-  --el-font-size-large: 17px;
-  --el-font-size-extra-large: 18px;
+  /* ======= 色彩系统 ======= */
+  --primary: #4f46e5;
+  --primary-light: #818cf8;
+  --primary-dark: #3730a3;
+  --primary-bg: rgba(79, 70, 229, 0.06);
+  --accent: #f59e0b;
+  --accent-light: #fbbf24;
+
+  --sidebar-bg: #0f172a;
+  --sidebar-hover: rgba(255, 255, 255, 0.06);
+  --sidebar-active: rgba(79, 70, 229, 0.3);
+  --sidebar-text: #94a3b8;
+  --sidebar-text-active: #ffffff;
+  --sidebar-width: 240px;
+
+  --bg-main: #f8f9fa;
+  --bg-card: #ffffff;
+  --bg-elevated: #ffffff;
+
+  --text-primary: #0f172a;
+  --text-secondary: #475569;
+  --text-tertiary: #9ca3af;
+  --text-inverse: #ffffff;
+
+  --border: #eef0f2;
+  --border-light: #f3f4f6;
+
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.03);
+  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.04), 0 2px 4px -2px rgba(0, 0, 0, 0.03);
+  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.05), 0 4px 6px -4px rgba(0, 0, 0, 0.03);
+  --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.06), 0 8px 10px -6px rgba(0, 0, 0, 0.03);
+
+  --radius-sm: 6px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --radius-xl: 16px;
+
+  /* ======= 排版 ======= */
+  --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'PingFang SC', 'Hiragino Sans GB',
+    'Microsoft YaHei', 'Noto Sans SC', sans-serif;
+  --font-mono: 'JetBrains Mono', 'Fira Code', 'Consolas', monospace;
+
+  --font-xs: 12px;
+  --font-sm: 13px;
+  --font-base: 15px;
+  --font-lg: 17px;
+  --font-xl: 20px;
+  --font-2xl: 24px;
+
+  --leading-tight: 1.4;
+  --leading-normal: 1.6;
+  --leading-relaxed: 1.8;
+
+  /* ======= 过渡 ======= */
+  --transition-fast: 150ms cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-base: 250ms cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-slow: 350ms cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-*::-webkit-scrollbar {
-  width: 0;
-  height: 0;
-  display: none;
-}
-
-* {
-  -ms-overflow-style: none;
-  scrollbar-width: none;
-  scrollbar-color: transparent transparent;
-}
-
-*::-webkit-scrollbar-track {
-  background: transparent;
-}
-
-*::-webkit-scrollbar-thumb {
-  background: transparent;
-  border-radius: 0;
-}
-
-*::-webkit-scrollbar-corner {
-  background: transparent;
-}
-
-html, body {
-  scrollbar-width: none;
-  -ms-overflow-style: none;
-  font-size: 15px;
-}
-
-/* 全局文本输入框样式优化 */
-:deep(.el-input__wrapper),
-:deep(.el-textarea__inner) {
-  font-size: 15px;
-}
-
-:deep(.el-textarea__inner) {
-  line-height: 1.8;
-  padding: 12px 16px;
-}
-
-:deep(.el-input__inner) {
-  padding: 10px 16px;
-}
-
-/* 确保输入框横向填满 */
-.el-input,
-.el-textarea {
+/* ======= 基础重置 ======= */
+html, body, #app {
+  margin: 0;
+  padding: 0;
+  height: 100%;
   width: 100%;
 }
 
-/* 表单标签字体优化 */
-:deep(.el-form-item__label) {
-  font-size: 15px;
-  font-weight: 500;
+body {
+  font-family: var(--font-sans);
+  font-size: var(--font-base);
+  line-height: var(--leading-normal);
+  color: var(--text-primary);
+  background: var(--bg-main);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* ======= 滚动条 ======= */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #d1d5db;
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #9ca3af;
+}
+
+/* ======= Element Plus 主题覆盖 ======= */
+.el-button--primary {
+  --el-button-bg-color: var(--primary);
+  --el-button-border-color: var(--primary);
+  --el-button-hover-bg-color: var(--primary-light);
+  --el-button-hover-border-color: var(--primary-light);
+  --el-button-active-bg-color: var(--primary-dark);
+  --el-button-active-border-color: var(--primary-dark);
+}
+
+.el-card {
+  --el-card-border-color: var(--border);
+  --el-card-border-radius: var(--radius-lg);
+  --el-card-padding: 20px;
+  box-shadow: var(--shadow-sm) !important;
+  transition: box-shadow var(--transition-base), transform var(--transition-base);
+}
+
+.el-card:hover {
+  box-shadow: var(--shadow-md) !important;
+}
+
+.el-menu {
+  border-right: none !important;
+}
+
+.el-menu-item,
+.el-sub-menu__title {
+  font-size: var(--font-sm) !important;
+}
+
+.el-form-item {
+  margin-bottom: 20px;
+}
+
+.el-form-item__label {
+  font-size: var(--font-sm) !important;
+  font-weight: 500 !important;
+  color: var(--text-secondary) !important;
+  padding-bottom: 6px !important;
+}
+
+.el-input__inner,
+.el-textarea__inner {
+  font-family: var(--font-sans) !important;
+  font-size: var(--font-base) !important;
+  border-radius: var(--radius-sm) !important;
+}
+
+.el-textarea__inner {
+  line-height: var(--leading-relaxed) !important;
+}
+
+.el-divider {
+  border-top: 1px solid var(--border) !important;
+}
+
+.el-divider__text {
+  font-size: var(--font-sm) !important;
+  font-weight: 600 !important;
+  color: var(--text-secondary) !important;
+}
+
+.el-tag {
+  border-radius: var(--radius-sm) !important;
+  font-size: var(--font-xs) !important;
+}
+
+.el-empty {
+  padding: 40px 0 !important;
+}
+
+/* ======= 通用工具类 ======= */
+.page-container {
+  padding: 24px;
+  height: 100%;
+  overflow-y: auto;
+}
+
+.section-title {
+  font-size: var(--font-lg);
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 0 0 4px 0;
+}
+
+.section-subtitle {
+  font-size: var(--font-sm);
+  color: var(--text-tertiary);
+  margin: 0 0 24px 0;
+}
+
+.section-header {
+  margin-bottom: 24px;
+}
+
+/* ======= 淡入动画 ======= */
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.fade-in-up {
+  animation: fadeInUp 0.4s ease-out;
 }

@@ -1,3 +1,24 @@
+export interface UserPublic {
+  id: number
+  username: string
+  email: string
+  role: string
+}
+
+export interface UserUpdate {
+  username?: string
+  email?: string
+  password?: string
+}
+
+export interface UserRoleUpdate {
+  role: 'normal' | 'admin' | 'super_admin'
+}
+
+export interface AuthResponse {
+  user: UserPublic
+}
+
 export interface Role {
   id: number
   spec: string
@@ -67,6 +88,16 @@ export interface StoryRound {
   role2_output?: string
 }
 
+export interface Session {
+  id: number
+  story_id: number
+  title: string
+  status: 'active' | 'completed'
+  round: StoryRound[]
+  created_at: string
+  updated_at: string
+}
+
 export interface Story {
   id: number
   title: string
@@ -76,16 +107,27 @@ export interface Story {
   api_key: string
   model: string
   tags: string[]
-  preset: Preset
-  lorebook: Lorebook
+  preset: Record<string, unknown>
+  lorebook: Record<string, unknown>
   initial_scene: string
-  role1: Role
-  role2: Role
-  round: StoryRound[]
+  role1: Record<string, unknown>
+  role2: Record<string, unknown>
+  created_at: string
+  updated_at: string
 }
 
 export interface OpeningDraft {
   scene: string
   narration: string
   first: 'role1' | 'role2'
+}
+
+export interface Prompt {
+  key: string
+  title: string
+  category: string
+  description: string
+  content: string
+  created_at: string
+  updated_at: string
 }

@@ -1,260 +1,297 @@
+
 from __future__ import annotations
 
-import json
 from copy import deepcopy
-from datetime import datetime, timezone
-from pathlib import Path
-from threading import RLock
-from typing import Any
+from typing import Dict, Any
+
+from psycopg.types.json import Jsonb
+
+from .base import connect, _coerce_int, _coerce_float, _coerce_bool, _coerce_string_list, _coerce_by_default
+from .base import _iso, _now_iso, _format_output
 
 
-def _coerce_int(value: Any) -> int | None:
-    if isinstance(value, bool):
-        return None
-    if isinstance(value, int):
-        return value
-    if isinstance(value, str):
-        text = value.strip()
-        if not text:
+class PostgresStoryCollection:
+    def list_all(self, user_id: int) -> list:
+        with connect() as conn:
+            rows = conn.execute(
+                """
+                select id, user_id, data, created_at, updated_at
+                from stories
+                where user_id = %s
+                order by id
+                """,
+                (user_id,),
+            ).fetchall()
+            return [self._row_to_story(row) for row in rows]
+
+    def get(self, user_id: int, story_id: int) -> Any:
+        with connect() as conn:
+            row = conn.execute(
+                """
+                select id, user_id, data, created_at, updated_at
+                from stories
+                where id = %s and user_id = %s
+                """,
+                (story_id, user_id),
+            ).fetchone()
+            return self._row_to_story(row) if row is not None else None
+
+    def create(self, user_id: int, payload: Dict[str, Any]) -> Dict[str, Any]:
+        if not isinstance(payload, dict):
+            raise TypeError("payload must be a JSON object")
+        data = self._story_data_for_storage(payload)
+        with connect() as conn:
+            row = conn.execute(
+                """
+                insert into stories (user_id, data)
+                values (%s, %s)
+                returning id, user_id, data, created_at, updated_at
+                """,
+                (user_id, Jsonb(data)),
+            ).fetchone()
+            return self._row_to_story(row)
+
+    def replace(self, user_id: int, story_id: int, payload: Dict[str, Any]) -> Any:
+        if not isinstance(payload, dict):
+            raise TypeError("payload must be a JSON object")
+        data = self._story_data_for_storage(payload)
+        with connect() as conn:
+            row = conn.execute(
+                """
+                update stories
+                set data = %s, updated_at = now()
+                where id = %s and user_id = %s
+                returning id, user_id, data, created_at, updated_at
+                """,
+                (Jsonb(data), story_id, user_id),
+            ).fetchone()
+            if row is None:
+                return None
+            return self._row_to_story(row)
+
+    def patch(self, user_id: int, story_id: int, payload: Dict[str, Any]) -> Any:
+        if not isinstance(payload, dict):
+            raise TypeError("payload must be a JSON object")
+        current = self.get(user_id, story_id)
+        if current is None:
             return None
-        try:
-            return int(text)
-        except ValueError:
+        patched = deepcopy(current)
+        for key, value in payload.items():
+            if key not in {"id", "created_at", "updated_at"}:
+                patched[key] = value
+        data = self._story_data_for_storage(patched)
+        with connect() as conn:
+            row = conn.execute(
+                """
+                update stories
+                set data = %s, updated_at = now()
+                where id = %s and user_id = %s
+                returning id, user_id, data, created_at, updated_at
+                """,
+                (Jsonb(data), story_id, user_id),
+            ).fetchone()
+            if row is None:
+                return None
+            return self._row_to_story(row)
+
+    def delete(self, user_id: int, story_id: int) -> bool:
+        with connect() as conn:
+            cursor = conn.execute(
+                "delete from stories where id = %s and user_id = %s",
+                (story_id, user_id),
+            )
+        return cursor.rowcount > 0
+
+    def list_rounds(self, user_id: int, story_id: int) -> Any:
+        if not self._story_exists(user_id, story_id):
             return None
-    return None
+        with connect() as conn:
+            return self._list_rounds(conn, user_id, story_id)
 
+    def get_round(self, user_id: int, story_id: int, round_id: int) -> Any:
+        with connect() as conn:
+            row = conn.execute(
+                """
+                select id, data
+                from story_rounds
+                where id = %s and story_id = %s and user_id = %s
+                """,
+                (round_id, story_id, user_id),
+            ).fetchone()
+        return self._row_to_round(row) if row is not None else None
 
-def _now_iso() -> str:
-    return datetime.now(timezone.utc).isoformat()
-
-
-def _format_output(action: Any, dialogue: Any) -> str:
-    parts = []
-    if isinstance(action, str) and action.strip():
-        parts.append(action.strip())
-    if isinstance(dialogue, str) and dialogue.strip():
-        parts.append(f"「{dialogue.strip()}」")
-    return "\n".join(parts)
-
-
-class StoryCollection:
-    def __init__(self, stories_dir: Path) -> None:
-        self.stories_dir = stories_dir
-        self._lock = RLock()
-        self.stories_dir.mkdir(parents=True, exist_ok=True)
-
-    def list_all(self) -> list[dict[str, Any]]:
-        with self._lock:
-            stories = []
-            for file_path in sorted(self.stories_dir.glob("story_*.json")):
-                story = self._read_story_file(file_path)
-                if story is not None:
-                    stories.append(story)
-            return stories
-
-    def get(self, story_id: int) -> dict[str, Any] | None:
-        with self._lock:
-            file_path = self._story_file_path(story_id)
-            if not file_path.exists():
-                return None
-            return self._read_story_file(file_path)
-
-    def create(self, payload: dict[str, Any]) -> dict[str, Any]:
-        with self._lock:
-            story_id = self._next_id()
-            story = deepcopy(payload)
-            story["id"] = story_id
-            story["created_at"] = _now_iso()
-            story["updated_at"] = _now_iso()
-            if "round" not in story:
-                story["round"] = []
-            story["round"] = self._normalize_rounds(story["round"])
-            file_path = self._story_file_path(story_id)
-            self._write_story_file(file_path, story)
-            return deepcopy(story)
-
-    def replace(self, story_id: int, payload: dict[str, Any]) -> dict[str, Any] | None:
-        with self._lock:
-            file_path = self._story_file_path(story_id)
-            if not file_path.exists():
-                return None
-            existing = self._read_story_file(file_path)
-            if existing is None:
-                return None
-            story = deepcopy(payload)
-            story["id"] = story_id
-            story["created_at"] = existing.get("created_at", _now_iso())
-            story["updated_at"] = _now_iso()
-            if "round" not in story:
-                story["round"] = []
-            story["round"] = self._normalize_rounds(story["round"])
-            self._write_story_file(file_path, story)
-            return deepcopy(story)
-
-    def patch(self, story_id: int, payload: dict[str, Any]) -> dict[str, Any] | None:
-        with self._lock:
-            file_path = self._story_file_path(story_id)
-            if not file_path.exists():
-                return None
-            story = self._read_story_file(file_path)
-            if story is None:
-                return None
-            for key, value in payload.items():
-                if key in ("id", "created_at"):
-                    continue
-                story[key] = value
-            story["updated_at"] = _now_iso()
-            if "round" in payload:
-                story["round"] = self._normalize_rounds(story["round"])
-            self._write_story_file(file_path, story)
-            return deepcopy(story)
-
-    def delete(self, story_id: int) -> bool:
-        with self._lock:
-            file_path = self._story_file_path(story_id)
-            if not file_path.exists():
-                return False
-            file_path.unlink()
-            return True
-
-    def list_rounds(self, story_id: int) -> list[dict[str, Any]] | None:
-        story = self.get(story_id)
-        if story is None:
+    def create_round(self, user_id: int, story_id: int, payload: Dict[str, Any]) -> Any:
+        if not self._story_exists(user_id, story_id):
             return None
-        return story.get("round", [])
-
-    def get_round(self, story_id: int, round_id: int) -> dict[str, Any] | None:
-        story = self.get(story_id)
-        if story is None:
-            return None
-        for r in story.get("round", []):
-            if r.get("id") == round_id:
-                return deepcopy(r)
-        return None
-
-    def create_round(self, story_id: int, payload: dict[str, Any]) -> dict[str, Any] | None:
-        with self._lock:
-            file_path = self._story_file_path(story_id)
-            if not file_path.exists():
-                return None
-            story = self._read_story_file(file_path)
-            if story is None:
-                return None
-            rounds = self._normalize_rounds(story.get("round", []))
-            next_round_id = self._next_round_id(rounds)
-            new_round = deepcopy(payload)
-            new_round["id"] = next_round_id
-            self._normalize_round_shape(new_round)
-            rounds.append(new_round)
-            story["round"] = rounds
-            story["updated_at"] = _now_iso()
-            self._write_story_file(file_path, story)
-            return deepcopy(new_round)
+        with connect() as conn:
+            position = self._next_round_position(conn, user_id, story_id)
+            round_item = self._insert_round(conn, user_id, story_id, payload, position)
+            conn.execute(
+                "update stories set updated_at = now() where id = %s and user_id = %s",
+                (story_id, user_id),
+            )
+        return round_item
 
     def replace_round(
-        self, story_id: int, round_id: int, payload: dict[str, Any]
-    ) -> dict[str, Any] | None:
-        with self._lock:
-            file_path = self._story_file_path(story_id)
-            if not file_path.exists():
+        self,
+        user_id: int,
+        story_id: int,
+        round_id: int,
+        payload: Dict[str, Any],
+    ) -> Any:
+        if not isinstance(payload, dict):
+            raise TypeError("payload must be a JSON object")
+        data = self._round_data_for_storage(payload)
+        with connect() as conn:
+            row = conn.execute(
+                """
+                update story_rounds
+                set data = %s, updated_at = now()
+                where id = %s and story_id = %s and user_id = %s
+                returning id, data
+                """,
+                (Jsonb(data), round_id, story_id, user_id),
+            ).fetchone()
+            if row is None:
                 return None
-            story = self._read_story_file(file_path)
-            if story is None:
-                return None
-            rounds = self._normalize_rounds(story.get("round", []))
-            for index, r in enumerate(rounds):
-                if r.get("id") == round_id:
-                    updated = deepcopy(payload)
-                    updated["id"] = round_id
-                    self._normalize_round_shape(updated)
-                    rounds[index] = updated
-                    story["round"] = rounds
-                    story["updated_at"] = _now_iso()
-                    self._write_story_file(file_path, story)
-                    return deepcopy(updated)
-            return None
+            conn.execute(
+                "update stories set updated_at = now() where id = %s and user_id = %s",
+                (story_id, user_id),
+            )
+        return self._row_to_round(row)
 
     def patch_round(
-        self, story_id: int, round_id: int, payload: dict[str, Any]
-    ) -> dict[str, Any] | None:
-        with self._lock:
-            file_path = self._story_file_path(story_id)
-            if not file_path.exists():
-                return None
-            story = self._read_story_file(file_path)
-            if story is None:
-                return None
-            rounds = self._normalize_rounds(story.get("round", []))
-            for index, r in enumerate(rounds):
-                if r.get("id") == round_id:
-                    for key, value in payload.items():
-                        if key == "id":
-                            continue
-                        r[key] = value
-                    self._normalize_round_shape(r)
-                    rounds[index] = r
-                    story["round"] = rounds
-                    story["updated_at"] = _now_iso()
-                    self._write_story_file(file_path, story)
-                    return deepcopy(r)
+        self,
+        user_id: int,
+        story_id: int,
+        round_id: int,
+        payload: Dict[str, Any],
+    ) -> Any:
+        if not isinstance(payload, dict):
+            raise TypeError("payload must be a JSON object")
+        current = self.get_round(user_id, story_id, round_id)
+        if current is None:
             return None
+        patched = deepcopy(current)
+        for key, value in payload.items():
+            if key != "id":
+                patched[key] = value
+        data = self._round_data_for_storage(patched)
+        with connect() as conn:
+            row = conn.execute(
+                """
+                update story_rounds
+                set data = %s, updated_at = now()
+                where id = %s and story_id = %s and user_id = %s
+                returning id, data
+                """,
+                (Jsonb(data), round_id, story_id, user_id),
+            ).fetchone()
+            if row is None:
+                return None
+            conn.execute(
+                "update stories set updated_at = now() where id = %s and user_id = %s",
+                (story_id, user_id),
+            )
+        return self._row_to_round(row)
 
-    def delete_round(self, story_id: int, round_id: int) -> bool:
-        with self._lock:
-            file_path = self._story_file_path(story_id)
-            if not file_path.exists():
-                return False
-            story = self._read_story_file(file_path)
-            if story is None:
-                return False
-            rounds = story.get("round", [])
-            filtered = [r for r in rounds if r.get("id") != round_id]
-            if len(filtered) == len(rounds):
-                return False
-            story["round"] = filtered
-            story["updated_at"] = _now_iso()
-            self._write_story_file(file_path, story)
-            return True
+    def delete_round(self, user_id: int, story_id: int, round_id: int) -> bool:
+        with connect() as conn:
+            cursor = conn.execute(
+                """
+                delete from story_rounds
+                where id = %s and story_id = %s and user_id = %s
+                """,
+                (round_id, story_id, user_id),
+            )
+            deleted = cursor.rowcount > 0
+            if deleted:
+                conn.execute(
+                    "update stories set updated_at = now() where id = %s and user_id = %s",
+                    (story_id, user_id),
+                )
+        return deleted
 
-    def _story_file_path(self, story_id: int) -> Path:
-        return self.stories_dir / f"story_{story_id}.json"
+    def _story_exists(self, user_id: int, story_id: int) -> bool:
+        with connect() as conn:
+            row = conn.execute(
+                "select id from stories where id = %s and user_id = %s",
+                (story_id, user_id),
+            ).fetchone()
+        return row is not None
 
-    def _next_id(self) -> int:
-        max_id = 0
-        for file_path in self.stories_dir.glob("story_*.json"):
-            try:
-                story_id = int(file_path.stem.split("_")[1])
-                if story_id > max_id:
-                    max_id = story_id
-            except (ValueError, IndexError):
-                continue
-        return max_id + 1
+    def _row_to_story(self, row: Dict[str, Any]) -> Dict[str, Any]:
+        data = dict(row.get("data") or {})
+        return {
+            "id": int(row["id"]),
+            **data,
+            "created_at": _iso(row.get("created_at")) or _now_iso(),
+            "updated_at": _iso(row.get("updated_at")) or _now_iso(),
+        }
 
-    def _next_round_id(self, rounds: list[dict[str, Any]]) -> int:
-        max_id = 0
-        for r in rounds:
-            round_id = r.get("id")
-            if isinstance(round_id, int) and round_id > max_id:
-                max_id = round_id
-        return max_id + 1
+    def _list_rounds(self, conn: Any, user_id: int, story_id: int) -> list:
+        rows = conn.execute(
+            """
+            select id, data
+            from story_rounds
+            where user_id = %s and story_id = %s
+            order by position, id
+            """,
+            (user_id, story_id),
+        ).fetchall()
+        return [self._row_to_round(row) for row in rows]
 
-    def _normalize_rounds(self, rounds: Any) -> list[dict[str, Any]]:
-        if not isinstance(rounds, list):
-            return []
-        normalized = []
-        next_id = self._next_round_id(rounds)
-        for r in rounds:
-            if not isinstance(r, dict):
-                continue
-            round_item = deepcopy(r)
-            if "id" not in round_item or not isinstance(round_item["id"], int):
-                round_item["id"] = next_id
-                next_id += 1
-            self._normalize_round_shape(round_item)
-            normalized.append(round_item)
-        return normalized
+    def _insert_round(
+        self,
+        conn: Any,
+        user_id: int,
+        story_id: int,
+        payload: Dict[str, Any],
+        position: int,
+    ) -> Dict[str, Any]:
+        data = self._round_data_for_storage(payload)
+        row = conn.execute(
+            """
+            insert into story_rounds (user_id, story_id, position, data)
+            values (%s, %s, %s, %s)
+            returning id, data
+            """,
+            (user_id, story_id, position, Jsonb(data)),
+        ).fetchone()
+        return self._row_to_round(row)
 
-    def _normalize_round_shape(self, round_item: dict[str, Any]) -> None:
+    def _next_round_position(self, conn: Any, user_id: int, story_id: int) -> int:
+        row = conn.execute(
+            """
+            select coalesce(max(position), 0) + 1 as next_position
+            from story_rounds
+            where user_id = %s and story_id = %s
+            """,
+            (user_id, story_id),
+        ).fetchone()
+        return int(row["next_position"])
+
+    def _story_data_for_storage(self, payload: Dict[str, Any]) -> Dict[str, Any]:
+        data = deepcopy(payload)
+        for key in ("id", "created_at", "updated_at"):
+            data.pop(key, None)
+        return data
+
+    def _round_data_for_storage(self, payload: Dict[str, Any]) -> Dict[str, Any]:
+        if not isinstance(payload, dict):
+            raise TypeError("payload must be a JSON object")
+        round_item = deepcopy(payload)
+        round_item.pop("id", None)
+        self._normalize_round_shape(round_item)
+        return round_item
+
+    def _row_to_round(self, row: Dict[str, Any]) -> Dict[str, Any]:
+        round_item = dict(row.get("data") or {})
+        round_item["id"] = int(row["id"])
+        self._normalize_round_shape(round_item)
+        return round_item
+
+    def _normalize_round_shape(self, round_item: Dict[str, Any]) -> None:
         round_item.setdefault("scene", "")
         round_item.setdefault("narration", "")
         first = round_item.get("first")
@@ -277,28 +314,278 @@ class StoryCollection:
             elif not round_item.get(action_key) and not round_item.get(dialogue_key):
                 round_item[output_key] = str(round_item.get(output_key, ""))
 
-    def _read_story_file(self, file_path: Path) -> dict[str, Any] | None:
-        try:
-            with file_path.open("r", encoding="utf-8") as f:
-                data = json.load(f)
-        except (json.JSONDecodeError, FileNotFoundError):
+
+class PostgresSessionStore:
+    def list_by_story(self, user_id: int, story_id: int) -> list:
+        with connect() as conn:
+            rows = conn.execute(
+                """
+                select id, user_id, story_id, data, created_at, updated_at
+                from story_sessions
+                where user_id = %s and story_id = %s
+                order by id
+                """,
+                (user_id, story_id),
+            ).fetchall()
+            return [self._row_to_session(conn, row) for row in rows]
+
+    def get(self, user_id: int, session_id: int) -> Any:
+        with connect() as conn:
+            row = conn.execute(
+                """
+                select id, user_id, story_id, data, created_at, updated_at
+                from story_sessions
+                where id = %s and user_id = %s
+                """,
+                (session_id, user_id),
+            ).fetchone()
+            return self._row_to_session(conn, row) if row is not None else None
+
+    def create(self, user_id: int, story_id: int, payload: Dict[str, Any]) -> Dict[str, Any]:
+        if not isinstance(payload, dict):
+            raise TypeError("payload must be a JSON object")
+        data = self._session_data_for_storage(payload)
+        with connect() as conn:
+            row = conn.execute(
+                """
+                insert into story_sessions (user_id, story_id, data)
+                values (%s, %s, %s)
+                returning id, user_id, story_id, data, created_at, updated_at
+                """,
+                (user_id, story_id, Jsonb(data)),
+            ).fetchone()
+            return self._row_to_session(conn, row)
+
+    def update(self, user_id: int, session_id: int, payload: Dict[str, Any]) -> Any:
+        if not isinstance(payload, dict):
+            raise TypeError("payload must be a JSON object")
+        current = self.get(user_id, session_id)
+        if current is None:
             return None
-        if not isinstance(data, dict):
+        patched = deepcopy(current)
+        for key, value in payload.items():
+            if key not in {"id", "story_id", "created_at", "updated_at", "round"}:
+                patched[key] = value
+        data = self._session_data_for_storage(patched)
+        with connect() as conn:
+            row = conn.execute(
+                """
+                update story_sessions
+                set data = %s, updated_at = now()
+                where id = %s and user_id = %s
+                returning id, user_id, story_id, data, created_at, updated_at
+                """,
+                (Jsonb(data), session_id, user_id),
+            ).fetchone()
+            return self._row_to_session(conn, row) if row is not None else None
+
+    def delete(self, user_id: int, session_id: int) -> bool:
+        with connect() as conn:
+            cursor = conn.execute(
+                "delete from story_sessions where id = %s and user_id = %s",
+                (session_id, user_id),
+            )
+        return cursor.rowcount > 0
+
+    def list_rounds(self, user_id: int, session_id: int) -> list:
+        with connect() as conn:
+            return self._list_rounds(conn, user_id, session_id)
+
+    def get_round(self, user_id: int, session_id: int, round_id: int) -> Any:
+        with connect() as conn:
+            row = conn.execute(
+                """
+                select id, data
+                from session_rounds
+                where id = %s and session_id = %s and user_id = %s
+                """,
+                (round_id, session_id, user_id),
+            ).fetchone()
+        return self._row_to_round(row) if row is not None else None
+
+    def create_round(self, user_id: int, session_id: int, payload: Dict[str, Any]) -> Any:
+        if not self._session_exists(user_id, session_id):
             return None
-        coerced = _coerce_int(data.get("id"))
-        if coerced is not None:
-            data["id"] = coerced
-        rounds = data.get("round")
-        if isinstance(rounds, list):
-            for r in rounds:
-                if isinstance(r, dict):
-                    rid = _coerce_int(r.get("id"))
-                    if rid is not None:
-                        r["id"] = rid
-            data["round"] = self._normalize_rounds(rounds)
+        with connect() as conn:
+            position = self._next_round_position(conn, user_id, session_id)
+            new_round = self._insert_round(conn, user_id, session_id, payload, position)
+            conn.execute(
+                "update story_sessions set updated_at = now() where id = %s and user_id = %s",
+                (session_id, user_id),
+            )
+        return new_round
+
+    def replace_round(self, user_id: int, session_id: int, round_id: int, payload: Dict[str, Any]) -> Any:
+        if not isinstance(payload, dict):
+            raise TypeError("payload must be a JSON object")
+        data = self._round_data_for_storage(payload)
+        with connect() as conn:
+            row = conn.execute(
+                """
+                update session_rounds
+                set data = %s, updated_at = now()
+                where id = %s and session_id = %s and user_id = %s
+                returning id, data
+                """,
+                (Jsonb(data), round_id, session_id, user_id),
+            ).fetchone()
+            if row is None:
+                return None
+            conn.execute(
+                "update story_sessions set updated_at = now() where id = %s and user_id = %s",
+                (session_id, user_id),
+            )
+        return self._row_to_round(row)
+
+    def patch_round(self, user_id: int, session_id: int, round_id: int, payload: Dict[str, Any]) -> Any:
+        if not isinstance(payload, dict):
+            raise TypeError("payload must be a JSON object")
+        current = self.get_round(user_id, session_id, round_id)
+        if current is None:
+            return None
+        patched = deepcopy(current)
+        for key, value in payload.items():
+            if key != "id":
+                patched[key] = value
+        data = self._round_data_for_storage(patched)
+        with connect() as conn:
+            row = conn.execute(
+                """
+                update session_rounds
+                set data = %s, updated_at = now()
+                where id = %s and session_id = %s and user_id = %s
+                returning id, data
+                """,
+                (Jsonb(data), round_id, session_id, user_id),
+            ).fetchone()
+            if row is None:
+                return None
+            conn.execute(
+                "update story_sessions set updated_at = now() where id = %s and user_id = %s",
+                (session_id, user_id),
+            )
+        return self._row_to_round(row)
+
+    def delete_round(self, user_id: int, session_id: int, round_id: int) -> bool:
+        with connect() as conn:
+            cursor = conn.execute(
+                """
+                delete from session_rounds
+                where id = %s and session_id = %s and user_id = %s
+                """,
+                (round_id, session_id, user_id),
+            )
+            deleted = cursor.rowcount > 0
+            if deleted:
+                conn.execute(
+                    "update story_sessions set updated_at = now() where id = %s and user_id = %s",
+                    (session_id, user_id),
+                )
+        return deleted
+
+    def _session_exists(self, user_id: int, session_id: int) -> bool:
+        with connect() as conn:
+            row = conn.execute(
+                "select id from story_sessions where id = %s and user_id = %s",
+                (session_id, user_id),
+            ).fetchone()
+        return row is not None
+
+    def _row_to_session(self, conn: Any, row: Dict[str, Any]) -> Dict[str, Any]:
+        data = dict(row.get("data") or {})
+        session: Dict[str, Any] = {
+            "id": int(row["id"]),
+            "story_id": int(row["story_id"]),
+            "title": str(data.get("title", "") or ""),
+            "status": str(data.get("status", "active") or "active"),
+            "round": self._list_rounds(conn, int(row["user_id"]), int(row["id"])),
+            "created_at": _iso(row.get("created_at")) or _now_iso(),
+            "updated_at": _iso(row.get("updated_at")) or _now_iso(),
+        }
+        return session
+
+    def _list_rounds(self, conn: Any, user_id: int, session_id: int) -> list:
+        rows = conn.execute(
+            """
+            select id, data
+            from session_rounds
+            where user_id = %s and session_id = %s
+            order by position, id
+            """,
+            (user_id, session_id),
+        ).fetchall()
+        return [self._row_to_round(row) for row in rows]
+
+    def _insert_round(
+        self,
+        conn: Any,
+        user_id: int,
+        session_id: int,
+        payload: Dict[str, Any],
+        position: int,
+    ) -> Dict[str, Any]:
+        data = self._round_data_for_storage(payload)
+        row = conn.execute(
+            """
+            insert into session_rounds (user_id, session_id, position, data)
+            values (%s, %s, %s, %s)
+            returning id, data
+            """,
+            (user_id, session_id, position, Jsonb(data)),
+        ).fetchone()
+        return self._row_to_round(row)
+
+    def _next_round_position(self, conn: Any, user_id: int, session_id: int) -> int:
+        row = conn.execute(
+            """
+            select coalesce(max(position), 0) + 1 as next_position
+            from session_rounds
+            where user_id = %s and session_id = %s
+            """,
+            (user_id, session_id),
+        ).fetchone()
+        return int(row["next_position"])
+
+    def _session_data_for_storage(self, payload: Dict[str, Any]) -> Dict[str, Any]:
+        data = deepcopy(payload)
+        for key in ("id", "story_id", "created_at", "updated_at", "round"):
+            data.pop(key, None)
         return data
 
-    def _write_story_file(self, file_path: Path, data: dict[str, Any]) -> None:
-        with file_path.open("w", encoding="utf-8") as f:
-            json.dump(data, f, ensure_ascii=False, indent=2)
-            f.write("\n")
+    def _round_data_for_storage(self, payload: Dict[str, Any]) -> Dict[str, Any]:
+        if not isinstance(payload, dict):
+            raise TypeError("payload must be a JSON object")
+        round_item = deepcopy(payload)
+        round_item.pop("id", None)
+        self._normalize_round_shape(round_item)
+        return round_item
+
+    def _row_to_round(self, row: Dict[str, Any]) -> Dict[str, Any]:
+        round_item = dict(row.get("data") or {})
+        round_item["id"] = int(row["id"])
+        self._normalize_round_shape(round_item)
+        return round_item
+
+    def _normalize_round_shape(self, round_item: Dict[str, Any]) -> None:
+        round_item.setdefault("scene", "")
+        round_item.setdefault("narration", "")
+        first = round_item.get("first")
+        round_item["first"] = first if first in {"role1", "role2"} else "role1"
+        round_item.setdefault("next_scene", "")
+        round_item.setdefault("next_narration", "")
+        next_first = round_item.get("next_first")
+        round_item["next_first"] = next_first if next_first in {"role1", "role2"} else "role1"
+        for role_key in ("role1", "role2"):
+            action_key = f"{role_key}_action"
+            dialogue_key = f"{role_key}_dialogue"
+            output_key = f"{role_key}_output"
+            round_item.setdefault(action_key, "")
+            round_item.setdefault(dialogue_key, "")
+            if not round_item.get(output_key):
+                round_item[output_key] = _format_output(
+                    round_item.get(action_key, ""),
+                    round_item.get(dialogue_key, ""),
+                )
+            elif not round_item.get(action_key) and not round_item.get(dialogue_key):
+                round_item[output_key] = str(round_item.get(output_key, ""))
+

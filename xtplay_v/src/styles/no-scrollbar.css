@@ -1,34 +1,9 @@
-:root {
-  --el-scrollbar-width: 0px;
-  --el-scrollbar-height: 0px;
-}
-
-*::-webkit-scrollbar {
-  width: 0;
-  height: 0;
+/* Hide scrollbar but keep scroll functionality */
+.no-scrollbar::-webkit-scrollbar {
   display: none;
 }
 
-* {
+.no-scrollbar {
   -ms-overflow-style: none;
   scrollbar-width: none;
-  scrollbar-color: transparent transparent;
-}
-
-*::-webkit-scrollbar-track {
-  background: transparent;
-}
-
-*::-webkit-scrollbar-thumb {
-  background: transparent;
-  border-radius: 0;
-}
-
-*::-webkit-scrollbar-corner {
-  background: transparent;
-}
-
-html, body {
-  scrollbar-width: none;
-  -ms-overflow-style: none;
 }

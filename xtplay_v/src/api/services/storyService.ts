@@ -34,6 +34,21 @@ export const storyService = {
     })
   },
 
+  async generateRound(storyId: number): Promise<StoryRound> {
+    return fetchJson<StoryRound>(`/stories/${storyId}/generate-round`, {
+      method: 'POST',
+    })
+  },
+
+  // Round CRUD
+  async listRounds(storyId: number): Promise<StoryRound[]> {
+    return fetchJson<StoryRound[]>(`/stories/${storyId}/rounds`)
+  },
+
+  async getRound(storyId: number, roundId: number): Promise<StoryRound> {
+    return fetchJson<StoryRound>(`/stories/${storyId}/rounds/${roundId}`)
+  },
+
   async createRound(storyId: number, data: Partial<StoryRound>): Promise<StoryRound> {
     return fetchJson<StoryRound>(`/stories/${storyId}/rounds`, {
       method: 'POST',
@@ -48,15 +63,16 @@ export const storyService = {
     })
   },
 
-  async deleteRound(storyId: number, roundId: number): Promise<void> {
-    return fetchJson<void>(`/stories/${storyId}/rounds/${roundId}`, {
-      method: 'DELETE',
+  async replaceRound(storyId: number, roundId: number, data: Partial<StoryRound>): Promise<StoryRound> {
+    return fetchJson<StoryRound>(`/stories/${storyId}/rounds/${roundId}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
     })
   },
 
-  async generateRound(storyId: number): Promise<StoryRound> {
-    return fetchJson<StoryRound>(`/stories/${storyId}/generate-round`, {
-      method: 'POST',
+  async deleteRound(storyId: number, roundId: number): Promise<void> {
+    return fetchJson<void>(`/stories/${storyId}/rounds/${roundId}`, {
+      method: 'DELETE',
     })
   },
 }

@@ -10,15 +10,13 @@ from app.services.prompts import (
 )
 
 
-class StoryStore(Protocol):
-    def get(self, user_id: int, story_id: int) -> dict[str, Any] | None: ...
-
-    def create_round(self, user_id: int, story_id: int, payload: dict[str, Any]) -> dict[str, Any] | None: ...
+class RoundStore(Protocol):
+    def create_round(self, user_id: int, owner_id: int, payload: dict[str, Any]) -> dict[str, Any] | None: ...
 
     def replace_round(
         self,
         user_id: int,
-        story_id: int,
+        owner_id: int,
         round_id: int,
         payload: dict[str, Any],
     ) -> dict[str, Any] | None: ...
@@ -123,22 +121,20 @@ def generate_opening_scene(story: dict[str, Any]) -> dict[str, Any]:
 
 
 def generate_next_round(
-    store: StoryStore,
+    round_store: RoundStore,
     user_id: int,
-    story_id: int,
+    owner_id: int,
+    story: dict[str, Any],
+    rounds: list[dict[str, Any]],
 ) -> dict[str, Any] | None:
-    story = store.get(user_id, story_id)
-    if story is None:
-        return None
     _ensure_readable(story)
 
-    rounds = story.get("round", [])
     if not rounds:
         opening = generate_opening_scene(story)
-        return store.create_round(
+        return round_store.create_round(
             user_id,
-            story_id,
-            _blank_round(_next_round_id(rounds), opening["scene"], opening["narration"], opening["first"]),
+            owner_id,
+            _blank_round(1, opening["scene"], opening["narration"], opening["first"]),
         )
 
     last_round = rounds[-1]
@@ -177,5 +173,5 @@ def generate_next_round(
     new_round["next_first"] = next_scene["first"]
 
     if should_fill_last_round:
-        return store.replace_round(user_id, story_id, int(new_round["id"]), new_round)
-    return store.create_round(user_id, story_id, new_round)
+        return round_store.replace_round(user_id, owner_id, int(new_round["id"]), new_round)
+    return round_store.create_round(user_id, owner_id, new_round)

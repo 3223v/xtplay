@@ -1,39 +1,54 @@
+
 from __future__ import annotations
 
-import json
-from copy import deepcopy
-from pathlib import Path
-from threading import RLock
-from typing import Any
+from typing import Dict, Any
+
+from .base import connect
 
 
-class UserStore:
-    def __init__(self, file_path: Path) -> None:
-        self.file_path = file_path
-        self._lock = RLock()
-        self.file_path.parent.mkdir(parents=True, exist_ok=True)
-        if not self.file_path.exists():
-            self._write_raw([])
+def _public_user(user: Dict[str, Any]) -> Dict[str, Any]:
+    return {
+        "id": int(user["id"]),
+        "username": str(user["username"]),
+        "email": str(user.get("email", "")),
+        "role": str(user.get("role", "normal")),
+    }
 
-    def list_all(self) -> list[dict[str, Any]]:
-        with self._lock:
-            users = self._normalize_users(self._read_raw())
-            self._write_raw(users)
-            return [self._public_user(user) for user in users]
 
-    def get_by_username(self, username: str) -> dict[str, Any] | None:
-        target = username.strip().casefold()
-        if not target:
+class PostgresUserStore:
+    def list_all(self) -> list:
+        with connect() as conn:
+            rows = conn.execute("select id, username, email, role from users order by id").fetchall()
+        return [_public_user(row) for row in rows]
+
+    def get(self, user_id: int) -> Any:
+        with connect() as conn:
+            row = conn.execute(
+                "select id, username, email, role from users where id = %s",
+                (user_id,),
+            ).fetchone()
+        return _public_user(row) if row is not None else None
+
+    def get_full(self, user_id: int) -> Any:
+        with connect() as conn:
+            row = conn.execute(
+                "select id, username, password, email, role from users where id = %s",
+                (user_id,),
+            ).fetchone()
+        return dict(row) if row is not None else None
+
+    def get_by_username(self, username: str) -> Any:
+        clean_username = username.strip()
+        if not clean_username:
             return None
-        with self._lock:
-            users = self._normalize_users(self._read_raw())
-            self._write_raw(users)
-            for user in users:
-                if user["username"].casefold() == target:
-                    return deepcopy(user)
-            return None
+        with connect() as conn:
+            row = conn.execute(
+                "select id, username, password, email, role from users where lower(username) = lower(%s)",
+                (clean_username,),
+            ).fetchone()
+        return dict(row) if row is not None else None
 
-    def create(self, username: str, password: str, email: str = "") -> dict[str, Any]:
+    def create(self, username: str, password: str, email: str = "") -> Dict[str, Any]:
         clean_username = username.strip()
         clean_password = password.strip()
         clean_email = email.strip()
@@ -41,94 +56,66 @@ class UserStore:
             raise ValueError("用户名不能为空")
         if not clean_password:
             raise ValueError("密码不能为空")
+        if self.get_by_username(clean_username) is not None:
+            raise ValueError("用户名已存在")
 
-        with self._lock:
-            users = self._normalize_users(self._read_raw())
-            if any(user["username"].casefold() == clean_username.casefold() for user in users):
-                raise ValueError("用户名已存在")
-            created = {
-                "id": self._next_id(users),
-                "username": clean_username,
-                "password": clean_password,
-                "email": clean_email,
-            }
-            users.append(created)
-            self._write_raw(users)
-            return self._public_user(created)
+        with connect() as conn:
+            row = conn.execute(
+                """
+                insert into users (username, password, email, role)
+                values (%s, %s, %s, %s)
+                returning id, username, email, role
+                """,
+                (clean_username, clean_password, clean_email, "normal"),
+            ).fetchone()
+        return _public_user(row)
 
-    def authenticate(self, username: str, password: str) -> dict[str, Any] | None:
+    def authenticate(self, username: str, password: str) -> Any:
         user = self.get_by_username(username)
-        if user is None:
+        if user is None or user.get("password") != password:
             return None
-        if user.get("password") != password:
+        return _public_user(user)
+
+    def update(self, user_id: int, payload: Dict[str, Any]) -> Any:
+        current = self.get(user_id)
+        if current is None:
             return None
-        return self._public_user(user)
+        set_clauses = []
+        params = []
+        if "username" in payload and payload["username"] is not None:
+            clean_username = str(payload["username"]).strip()
+            if clean_username and clean_username != current["username"]:
+                existing = self.get_by_username(clean_username)
+                if existing is not None and int(existing["id"]) != user_id:
+                    raise ValueError("用户名已存在")
+            set_clauses.append("username = %s")
+            params.append(clean_username)
+        if "email" in payload and payload["email"] is not None:
+            set_clauses.append("email = %s")
+            params.append(str(payload["email"]).strip())
+        if "password" in payload and payload["password"] is not None:
+            clean_password = str(payload["password"]).strip()
+            if clean_password:
+                set_clauses.append("password = %s")
+                params.append(clean_password)
+        if not set_clauses:
+            return current
+        set_clauses.append("updated_at = now()")
+        params.append(user_id)
+        with connect() as conn:
+            row = conn.execute(
+                f"update users set {', '.join(set_clauses)} where id = %s returning id, username, email, role",
+                params,
+            ).fetchone()
+        return _public_user(row) if row is not None else None
 
-    def _normalize_users(self, raw: Any) -> list[dict[str, Any]]:
-        source = raw if isinstance(raw, list) else []
-        users: list[dict[str, Any]] = []
-        next_id = self._next_id(source)
-        for item in source:
-            if not isinstance(item, dict):
-                continue
-            username = str(item.get("username", "")).strip()
-            password = str(item.get("password", "")).strip()
-            if not username or not password:
-                continue
-            item_id = self._coerce_int(item.get("id"))
-            if item_id is None or item_id <= 0:
-                item_id = next_id
-                next_id += 1
-            users.append(
-                {
-                    "id": item_id,
-                    "username": username,
-                    "password": password,
-                    "email": str(item.get("email", "")).strip(),
-                }
-            )
-        users.sort(key=lambda user: user["id"])
-        return users
+    def update_role(self, user_id: int, role: str) -> Any:
+        if role not in ("normal", "admin", "super_admin"):
+            raise ValueError("无效的角色值")
+        with connect() as conn:
+            row = conn.execute(
+                "update users set role = %s, updated_at = now() where id = %s returning id, username, email, role",
+                (role, user_id),
+            ).fetchone()
+        return _public_user(row) if row is not None else None
 
-    def _public_user(self, user: dict[str, Any]) -> dict[str, Any]:
-        return {
-            "id": int(user["id"]),
-            "username": str(user["username"]),
-            "email": str(user.get("email", "")),
-        }
-
-    def _next_id(self, users: list[Any]) -> int:
-        max_id = 0
-        for user in users:
-            if not isinstance(user, dict):
-                continue
-            item_id = self._coerce_int(user.get("id"))
-            if item_id is not None and item_id > max_id:
-                max_id = item_id
-        return max_id + 1
-
-    def _coerce_int(self, value: Any) -> int | None:
-        if isinstance(value, bool):
-            return None
-        if isinstance(value, int):
-            return value
-        if isinstance(value, str):
-            text = value.strip()
-            if not text:
-                return None
-            try:
-                return int(text)
-            except ValueError:
-                return None
-        return None
-
-    def _read_raw(self) -> Any:
-        if not self.file_path.exists():
-            return []
-        with self.file_path.open("r", encoding="utf-8") as handle:
-            return json.load(handle)
-
-    def _write_raw(self, data: Any) -> None:
-        with self.file_path.open("w", encoding="utf-8") as handle:
-            json.dump(data, handle, ensure_ascii=False, indent=2)
-            handle.write("\n")

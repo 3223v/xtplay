@@ -1,262 +1,258 @@
 <template>
-  <div class="stories-layout">
-    <div class="list-panel">
-      <div class="list-header">
-        <h2 class="list-title">故事管理</h2>
-        <el-button type="primary" :icon="Plus" size="small" @click="handleCreate">新建</el-button>
-      </div>
-      <el-scrollbar height="100%">
-        <div
-          v-for="item in store.items"
-          :key="item.id"
-          class="list-item"
-          :class="{ active: store.selectedId === item.id }"
-          @click="handleSelect(item.id)"
-        >
-          <div class="item-content">
-            <div class="item-title">{{ item.title || '未命名' }}</div>
-            <div class="item-meta">
-              <el-tag size="small" :type="item.status === 'active' ? 'success' : 'info'">
-                {{ item.status === 'active' ? '进行中' : '已完成' }}
-              </el-tag>
-              <span class="item-round">{{ item.round?.length || 0 }} 轮</span>
+  <crud-layout
+    title="故事管理"
+    :items="store.items"
+    :selected-id="store.selectedId"
+    :searchable="true"
+    search-placeholder="搜索故事..."
+    empty-text="暂无故事"
+    @select="handleSelect"
+    @create="handleCreate"
+    @delete="handleDelete"
+  >
+    <template #edit>
+      <edit-panel
+        v-if="store.selectedItem"
+        :title="store.selectedItem.title || '未命名故事'"
+        :subtitle="`ID: ${store.selectedItem.id}`"
+        :saving="saving"
+        :import-export-data="store.selectedItem"
+        entity-name="story"
+        @save="handleSave"
+        @import="handleImport"
+        @cancel="handleCancel"
+      >
+        <div class="edit-form">
+          <div class="form-row">
+            <div class="form-col">
+              <div class="form-group">
+                <label class="form-label">标题</label>
+                <input v-model="formData.title" class="form-input" placeholder="故事标题" />
+              </div>
+            </div>
+            <div class="form-col">
+              <div class="form-group">
+                <label class="form-label">状态</label>
+                <div class="radio-group">
+                  <label class="radio-pill" :class="{ active: formData.status === 'active' }">
+                    <input type="radio" v-model="formData.status" value="active" class="radio-hidden" />
+                    进行中
+                  </label>
+                  <label class="radio-pill" :class="{ active: formData.status === 'completed' }">
+                    <input type="radio" v-model="formData.status" value="completed" class="radio-hidden" />
+                    已完成
+                  </label>
+                </div>
+              </div>
             </div>
           </div>
-          <el-button
-            :icon="Delete"
-            circle
-            size="small"
-            text
-            class="delete-btn"
-            @click.stop="handleDelete(item.id)"
-          />
+
+          <div class="form-group">
+            <label class="form-label">描述</label>
+            <textarea v-model="formData.description" class="form-textarea" rows="2" placeholder="故事描述" />
+          </div>
+
+          <div class="form-row">
+            <div class="form-col">
+              <div class="form-group">
+                <label class="form-label">API Key</label>
+                <input v-model="formData.api_key" class="form-input" placeholder="API Key" />
+              </div>
+            </div>
+            <div class="form-col">
+              <div class="form-group">
+                <label class="form-label">模型</label>
+                <input v-model="formData.model" class="form-input" placeholder="模型名称" />
+              </div>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">标签</label>
+            <input v-model="tagsInput" class="form-input" placeholder="标签1, 标签2" />
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">初始场景</label>
+            <textarea v-model="formData.initial_scene" class="form-textarea" rows="2" placeholder="故事的初始场景描述" />
+          </div>
+
+          <div class="form-divider">预设</div>
+          <div class="role-section">
+            <div class="form-row">
+              <div class="form-col">
+                <div class="form-group">
+                  <label class="form-label">从现有预设导入</label>
+                  <select v-model="selectedPresetId" class="form-select" @change="handleSelectPreset">
+                    <option :value="null">选择预设导入</option>
+                    <option v-for="preset in presetStore.items" :key="preset.id" :value="preset.id">
+                      {{ preset.id }} - Temperature: {{ preset.temperature }}
+                    </option>
+                  </select>
+                </div>
+              </div>
+              <div class="form-col-actions">
+                <button class="btn-ghost btn-sm" @click="clearPreset">清空预设</button>
+              </div>
+            </div>
+            <div v-if="formData.preset" class="descriptions-grid">
+              <div class="descriptions-item">
+                <span class="descriptions-label">Temperature</span>
+                <span class="descriptions-value">{{ formData.preset.temperature }}</span>
+              </div>
+              <div class="descriptions-item">
+                <span class="descriptions-label">Top P</span>
+                <span class="descriptions-value">{{ formData.preset.top_p }}</span>
+              </div>
+              <div class="descriptions-item">
+                <span class="descriptions-label">Frequency Penalty</span>
+                <span class="descriptions-value">{{ formData.preset.frequency_penalty }}</span>
+              </div>
+              <div class="descriptions-item">
+                <span class="descriptions-label">Presence Penalty</span>
+                <span class="descriptions-value">{{ formData.preset.presence_penalty }}</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="form-divider">世界书</div>
+          <div class="role-section">
+            <div class="form-row">
+              <div class="form-col">
+                <div class="form-group">
+                  <label class="form-label">从现有世界书导入</label>
+                  <select v-model="selectedLorebookId" class="form-select" @change="handleSelectLorebook">
+                    <option :value="null">选择世界书导入</option>
+                    <option v-for="lorebook in lorebookStore.items" :key="lorebook.id" :value="lorebook.id">
+                      {{ lorebook.name }}
+                    </option>
+                  </select>
+                </div>
+              </div>
+              <div class="form-col-actions">
+                <button class="btn-ghost btn-sm" @click="clearLorebook">清空世界书</button>
+              </div>
+            </div>
+            <div v-if="formData.lorebook" class="descriptions-grid">
+              <div class="descriptions-item">
+                <span class="descriptions-label">名称</span>
+                <span class="descriptions-value">{{ formData.lorebook.name }}</span>
+              </div>
+              <div class="descriptions-item">
+                <span class="descriptions-label">条目数</span>
+                <span class="descriptions-value">{{ Object.keys(formData.lorebook.entries || {}).length }}</span>
+              </div>
+              <div class="descriptions-item" style="grid-column: 1 / -1;">
+                <span class="descriptions-label">描述</span>
+                <span class="descriptions-value">{{ formData.lorebook.description }}</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="form-divider">角色 1</div>
+          <div class="role-section">
+            <div class="form-row">
+              <div class="form-col">
+                <div class="form-group">
+                  <label class="form-label">从现有角色导入</label>
+                  <select v-model="importRole1Id" class="form-select" @change="handleImportRole1(importRole1Id)">
+                    <option :value="null">选择角色导入</option>
+                    <option v-for="role in roleStore.items" :key="role.id" :value="role.id">
+                      {{ role.name }}
+                    </option>
+                  </select>
+                </div>
+              </div>
+              <div class="form-col-actions">
+                <button class="btn-ghost btn-sm" @click="clearRole1">清空角色</button>
+              </div>
+            </div>
+            <div class="form-group">
+              <label class="form-label">名称</label>
+              <input v-model="formData.role1.name" class="form-input" placeholder="角色1名称" />
+            </div>
+            <div class="form-group">
+              <label class="form-label">描述</label>
+              <textarea v-model="formData.role1.description" class="form-textarea" rows="2" placeholder="角色1描述" />
+            </div>
+            <div class="form-group">
+              <label class="form-label">性格</label>
+              <textarea v-model="formData.role1.personality" class="form-textarea" rows="2" placeholder="角色1性格" />
+            </div>
+            <div class="form-group">
+              <label class="form-label">首消息</label>
+              <textarea v-model="formData.role1.first_mes" class="form-textarea" rows="2" placeholder="角色1首消息" />
+            </div>
+            <div class="form-group">
+              <label class="form-label">消息示例</label>
+              <textarea v-model="formData.role1.mes_example" class="form-textarea" rows="2" placeholder="角色1消息示例" />
+            </div>
+            <div class="form-group">
+              <label class="form-label">系统提示</label>
+              <textarea v-model="formData.role1.system_prompt" class="form-textarea" rows="2" placeholder="角色1系统提示" />
+            </div>
+          </div>
+
+          <div class="form-divider">角色 2</div>
+          <div class="role-section">
+            <div class="form-row">
+              <div class="form-col">
+                <div class="form-group">
+                  <label class="form-label">从现有角色导入</label>
+                  <select v-model="importRole2Id" class="form-select" @change="handleImportRole2(importRole2Id)">
+                    <option :value="null">选择角色导入</option>
+                    <option v-for="role in roleStore.items" :key="role.id" :value="role.id">
+                      {{ role.name }}
+                    </option>
+                  </select>
+                </div>
+              </div>
+              <div class="form-col-actions">
+                <button class="btn-ghost btn-sm" @click="clearRole2">清空角色</button>
+              </div>
+            </div>
+            <div class="form-group">
+              <label class="form-label">名称</label>
+              <input v-model="formData.role2.name" class="form-input" placeholder="角色2名称" />
+            </div>
+            <div class="form-group">
+              <label class="form-label">描述</label>
+              <textarea v-model="formData.role2.description" class="form-textarea" rows="2" placeholder="角色2描述" />
+            </div>
+            <div class="form-group">
+              <label class="form-label">性格</label>
+              <textarea v-model="formData.role2.personality" class="form-textarea" rows="2" placeholder="角色2性格" />
+            </div>
+            <div class="form-group">
+              <label class="form-label">首消息</label>
+              <textarea v-model="formData.role2.first_mes" class="form-textarea" rows="2" placeholder="角色2首消息" />
+            </div>
+            <div class="form-group">
+              <label class="form-label">消息示例</label>
+              <textarea v-model="formData.role2.mes_example" class="form-textarea" rows="2" placeholder="角色2消息示例" />
+            </div>
+            <div class="form-group">
+              <label class="form-label">系统提示</label>
+              <textarea v-model="formData.role2.system_prompt" class="form-textarea" rows="2" placeholder="角色2系统提示" />
+            </div>
+          </div>
         </div>
-        <el-empty v-if="store.items.length === 0" description="暂无故事" />
-      </el-scrollbar>
-    </div>
-    <div class="edit-panel">
-      <template v-if="store.selectedItem">
-        <div class="edit-header">
-          <div>
-            <h3 class="edit-title">{{ store.selectedItem.title || '未命名故事' }}</h3>
-            <p class="edit-subtitle">ID: {{ store.selectedItem.id }}</p>
-          </div>
-          <div class="edit-actions">
-            <el-button size="small" @click="handleCancel">取消</el-button>
-            <el-button type="primary" size="small" :loading="saving" @click="handleSave">保存</el-button>
-          </div>
+      </edit-panel>
+      <edit-panel v-else title="选择一个故事" subtitle="从左侧列表选择故事进行编辑">
+        <div class="empty-state">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1" width="48" height="48"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+          <p>请选择一个故事</p>
         </div>
-        <el-scrollbar height="calc(100% - 60px)">
-          <div class="edit-body">
-            <el-form :model="formData" label-position="top">
-              <el-row :gutter="20">
-                <el-col :span="12">
-                  <el-form-item label="标题">
-                    <el-input v-model="formData.title" placeholder="故事标题" />
-                  </el-form-item>
-                </el-col>
-                <el-col :span="12">
-                  <el-form-item label="状态">
-                    <el-radio-group v-model="formData.status">
-                      <el-radio value="active">进行中</el-radio>
-                      <el-radio value="completed">已完成</el-radio>
-                    </el-radio-group>
-                  </el-form-item>
-                </el-col>
-              </el-row>
-              <el-form-item label="描述">
-                <el-input v-model="formData.description" type="textarea" :rows="2" placeholder="故事描述" />
-              </el-form-item>
-              <el-row :gutter="20">
-                <el-col :span="12">
-                  <el-form-item label="API Key">
-                    <el-input v-model="formData.api_key" placeholder="API Key" />
-                  </el-form-item>
-                </el-col>
-                <el-col :span="12">
-                  <el-form-item label="模型">
-                    <el-input v-model="formData.model" placeholder="模型名称" />
-                  </el-form-item>
-                </el-col>
-              </el-row>
-              <el-form-item label="标签">
-                <el-input v-model="tagsInput" placeholder="标签1, 标签2" />
-              </el-form-item>
-              <el-form-item label="初始场景">
-                <el-input v-model="formData.initial_scene" type="textarea" :rows="2" placeholder="故事的初始场景描述" />
-              </el-form-item>
-
-              <el-divider content-position="left">预设</el-divider>
-              <div class="role-section">
-                <el-row :gutter="20">
-                  <el-col :span="16">
-                    <el-form-item label="从现有预设导入">
-                      <el-select
-                        v-model="selectedPresetId"
-                        placeholder="选择预设导入"
-                        clearable
-                        @change="handleSelectPreset"
-                      >
-                        <el-option
-                          v-for="preset in presetStore.items"
-                          :key="preset.id"
-                          :label="`${preset.id} - Temperature: ${preset.temperature}`"
-                          :value="preset.id"
-                        />
-                      </el-select>
-                    </el-form-item>
-                  </el-col>
-                  <el-col :span="8">
-                    <el-form-item>
-                      <el-button type="primary" size="small" @click="clearPreset">清空预设</el-button>
-                    </el-form-item>
-                  </el-col>
-                </el-row>
-                <el-descriptions v-if="formData.preset" :column="2" border size="small">
-                  <el-descriptions-item label="Temperature">{{ formData.preset.temperature }}</el-descriptions-item>
-                  <el-descriptions-item label="Top P">{{ formData.preset.top_p }}</el-descriptions-item>
-                  <el-descriptions-item label="Frequency Penalty">{{ formData.preset.frequency_penalty }}</el-descriptions-item>
-                  <el-descriptions-item label="Presence Penalty">{{ formData.preset.presence_penalty }}</el-descriptions-item>
-                </el-descriptions>
-              </div>
-
-              <el-divider content-position="left">世界书</el-divider>
-              <div class="role-section">
-                <el-row :gutter="20">
-                  <el-col :span="16">
-                    <el-form-item label="从现有世界书导入">
-                      <el-select
-                        v-model="selectedLorebookId"
-                        placeholder="选择世界书导入"
-                        clearable
-                        @change="handleSelectLorebook"
-                      >
-                        <el-option
-                          v-for="lorebook in lorebookStore.items"
-                          :key="lorebook.id"
-                          :label="lorebook.name"
-                          :value="lorebook.id"
-                        />
-                      </el-select>
-                    </el-form-item>
-                  </el-col>
-                  <el-col :span="8">
-                    <el-form-item>
-                      <el-button type="primary" size="small" @click="clearLorebook">清空世界书</el-button>
-                    </el-form-item>
-                  </el-col>
-                </el-row>
-                <el-descriptions v-if="formData.lorebook" :column="2" border size="small">
-                  <el-descriptions-item label="名称">{{ formData.lorebook.name }}</el-descriptions-item>
-                  <el-descriptions-item label="条目数">{{ Object.keys(formData.lorebook.entries || {}).length }}</el-descriptions-item>
-                  <el-descriptions-item label="描述">{{ formData.lorebook.description }}</el-descriptions-item>
-                </el-descriptions>
-              </div>
-
-              <el-divider content-position="left">角色 1</el-divider>
-              <div class="role-section">
-                <el-row :gutter="20">
-                  <el-col :span="16">
-                    <el-form-item label="从现有角色导入">
-                      <el-select
-                        v-model="importRole1Id"
-                        placeholder="选择角色导入"
-                        clearable
-                        @change="handleImportRole1"
-                      >
-                        <el-option
-                          v-for="role in roleStore.items"
-                          :key="role.id"
-                          :label="role.name"
-                          :value="role.id"
-                        />
-                      </el-select>
-                    </el-form-item>
-                  </el-col>
-                  <el-col :span="8">
-                    <el-form-item>
-                      <el-button type="primary" size="small" @click="clearRole1">清空角色</el-button>
-                    </el-form-item>
-                  </el-col>
-                </el-row>
-                <el-form-item label="名称">
-                  <el-input v-model="formData.role1.name" placeholder="角色1名称" />
-                </el-form-item>
-                <el-form-item label="描述">
-                  <el-input v-model="formData.role1.description" type="textarea" :rows="2" placeholder="角色1描述" />
-                </el-form-item>
-                <el-form-item label="性格">
-                  <el-input v-model="formData.role1.personality" type="textarea" :rows="2" placeholder="角色1性格" />
-                </el-form-item>
-                <el-form-item label="首消息">
-                  <el-input v-model="formData.role1.first_mes" type="textarea" :rows="2" placeholder="角色1首消息" />
-                </el-form-item>
-                <el-form-item label="消息示例">
-                  <el-input v-model="formData.role1.mes_example" type="textarea" :rows="2" placeholder="角色1消息示例" />
-                </el-form-item>
-                <el-form-item label="系统提示">
-                  <el-input v-model="formData.role1.system_prompt" type="textarea" :rows="2" placeholder="角色1系统提示" />
-                </el-form-item>
-              </div>
-
-              <el-divider content-position="left">角色 2</el-divider>
-              <div class="role-section">
-                <el-row :gutter="20">
-                  <el-col :span="16">
-                    <el-form-item label="从现有角色导入">
-                      <el-select
-                        v-model="importRole2Id"
-                        placeholder="选择角色导入"
-                        clearable
-                        @change="handleImportRole2"
-                      >
-                        <el-option
-                          v-for="role in roleStore.items"
-                          :key="role.id"
-                          :label="role.name"
-                          :value="role.id"
-                        />
-                      </el-select>
-                    </el-form-item>
-                  </el-col>
-                  <el-col :span="8">
-                    <el-form-item>
-                      <el-button type="primary" size="small" @click="clearRole2">清空角色</el-button>
-                    </el-form-item>
-                  </el-col>
-                </el-row>
-                <el-form-item label="名称">
-                  <el-input v-model="formData.role2.name" placeholder="角色2名称" />
-                </el-form-item>
-                <el-form-item label="描述">
-                  <el-input v-model="formData.role2.description" type="textarea" :rows="2" placeholder="角色2描述" />
-                </el-form-item>
-                <el-form-item label="性格">
-                  <el-input v-model="formData.role2.personality" type="textarea" :rows="2" placeholder="角色2性格" />
-                </el-form-item>
-                <el-form-item label="首消息">
-                  <el-input v-model="formData.role2.first_mes" type="textarea" :rows="2" placeholder="角色2首消息" />
-                </el-form-item>
-                <el-form-item label="消息示例">
-                  <el-input v-model="formData.role2.mes_example" type="textarea" :rows="2" placeholder="角色2消息示例" />
-                </el-form-item>
-                <el-form-item label="系统提示">
-                  <el-input v-model="formData.role2.system_prompt" type="textarea" :rows="2" placeholder="角色2系统提示" />
-                </el-form-item>
-              </div>
-            </el-form>
-          </div>
-        </el-scrollbar>
-      </template>
-      <el-empty v-else description="请选择一个故事" />
-    </div>
-  </div>
+      </edit-panel>
+    </template>
+  </crud-layout>
 </template>
 
 <script setup lang="ts">
 import { ref, reactive, watch, onMounted } from 'vue'
 import { ElMessage } from 'element-plus'
-import { Plus, Delete } from '@element-plus/icons-vue'
+import CrudLayout from '@/components/CrudLayout.vue'
+import EditPanel from '@/components/EditPanel.vue'
 import { useStoryStore, useRoleStore, usePresetStore, useLorebookStore } from '@/stores'
 import type { Story, Role, Preset, Lorebook } from '@/types'
 
@@ -307,38 +303,46 @@ const formData = reactive<{
   role2: { name: '', description: '', personality: '', first_mes: '', mes_example: '', system_prompt: '' },
 })
 
+const lastFormStoryId = ref<number | null>(null)
+
 watch(() => store.selectedItem, (item) => {
-  if (item) {
-    Object.assign(formData, {
-      title: item.title,
-      description: item.description,
-      status: item.status as 'active' | 'completed',
-      api_key: item.api_key || '',
-      model: item.model || '',
-      initial_scene: item.initial_scene || '',
-      role1: {
-        name: (item.role1?.name as string) || '',
-        description: (item.role1?.description as string) || '',
-        personality: (item.role1?.personality as string) || '',
-        first_mes: (item.role1?.first_mes as string) || '',
-        mes_example: (item.role1?.mes_example as string) || '',
-        system_prompt: (item.role1?.system_prompt as string) || '',
-      },
-      role2: {
-        name: (item.role2?.name as string) || '',
-        description: (item.role2?.description as string) || '',
-        personality: (item.role2?.personality as string) || '',
-        first_mes: (item.role2?.first_mes as string) || '',
-        mes_example: (item.role2?.mes_example as string) || '',
-        system_prompt: (item.role2?.system_prompt as string) || '',
-      },
-      preset: item.preset,
-      lorebook: item.lorebook,
-    })
-    tagsInput.value = (item.tags || []).join(', ')
-    selectedPresetId.value = item.preset?.id || null
-    selectedLorebookId.value = item.lorebook?.id || null
+  if (!item) {
+    lastFormStoryId.value = null
+    return
   }
+  // 只在实际切换到不同故事时才更新表单，忽略 fetchAll 刷新导致的引用变化
+  if (item.id === lastFormStoryId.value) return
+  lastFormStoryId.value = item.id
+
+  Object.assign(formData, {
+    title: item.title,
+    description: item.description,
+    status: item.status as 'active' | 'completed',
+    api_key: item.api_key || '',
+    model: item.model || '',
+    initial_scene: item.initial_scene || '',
+    role1: {
+      name: (item.role1?.name as string) || '',
+      description: (item.role1?.description as string) || '',
+      personality: (item.role1?.personality as string) || '',
+      first_mes: (item.role1?.first_mes as string) || '',
+      mes_example: (item.role1?.mes_example as string) || '',
+      system_prompt: (item.role1?.system_prompt as string) || '',
+    },
+    role2: {
+      name: (item.role2?.name as string) || '',
+      description: (item.role2?.description as string) || '',
+      personality: (item.role2?.personality as string) || '',
+      first_mes: (item.role2?.first_mes as string) || '',
+      mes_example: (item.role2?.mes_example as string) || '',
+      system_prompt: (item.role2?.system_prompt as string) || '',
+    },
+    preset: item.preset,
+    lorebook: item.lorebook,
+  })
+  tagsInput.value = (item.tags || []).join(', ')
+  selectedPresetId.value = item.preset?.id || null
+  selectedLorebookId.value = item.lorebook?.id || null
 }, { immediate: true })
 
 onMounted(() => {
@@ -467,153 +471,60 @@ function clearRole2() {
   formData.role2 = { name: '', description: '', personality: '', first_mes: '', mes_example: '', system_prompt: '' }
   importRole2Id.value = null
 }
+
+async function handleImport(data: unknown) {
+  try {
+    const created = await store.create(data as Partial<Story>)
+    store.select(created.id)
+    ElMessage.success('导入成功')
+  } catch { ElMessage.error('导入失败') }
+}
 </script>
 
 <style scoped>
-.stories-layout {
-  display: flex;
-  height: 100vh;
-  gap: 0;
+.edit-form {
+  max-width: 750px;
 }
 
-.list-panel {
-  width: 320px;
-  flex-shrink: 0;
+.empty-state {
   display: flex;
   flex-direction: column;
-  background: var(--el-bg-color);
-  border-right: 1px solid var(--el-border-color);
-}
-
-.list-header {
-  display: flex;
   align-items: center;
-  justify-content: space-between;
-  padding: 16px;
-  border-bottom: 1px solid var(--el-border-color);
+  justify-content: center;
+  padding: 80px 0;
+  color: var(--text-tertiary);
 }
 
-.list-title {
-  font-size: 17px;
-  font-weight: 600;
-  margin: 0;
-  color: var(--el-text-color-primary);
-}
+.empty-state svg { margin-bottom: 12px; opacity: 0.3; }
+.empty-state p { font-size: var(--font-sm); margin: 0; }
 
-.list-panel :deep(.el-scrollbar__wrap) {
-  padding: 12px;
-}
+.form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+.form-col { min-width: 0; }
+.form-col-actions { display: flex; align-items: flex-end; padding-bottom: 20px; }
+.form-group { margin-bottom: 20px; }
+.form-label { display: block; font-size: var(--font-sm); font-weight: 500; color: var(--text-secondary); margin-bottom: 6px; }
+.form-input { width: 100%; padding: 8px 12px; border: 1px solid var(--border); border-radius: var(--radius-sm); font-family: var(--font-sans); font-size: var(--font-sm); color: var(--text-primary); outline: none; transition: border-color var(--transition-fast); box-sizing: border-box; }
+.form-input:focus { border-color: var(--primary-light); }
+.form-textarea { width: 100%; padding: 8px 12px; border: 1px solid var(--border); border-radius: var(--radius-sm); font-family: var(--font-sans); font-size: var(--font-sm); line-height: var(--leading-relaxed); color: var(--text-primary); resize: vertical; outline: none; transition: border-color var(--transition-fast); box-sizing: border-box; }
+.form-textarea:focus { border-color: var(--primary-light); }
+.form-divider { font-size: var(--font-sm); font-weight: 600; color: var(--text-secondary); padding: 16px 0 8px; margin-bottom: 16px; border-bottom: 1px solid var(--border); }
+.form-select { width: 100%; padding: 8px 12px; border: 1px solid var(--border); border-radius: var(--radius-sm); font-family: var(--font-sans); font-size: var(--font-sm); color: var(--text-primary); outline: none; transition: border-color var(--transition-fast); box-sizing: border-box; background: var(--bg-card); cursor: pointer; }
+.form-select:focus { border-color: var(--primary-light); }
 
-.list-item {
-  display: flex;
-  align-items: center;
-  padding: 12px;
-  border-radius: 0;
-  border: 1px solid transparent;
-  cursor: pointer;
-  transition: all 0.2s;
-  margin-bottom: 0;
-  border-bottom: 1px solid var(--el-border-color-lighter);
-}
+.radio-group { display: flex; gap: 8px; }
+.radio-hidden { display: none; }
+.radio-pill { padding: 8px 16px; border: 1px solid var(--border); border-radius: var(--radius-sm); font-size: var(--font-sm); color: var(--text-secondary); cursor: pointer; transition: all var(--transition-fast); font-family: var(--font-sans); }
+.radio-pill:hover { border-color: var(--primary-light); color: var(--primary); }
+.radio-pill.active { background: var(--primary); border-color: var(--primary); color: white; }
 
-.list-item:hover {
-  background: var(--el-fill-color-light);
-}
+.role-section { background: var(--bg-main); border-radius: var(--radius-md); padding: 16px; margin-bottom: 16px; }
 
-.list-item.active {
-  background: var(--el-color-primary-light-9);
-  border-color: var(--el-color-primary-light-5);
-}
+.descriptions-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 8px; }
+.descriptions-item { display: flex; flex-direction: column; background: var(--bg-card); border-radius: var(--radius-sm); padding: 8px 12px; border: 1px solid var(--border); }
+.descriptions-label { font-size: var(--font-xs); color: var(--text-tertiary); margin-bottom: 2px; }
+.descriptions-value { font-size: var(--font-sm); color: var(--text-primary); font-weight: 500; }
 
-.item-content {
-  flex: 1;
-  min-width: 0;
-}
-
-.item-title {
-  font-size: 15px;
-  font-weight: 500;
-  color: var(--el-text-color-primary);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.item-meta {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin-top: 4px;
-}
-
-.item-round {
-  font-size: 13px;
-  color: var(--el-text-color-secondary);
-}
-
-.delete-btn {
-  opacity: 0;
-  transition: opacity 0.2s;
-}
-
-.list-item:hover .delete-btn {
-  opacity: 1;
-}
-
-.edit-panel {
-  flex: 1;
-  background: var(--el-bg-color);
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-}
-
-.edit-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 16px 20px;
-  border-bottom: 1px solid var(--el-border-color);
-  background: var(--el-fill-color-lighter);
-}
-
-.edit-title {
-  font-size: 17px;
-  font-weight: 600;
-  margin: 0;
-  color: var(--el-text-color-primary);
-}
-
-.edit-subtitle {
-  font-size: 14px;
-  color: var(--el-text-color-secondary);
-  margin: 4px 0 0 0;
-}
-
-.edit-actions {
-  display: flex;
-  gap: 8px;
-}
-
-.edit-body {
-  padding: 20px;
-  max-width: 950px;
-  width: 100%;
-}
-
-.role-section {
-  background: var(--el-fill-color-light);
-  border-radius: 8px;
-  padding: 16px;
-}
-
-/* 输入框字体优化 */
-:deep(.el-textarea__inner),
-:deep(.el-input__inner) {
-  font-size: 15px;
-}
-
-:deep(.el-textarea__inner) {
-  line-height: 1.8;
-}
+.btn-ghost { display: inline-flex; align-items: center; gap: 6px; padding: 8px 16px; border: 1px solid var(--border); border-radius: var(--radius-sm); background: transparent; color: var(--text-secondary); font-size: var(--font-sm); font-weight: 500; cursor: pointer; transition: all var(--transition-fast); font-family: var(--font-sans); }
+.btn-ghost:hover { border-color: var(--primary-light); color: var(--primary); }
+.btn-sm { padding: 6px 12px; font-size: var(--font-xs); }
 </style>
