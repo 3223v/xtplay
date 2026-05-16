@@ -122,6 +122,31 @@ export interface OpeningDraft {
   first: 'role1' | 'role2'
 }
 
+export interface Conversation {
+  id: number
+  role_id: number
+  title: string
+  status: 'active' | 'archived'
+  role_name: string
+  role_avatar: string
+  created_at: string
+  updated_at: string
+}
+
+export interface ConversationMessage {
+  id: number
+  role: 'user' | 'character'
+  action: string
+  dialogue: string
+  content: string
+  created_at: string
+}
+
+export interface SendMessageResponse {
+  user_message: ConversationMessage
+  character_message: ConversationMessage
+}
+
 export interface Prompt {
   key: string
   title: string

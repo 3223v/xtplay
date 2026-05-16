@@ -50,6 +50,11 @@
           <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 3h6a4 4 0 014 4v14a3 3 0 00-3-3H2z"/><path d="M22 3h-6a4 4 0 00-4 4v14a3 3 0 013-3h7z"/></svg>
           <span class="nav-label">阅读</span>
         </router-link>
+
+        <router-link to="/chat" class="nav-item" :class="{ active: route.path.startsWith('/chat') }">
+          <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>
+          <span class="nav-label">对话</span>
+        </router-link>
       </nav>
 
       <div class="sidebar-footer">
